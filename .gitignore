@@ -1,0 +1,24 @@
+# SBT
+boot
+target
+
+# Eclipse
+.classpath
+.launch
+.metadata
+.project
+.scala_dependencies
+.settings
+
+# IntelliJ
+.idea
+*.iml
+*.ipr
+*.iws
+out
+
+# TextMate
+*.tmproj
+
+# Mac
+.DS_Store
