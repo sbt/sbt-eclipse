@@ -1,0 +1,15 @@
+h1. sbt-eclipse
+
+This project is a plugin for "SBT 0.9":http://github.com/harrah/xsbt/ providing a command to create "Eclipse":http://www.eclipse.org/ project files from a SBT project.
+
+Attention: This is work in progress and so is SBT 0.9. In order to use this plugin you probably will have to build SBT 0.9 yourself.
+
+h2. Usage
+
+* Create a SBT project
+* Add the plugin
+* Now you can use the command _eclipse_ to create Eclipse project files
+
+h2. License
+
+sbt-eclipse is open source software licensed under the "Apache 2.0 License":http://www.apache.org/licenses/LICENSE-2.0.html. If you like it, feel free use it!
