@@ -45,19 +45,19 @@ object SbtEclipsePlugin extends Plugin {
       def saveEclipseFiles(
           scalaVersion: String,
           name: String,
-          sourceDirectories: Seq[File],
-          resourceDirectories: Seq[File],
-          testSourceDirectories: Seq[File],
-          testResourceDirectories: Seq[File],
+          compileDirectories: Directories,
+          testDirectories: Directories,
           baseDirectory: File) {
         XML.save(".project", projectXml(name))
         XML.save(
             ".classpath", 
             classpathXml(
-                sourceDirectories, 
-                resourceDirectories, 
-                testSourceDirectories, 
-                testResourceDirectories, 
+                compileDirectories.sources, 
+                compileDirectories.resources, 
+                compileDirectories.clazz, 
+                testDirectories.sources, 
+                testDirectories.resources, 
+                testDirectories.clazz, 
                 baseDirectory), 
             "UTF-8", 
             true)
@@ -80,16 +80,19 @@ object SbtEclipsePlugin extends Plugin {
       def classpathXml(
           compileSourceDirectories: Seq[File],
           compileResourceDirectories: Seq[File],
+          classDirectory: File,
           testSourceDirectories: Seq[File],
           testResourceDirectories: Seq[File],
+          testClassDirectory: File,
           baseDirectory: File) = {
 
-        def srcEntries(directories: Seq[File]): NodeSeq =
+        def srcEntries(directories: Seq[File], output: File): NodeSeq =
           directories flatMap { directory =>
             if (directory.exists) {
               logger(state).debug("""Creating src entry for directory "%s".""".format(directory))
-              val relative = IO.relativize(baseDirectory, directory).get // TODO Better handling!
-              <classpathentry kind="src" path={ relative.toString } output="target/classes"/>
+              val relative = IO.relativize(baseDirectory, directory).get
+              val relativeOutput = IO.relativize(baseDirectory, output).get
+              <classpathentry kind="src" path={ relative.toString } output={ relativeOutput.toString } />
             } else {
               logger(state).debug("""Skipping src entry for non-existent directory "%s".""".format(directory))
               NodeSeq.Empty
@@ -97,10 +100,10 @@ object SbtEclipsePlugin extends Plugin {
           }
 
         <classpath>{
-        	srcEntries(compileSourceDirectories) ++
-        	srcEntries(compileResourceDirectories) ++
-        	srcEntries(testSourceDirectories) ++
-        	srcEntries(testResourceDirectories) ++
+        	srcEntries(compileSourceDirectories, classDirectory) ++
+        	srcEntries(compileResourceDirectories, classDirectory) ++
+        	srcEntries(testSourceDirectories, testClassDirectory) ++
+        	srcEntries(testResourceDirectories, testClassDirectory) ++
         	<classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/>
         	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
         	<classpathentry kind="output" path="target/classes"/>
@@ -108,13 +111,29 @@ object SbtEclipsePlugin extends Plugin {
       }
 
   		logger(state).debug("Trying to create an Eclipse project for you ...")
-      (setting(Keys.scalaVersion, "Only for Scala 2.9!") |@|
-          setting(Keys.name, "Missing name!") |@|
-          setting(Keys.sourceDirectories, "Missing source directories!") |@|
-          setting(Keys.resourceDirectories, "Missing resource directories!") |@|
-          setting(Keys.sourceDirectories, "Missing test source directories!", Configurations.Test) |@|
-          setting(Keys.resourceDirectories, "Missing test resource directories!", Configurations.Test) |@|
-          setting(Keys.baseDirectory, "Missing base directory!")) {
+
+      val scalaVersion =
+        setting(Keys.scalaVersion, "Missing Scala version!") match {
+          case f @ Failure(_) => f
+          case Success(s) if (s startsWith "2.9") => s.success
+          case _ => "Only for Scala 2.9!".failNel
+        }
+      val name = setting(Keys.name, "Missing name!")
+      val compileDirectories =
+        (setting(Keys.sourceDirectories, "Missing source directories!") |@|
+            setting(Keys.resourceDirectories, "Missing resource directories!") |@|
+            setting(Keys.classDirectory, "Missing class directory!")) {
+          Directories
+        }
+      val testDirectories =
+        (setting(Keys.sourceDirectories, "Missing test source directories!", Configurations.Test) |@|
+            setting(Keys.resourceDirectories, "Missing test resource directories!", Configurations.Test) |@|
+            setting(Keys.classDirectory, "Missing test class directory!", Configurations.Test)) {
+          Directories
+        }
+      val baseDirectory = setting(Keys.baseDirectory, "Missing base directory!")
+
+      (scalaVersion |@| name |@| compileDirectories |@| testDirectories |@| baseDirectory) {
         saveEclipseFiles
       } match {
         case Success(_) =>
@@ -125,4 +144,6 @@ object SbtEclipsePlugin extends Plugin {
   		state
   	}
 	}
+
+  private case class Directories(sources: Seq[File], resources: Seq[File], clazz: File)
 }
