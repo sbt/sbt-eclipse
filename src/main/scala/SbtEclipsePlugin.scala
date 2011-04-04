@@ -67,13 +67,13 @@ object SbtEclipsePlugin extends Plugin {
         <projectDescription>
           <name>{ name }</name>
           <buildSpec>
-          	<buildCommand>
-          		<name>org.scala-ide.sdt.core.scalabuilder</name>
-          	</buildCommand>
+            <buildCommand>
+              <name>org.scala-ide.sdt.core.scalabuilder</name>
+            </buildCommand>
           </buildSpec>
           <natures>
-          	<nature>org.scala-ide.sdt.core.scalanature</nature>
-          	<nature>org.eclipse.jdt.core.javanature</nature>
+            <nature>org.scala-ide.sdt.core.scalanature</nature>
+            <nature>org.eclipse.jdt.core.javanature</nature>
           </natures>
         </projectDescription>
 
@@ -100,17 +100,17 @@ object SbtEclipsePlugin extends Plugin {
           }
 
         <classpath>{
-        	srcEntries(compileSourceDirectories, classDirectory) ++
-        	srcEntries(compileResourceDirectories, classDirectory) ++
-        	srcEntries(testSourceDirectories, testClassDirectory) ++
-        	srcEntries(testResourceDirectories, testClassDirectory) ++
-        	<classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/>
-        	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
-        	<classpathentry kind="output" path="target/classes"/>
+          srcEntries(compileSourceDirectories, classDirectory) ++
+          srcEntries(compileResourceDirectories, classDirectory) ++
+          srcEntries(testSourceDirectories, testClassDirectory) ++
+          srcEntries(testResourceDirectories, testClassDirectory) ++
+          <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/>
+          <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
+          <classpathentry kind="output" path="target/classes"/>
         }</classpath>
       }
 
-  		logger(state).debug("Trying to create an Eclipse project for you ...")
+      logger(state).debug("Trying to create an Eclipse project for you ...")
 
       val scalaVersion =
         setting(Keys.scalaVersion, "Missing Scala version!") match {
@@ -138,12 +138,13 @@ object SbtEclipsePlugin extends Plugin {
       } match {
         case Success(_) =>
           logger(state).info("Successfully created an Eclipse project for you. Have fun!")
+          state
         case Failure(errors) =>
           logger(state).error(errors.list mkString ", ")
+          state.fail
       }
-  		state
-  	}
-	}
+    }
+  }
 
   private case class Directories(sources: Seq[File], resources: Seq[File], clazz: File)
 }
