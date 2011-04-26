@@ -3,7 +3,7 @@ organization := "com.weiglewilczek.sbteclipse"
 
 name := "sbteclipse"
 
-version := "0.2-SNAPSHOT"
+version := "0.2"
 
 resolvers += ScalaToolsSnapshots
 
