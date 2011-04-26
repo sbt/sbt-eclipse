@@ -16,7 +16,7 @@
 package com.weiglewilczek.sbteclipse
 
 import java.io.File
-import sbt.{ Command, Configuration, Configurations, IO, Keys, Plugin, Project, SettingKey, State }
+import sbt._
 import sbt.CommandSupport.logger
 import scala.xml.{ NodeSeq, XML }
 import scalaz.{ Failure, NonEmptyList, Success, Validation }
@@ -43,12 +43,70 @@ object SbtEclipsePlugin extends Plugin {
       }
 
       def saveEclipseFiles(
+          projectName: String,
           scalaVersion: String,
-          name: String,
+          baseDirectory: File,
           compileDirectories: Directories,
           testDirectories: Directories,
-          baseDirectory: File) {
-        XML.save(".project", projectXml(name))
+          compileLibraries: Seq[File]) {
+
+            def projectXml(name: String) =
+              <projectDescription>
+                <name>{ name }</name>
+                <buildSpec>
+                  <buildCommand>
+                    <name>org.scala-ide.sdt.core.scalabuilder</name>
+                  </buildCommand>
+                </buildSpec>
+                <natures>
+                  <nature>org.scala-ide.sdt.core.scalanature</nature>
+                  <nature>org.eclipse.jdt.core.javanature</nature>
+                </natures>
+              </projectDescription>
+
+            def classpathXml(
+                compileSourceDirectories: Seq[File],
+                compileResourceDirectories: Seq[File],
+                classDirectory: File,
+                testSourceDirectories: Seq[File],
+                testResourceDirectories: Seq[File],
+                testClassDirectory: File,
+                baseDirectory: File) = {
+
+              def srcEntries(directories: Seq[File], output: File): NodeSeq =
+                directories flatMap { directory =>
+                  if (directory.exists) {
+                    logger(state).debug("""Creating src entry for directory "%s".""".format(directory))
+                    val relative = IO.relativize(baseDirectory, directory).get
+                    val relativeOutput = IO.relativize(baseDirectory, output).get
+                    <classpathentry kind="src" path={ relative.toString } output={ relativeOutput.toString } />
+                  } else {
+                    logger(state).debug("""Skipping src entry for non-existent directory "%s".""".format(directory))
+                    NodeSeq.Empty
+                  }
+                }
+
+             def libEntries(libs: Seq[File]): NodeSeq =
+               libs collect {
+                 case Path(path) if !(path endsWith "scala-library.jar") => path
+               } flatMap { path =>
+                 logger(state).debug("""Creating lib entry for dependency "%s".""".format(path))
+                 <classpathentry kind="lib" path={ path } />
+               }
+
+              <classpath>{
+                srcEntries(compileSourceDirectories, classDirectory) ++
+                srcEntries(compileResourceDirectories, classDirectory) ++
+                srcEntries(testSourceDirectories, testClassDirectory) ++
+                srcEntries(testResourceDirectories, testClassDirectory) ++
+                libEntries(compileLibraries) ++
+                <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/>
+                <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
+                <classpathentry kind="output" path="target/classes"/>
+              }</classpath>
+            }
+
+        XML.save(".project", projectXml(projectName))
         XML.save(
             ".classpath", 
             classpathXml(
@@ -63,62 +121,16 @@ object SbtEclipsePlugin extends Plugin {
             true)
       }
 
-      def projectXml(name: String) =
-        <projectDescription>
-          <name>{ name }</name>
-          <buildSpec>
-            <buildCommand>
-              <name>org.scala-ide.sdt.core.scalabuilder</name>
-            </buildCommand>
-          </buildSpec>
-          <natures>
-            <nature>org.scala-ide.sdt.core.scalanature</nature>
-            <nature>org.eclipse.jdt.core.javanature</nature>
-          </natures>
-        </projectDescription>
-
-      def classpathXml(
-          compileSourceDirectories: Seq[File],
-          compileResourceDirectories: Seq[File],
-          classDirectory: File,
-          testSourceDirectories: Seq[File],
-          testResourceDirectories: Seq[File],
-          testClassDirectory: File,
-          baseDirectory: File) = {
-
-        def srcEntries(directories: Seq[File], output: File): NodeSeq =
-          directories flatMap { directory =>
-            if (directory.exists) {
-              logger(state).debug("""Creating src entry for directory "%s".""".format(directory))
-              val relative = IO.relativize(baseDirectory, directory).get
-              val relativeOutput = IO.relativize(baseDirectory, output).get
-              <classpathentry kind="src" path={ relative.toString } output={ relativeOutput.toString } />
-            } else {
-              logger(state).debug("""Skipping src entry for non-existent directory "%s".""".format(directory))
-              NodeSeq.Empty
-            }
-          }
-
-        <classpath>{
-          srcEntries(compileSourceDirectories, classDirectory) ++
-          srcEntries(compileResourceDirectories, classDirectory) ++
-          srcEntries(testSourceDirectories, testClassDirectory) ++
-          srcEntries(testResourceDirectories, testClassDirectory) ++
-          <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/>
-          <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
-          <classpathentry kind="output" path="target/classes"/>
-        }</classpath>
-      }
-
       logger(state).debug("Trying to create an Eclipse project for you ...")
 
+      val projectName = setting(Keys.name, "Missing project name!")
       val scalaVersion =
         setting(Keys.scalaVersion, "Missing Scala version!") match {
           case f @ Failure(_) => f
           case Success(s) if (s startsWith "2.9") => s.success
           case _ => "Only for Scala 2.9!".failNel
         }
-      val name = setting(Keys.name, "Missing name!")
+      val baseDirectory = setting(Keys.baseDirectory, "Missing base directory!")
       val compileDirectories =
         (setting(Keys.sourceDirectories, "Missing source directories!") |@|
             setting(Keys.resourceDirectories, "Missing resource directories!") |@|
@@ -131,9 +143,14 @@ object SbtEclipsePlugin extends Plugin {
             setting(Keys.classDirectory, "Missing test class directory!", Configurations.Test)) {
           Directories
         }
-      val baseDirectory = setting(Keys.baseDirectory, "Missing base directory!")
+      val compileLibraries =
+        Project.evaluateTask(Keys.externalDependencyClasspath in Configurations.Compile, state) match {
+          case Some(Value(attributedLibs)) => (attributedLibs map { _.data }).success
+          case Some(Inc(_)) => "Error determining compile libraries: %s".failNel
+          case None => "Missing compile libraries!".failNel
+        }
 
-      (scalaVersion |@| name |@| compileDirectories |@| testDirectories |@| baseDirectory) {
+      (projectName |@| scalaVersion |@| baseDirectory |@| compileDirectories |@| testDirectories |@| compileLibraries) {
         saveEclipseFiles
       } match {
         case Success(_) =>
@@ -147,4 +164,9 @@ object SbtEclipsePlugin extends Plugin {
   }
 
   private case class Directories(sources: Seq[File], resources: Seq[File], clazz: File)
+
+  private object Path {
+    def unapply(file: File): Option[String] =
+      Some(file.getAbsolutePath)
+  }
 }
