@@ -132,14 +132,14 @@ object SbtEclipsePlugin extends Plugin {
         }
       val baseDirectory = setting(Keys.baseDirectory, "Missing base directory!")
       val compileDirectories =
-        (setting(Keys.sourceDirectories, "Missing source directories!") |@|
-            setting(Keys.resourceDirectories, "Missing resource directories!") |@|
+        (setting(Keys.unmanagedSourceDirectories, "Missing unmanaged source directories!") |@|
+            setting(Keys.unmanagedResourceDirectories, "Missing unmanaged resource directories!") |@|
             setting(Keys.classDirectory, "Missing class directory!")) {
           Directories
         }
       val testDirectories =
-        (setting(Keys.sourceDirectories, "Missing test source directories!", Configurations.Test) |@|
-            setting(Keys.resourceDirectories, "Missing test resource directories!", Configurations.Test) |@|
+        (setting(Keys.unmanagedSourceDirectories, "Missing unmanaged test source directories!", Configurations.Test) |@|
+            setting(Keys.unmanagedResourceDirectories, "Missing unmanaged test resource directories!", Configurations.Test) |@|
             setting(Keys.classDirectory, "Missing test class directory!", Configurations.Test)) {
           Directories
         }
