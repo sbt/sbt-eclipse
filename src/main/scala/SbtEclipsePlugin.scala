@@ -48,7 +48,7 @@ object SbtEclipsePlugin extends Plugin {
           baseDirectory: File,
           compileDirectories: Directories,
           testDirectories: Directories,
-          compileLibraries: Seq[File]) {
+          libraries: Seq[File]) {
 
             def projectXml(name: String) =
               <projectDescription>
@@ -99,7 +99,7 @@ object SbtEclipsePlugin extends Plugin {
                 srcEntries(compileResourceDirectories, classDirectory) ++
                 srcEntries(testSourceDirectories, testClassDirectory) ++
                 srcEntries(testResourceDirectories, testClassDirectory) ++
-                libEntries(compileLibraries) ++
+                libEntries(libraries) ++
                 <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/>
                 <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
                 <classpathentry kind="output" path="target/classes"/>
@@ -143,14 +143,14 @@ object SbtEclipsePlugin extends Plugin {
             setting(Keys.classDirectory, "Missing test class directory!", Configurations.Test)) {
           Directories
         }
-      val compileLibraries =
-        Project.evaluateTask(Keys.externalDependencyClasspath in Configurations.Compile, state) match {
+      val libraries = // Configurations.Test contains items from Configurations.Compile!
+        Project.evaluateTask(Keys.externalDependencyClasspath in Configurations.Test, state) match {
           case Some(Value(attributedLibs)) => (attributedLibs map { _.data }).success
           case Some(Inc(_)) => "Error determining compile libraries: %s".failNel
           case None => "Missing compile libraries!".failNel
         }
 
-      (projectName |@| scalaVersion |@| baseDirectory |@| compileDirectories |@| testDirectories |@| compileLibraries) {
+      (projectName |@| scalaVersion |@| baseDirectory |@| compileDirectories |@| testDirectories |@| libraries) {
         saveEclipseFiles
       } match {
         case Success(_) =>
