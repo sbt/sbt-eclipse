@@ -3,7 +3,7 @@ organization := "com.weiglewilczek.sbteclipse"
 
 name := "sbteclipse"
 
-version := "0.5-SNAPSHOT"
+version := "0.6-SNAPSHOT"
 
 sbtPlugin := true
 
