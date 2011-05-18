@@ -7,8 +7,6 @@ version := "0.5-SNAPSHOT"
 
 sbtPlugin := true
 
-resolvers += ScalaToolsSnapshots
-
-libraryDependencies += "org.scalaz" %% "scalaz-core" % "6.0-SNAPSHOT"
+libraryDependencies += "org.scalaz" %% "scalaz-core" % "6.0.RC2"
 
 publishTo := Some("Scala Tools Nexus" at "http://nexus.scala-tools.org/content/repositories/releases/")
