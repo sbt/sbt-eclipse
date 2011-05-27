@@ -14,7 +14,7 @@ Example:
 <pre><code>~$ mkdir -p .sbt/plugins
 ~$ cd .sbt/plugins/
 plugins$ sbt09
-> set libraryDependencies += "com.weiglewilczek.sbteclipse" %% "sbteclipse" % "0.5"
+> set libraryDependencies += "com.weiglewilczek.sbteclipse" %% "sbteclipse" % "0.6"
 > session save
 > exit
 
@@ -23,7 +23,7 @@ tmp$ cd test
 test$ sbt09
 > eclipse
 [error] Only for Scala 2.9!
-> set scalaVersion := "2.9.0"
+> set scalaVersion := "2.9.0-1"
 > eclipse
 [info] Successfully created an Eclipse project for you. Have fun!
 </code></pre>
