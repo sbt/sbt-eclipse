@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.weiglewilczek.sbteclipse
 
 import java.io.File
@@ -28,13 +29,17 @@ object SbtEclipsePlugin extends Plugin {
 
   private lazy val eclipseCommand = Command.command("eclipse") { state =>
 
+    val structure = Project.extract(state).structure
+
     def setting[A](
         key: SettingKey[A], 
         errorMessage: => String,
-        configuration: Configuration = Configurations.Compile): Validation[NonEmptyList[String], A] = {
-      val extracted = Project.extract(state)
-      key in (extracted.currentRef, configuration) get extracted.structure.data match {
-        case Some(a) => a.success
+        configuration: Configuration = Configurations.Compile)(
+        implicit projectRef: ProjectReference): Validation[NonEmptyList[String], A] = {
+      key in (projectRef, configuration) get structure.data match {
+        case Some(a) =>
+          logger(state).debug("Setting for key %s = %s".format(key.key, a))
+          a.success
         case None => errorMessage.failNel
       }
     }
@@ -45,7 +50,8 @@ object SbtEclipsePlugin extends Plugin {
         baseDirectory: File,
         compileDirectories: Directories,
         testDirectories: Directories,
-        libraries: Seq[File]) {
+        libraries: Seq[File],
+        projectDependencies: Seq[String]) {
 
       def projectXml(name: String) =
         <projectDescription>
@@ -73,40 +79,45 @@ object SbtEclipsePlugin extends Plugin {
         def srcEntries(directories: Seq[File], output: File) =
           directories flatMap { directory =>
             if (directory.exists) {
-              logger(state).debug("""Creating src entry for directory "%s".""".format(directory))
+              logger(state).debug("""Creating src entry for directory "%s".""" format directory)
               val relative = IO.relativize(baseDirectory, directory).get
               val relativeOutput = IO.relativize(baseDirectory, output).get
               <classpathentry kind="src" path={ relative.toString } output={ relativeOutput.toString }/>
             } else {
-              logger(state).debug("""Skipping src entry for non-existent directory "%s".""".format(directory))
+              logger(state).debug("""Skipping src entry for non-existent directory "%s".""" format directory)
               NodeSeq.Empty
             }
           }
 
-        def libEntries(libs: Seq[File]) =
-          libs collect {
+        def libEntries =
+          libraries collect {
             case PathExtractor(path) if !(path endsWith "scala-library.jar") => path
           } flatMap { path =>
-            logger(state).debug("""Creating lib entry for dependency "%s".""".format(path))
+            logger(state).debug("""Creating lib entry for dependency "%s".""" format path)
             <classpathentry kind="lib" path={ path }/>
           }
+
+        def projectDependencyEntries = projectDependencies flatMap { projectDependency =>
+          logger(state).debug("""Creating project dependency entry for "%s".""" format projectDependency)
+          <classpathentry kind="src" path={"/" + projectDependency } combineaccessrules="false"/>
+        }
 
         <classpath>{
           srcEntries(compileSourceDirectories, classDirectory) ++
           srcEntries(compileResourceDirectories, classDirectory) ++
           srcEntries(testSourceDirectories, testClassDirectory) ++
           srcEntries(testResourceDirectories, testClassDirectory) ++
-          libEntries(libraries) ++
+          libEntries ++
+          projectDependencyEntries ++
           <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/>
           <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
           <classpathentry kind="output" path="target/classes"/>
         }</classpath>
       }
 
-      XML.save(".project", projectXml(projectName))
-      XML.save(".classpath", 
-          classpathXml(
-              compileDirectories.sources,
+      XML.save((baseDirectory / ".project").getAbsolutePath , projectXml(projectName))
+      XML.save((baseDirectory / ".classpath").getAbsolutePath, 
+          classpathXml(compileDirectories.sources,
               compileDirectories.resources,
               compileDirectories.clazz,
               testDirectories.sources,
@@ -119,38 +130,55 @@ object SbtEclipsePlugin extends Plugin {
 
     logger(state).debug("Trying to create an Eclipse project for you ...")
 
-    val projectName = setting(Keys.name, "Missing project name!")
-    val scalaVersion =
-      setting(Keys.scalaVersion, "Missing Scala version!") match {
+    (structure.allProjectRefs map { ref: ProjectRef =>
+      implicit val implicitRef = ref
+
+      val projectName = setting(Keys.name, "Missing project name for %s!" format ref.project)
+      val scalaVersion = setting(Keys.scalaVersion, "Missing Scala version for %s!" format ref.project) match {
         case f @ Failure(_) => f
         case Success(s) if (s startsWith "2.9") => s.success
         case _ => "Only for Scala 2.9!".failNel
       }
-    val baseDirectory = setting(Keys.baseDirectory, "Missing base directory!")
-    val compileDirectories =
-      (setting(Keys.unmanagedSourceDirectories, "Missing unmanaged source directories!") |@|
-          setting(Keys.unmanagedResourceDirectories, "Missing unmanaged resource directories!") |@|
-          setting(Keys.classDirectory, "Missing class directory!")) {
+      val baseDirectory = setting(Keys.baseDirectory, "Missing base directory for %s!" format ref.project)
+      val compileDirectories = (setting(Keys.unmanagedSourceDirectories, "Missing unmanaged source directories for %s!" format ref.project) |@|
+          setting(Keys.unmanagedResourceDirectories, "Missing unmanaged resource directories for %s!" format ref.project) |@|
+          setting(Keys.classDirectory, "Missing class directory for %s!" format ref.project)) {
         Directories
       }
-    val testDirectories =
-      (setting(Keys.unmanagedSourceDirectories, "Missing unmanaged test source directories!", Configurations.Test) |@|
-          setting(Keys.unmanagedResourceDirectories, "Missing unmanaged test resource directories!", Configurations.Test) |@|
-          setting(Keys.classDirectory, "Missing test class directory!", Configurations.Test)) {
+      val testDirectories = (setting(Keys.unmanagedSourceDirectories, "Missing unmanaged test source directories for %s!" format ref.project, Configurations.Test) |@|
+          setting(Keys.unmanagedResourceDirectories, "Missing unmanaged test resource directories for %s!" format ref.project, Configurations.Test) |@|
+          setting(Keys.classDirectory, "Missing test class directory for %s!" format ref.project, Configurations.Test)) {
         Directories
       }
-    val libraries = // Configurations.Test contains items from Configurations.Compile!
-      Project.evaluateTask(Keys.externalDependencyClasspath in Configurations.Test, state) match {
+      val libraries = EvaluateTask.evaluateTask(structure,
+          Keys.externalDependencyClasspath in Configurations.Test, // Configurations.Test contains items from Configurations.Compile!
+          state,
+          ref,
+          false,
+          EvaluateTask.SystemProcessors) match {
         case Some(Value(attributedLibs)) => (attributedLibs map { _.data }).success
-        case Some(Inc(_)) => "Error determining compile libraries: %s".failNel
-        case None => "Missing compile libraries!".failNel
+        case Some(Inc(_)) => ("Error determining compile libraries for %s" format ref.project).failNel
+        case None => ("Missing compile libraries for %s!" format ref.project).failNel
       }
+      val projectDependencies = (Project.getProject(ref, structure) match {
+        case None => Seq(("Cannot resolve project for reference %s!" format ref.project).failNel)
+        case Some(project) => project.dependencies map { dependency =>
+          setting(Keys.name, "Missing project name for %s!" format ref.project)(dependency.project)
+        }
+      }).sequence[({type L[A]=Validation[NonEmptyList[String], A]})#L, String]
 
-    (projectName |@| scalaVersion |@| baseDirectory |@| compileDirectories |@| testDirectories |@| libraries) {
-      saveEclipseFiles
-    } match {
+      (projectName |@| 
+          scalaVersion |@| 
+          baseDirectory |@| 
+          compileDirectories |@| 
+          testDirectories |@| 
+          libraries |@| 
+          projectDependencies) {
+        saveEclipseFiles
+      }
+    }).sequence[({type L[A]=Validation[NonEmptyList[String], A]})#L, Unit] match {
       case Success(_) =>
-        logger(state).info("Successfully created an Eclipse project for you. Have fun!")
+        logger(state).info("Successfully created one or more Eclipse projects for you. Have fun!")
         state
       case Failure(errors) =>
         logger(state).error(errors.list mkString ", ")
