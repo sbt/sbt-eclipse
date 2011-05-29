@@ -18,6 +18,8 @@ package com.weiglewilczek.sbteclipse
 
 import java.io.File
 import sbt._
+import sbt.complete._
+import sbt.complete.Parsers._
 import sbt.CommandSupport.logger
 import scala.xml.{ NodeSeq, XML }
 import scalaz.{ Failure, NonEmptyList, Success, Validation }
@@ -27,9 +29,13 @@ object SbtEclipsePlugin extends Plugin {
 
   override lazy val settings = Seq(Keys.commands += eclipseCommand)
 
-  private lazy val eclipseCommand = Command.command("eclipse") { state =>
+  private val args = (Space ~> "skip-root").?
 
-    val structure = Project.extract(state).structure
+  private val eclipseCommand = Command("eclipse")(_ => args) { (state, skipRoot) =>
+
+    val extracted = Project.extract(state)
+
+    val structure = extracted.structure
 
     def setting[A](
         key: SettingKey[A], 
@@ -43,6 +49,8 @@ object SbtEclipsePlugin extends Plugin {
         case None => errorMessage.failNel
       }
     }
+
+    def notSkipped(ref: ProjectRef) = (skipRoot.isEmpty) || (ref.project != (extracted rootProject ref.build))
 
     def saveEclipseFiles(
         projectName: String,
@@ -130,7 +138,7 @@ object SbtEclipsePlugin extends Plugin {
 
     logger(state).debug("Trying to create an Eclipse project for you ...")
 
-    (structure.allProjectRefs map { ref: ProjectRef =>
+    (for (ref <- structure.allProjectRefs if notSkipped(ref)) yield {
       implicit val implicitRef = ref
 
       val projectName = setting(Keys.name, "Missing project name for %s!" format ref.project)
@@ -166,7 +174,6 @@ object SbtEclipsePlugin extends Plugin {
           setting(Keys.name, "Missing project name for %s!" format ref.project)(dependency.project)
         }
       }).sequence[({type L[A]=Validation[NonEmptyList[String], A]})#L, String]
-
       (projectName |@| 
           scalaVersion |@| 
           baseDirectory |@| 
