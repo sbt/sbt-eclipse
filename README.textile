@@ -14,7 +14,7 @@ Example:
 <pre><code>~$ mkdir -p .sbt/plugins
 ~$ cd .sbt/plugins/
 plugins$ sbt09
-> set libraryDependencies += "com.weiglewilczek.sbteclipse" %% "sbteclipse" % "0.6"
+> set libraryDependencies += "com.weiglewilczek.sbteclipse" %% "sbteclipse" % "0.7"
 > session save
 > exit
 
