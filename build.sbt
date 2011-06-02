@@ -1,5 +1,5 @@
 
-organization := "com.weiglewilczek.sbteclipse"
+organization := "com.typesafe.sbteclipse"
 
 name := "sbteclipse"
 
@@ -7,20 +7,16 @@ version := "0.8-SNAPSHOT"
 
 sbtPlugin := true
 
-libraryDependencies += "org.scalaz" % "scalaz-core_2.9.0" % "6.0.RC2"
+libraryDependencies += "org.scalaz" %% "scalaz-core" % "6.0.RC2"
 
-publishTo := Some("Scala Tools Nexus" at "http://nexus.scala-tools.org/content/repositories/releases/")
+publishMavenStyle := false
 
-credentials += Credentials(Path.userHome / ".ivy2" / ".credentials")
+projectID <<= (projectID, sbtVersion) { (id, version) => id.extra("sbtversion" -> version.toString) }
 
-pomPostProcess := { (pom: scala.xml.Node) =>
-  import scala.xml._
-  import scala.xml.transform._
-  val rewriteRule = new RewriteRule {
-    override def transform(n: Node) = n match {
-      case elem @ Elem(_, "dependency", _, _, _*) if ((elem \ "groupId").text == "org.scala-tools.sbt") && ((elem \ "artifactId").text startsWith "sbt_")  => NodeSeq.Empty
-      case other => other
-    }
-  }
-  new RuleTransformer(rewriteRule)(pom)
+publishTo := {
+  val typesafeRepoUrl = new java.net.URL("http://typesafe.artifactoryonline.com/typesafe/ivy-snapshots")
+  val pattern = Patterns(false, "[organisation]/[module]/[sbtversion]/[revision]/[type]s/[module](-[classifier])-[revision].[ext]")
+  Some(Resolver.url("Typesafe Repository", typesafeRepoUrl)(pattern))
 }
+
+credentials += Credentials(Path.userHome / ".ivy2" / ".typesafe-credentials")

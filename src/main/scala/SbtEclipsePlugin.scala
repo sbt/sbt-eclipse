@@ -1,5 +1,7 @@
 /*
- * Copyright 2011 Weigle Wilczek GmbH
+ * Copyright 2011 Typesafe Inc.
+ * 
+ * This work is based on the original contribution of WeigleWilczek.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +16,7 @@
  * limitations under the License.
  */
 
-package com.weiglewilczek.sbteclipse
+package com.typesafe.sbteclipse
 
 import java.io.File
 import sbt._
@@ -29,9 +31,10 @@ object SbtEclipsePlugin extends Plugin {
 
   override lazy val settings = Seq(Keys.commands += eclipseCommand)
 
-  private val args = (Space ~> "skip-root").?
+  private val args = (Space ~> "skip-root" | Space ~> "create-src").*
 
-  private val eclipseCommand = Command("eclipse")(_ => args) { (state, skipRoot) =>
+  private val eclipseCommand = Command("eclipse")(_ => args) { (state, args) =>
+    logger(state).debug("Args = %s" format args)
 
     val extracted = Project.extract(state)
 
@@ -50,7 +53,7 @@ object SbtEclipsePlugin extends Plugin {
       }
     }
 
-    def notSkipped(ref: ProjectRef) = (skipRoot.isEmpty) || (ref.project != (extracted rootProject ref.build))
+    def notSkipped(ref: ProjectRef) = (!(args contains "skip-root")) || (ref.project != (extracted rootProject ref.build))
 
     def saveEclipseFiles(
         projectName: String,
@@ -86,15 +89,11 @@ object SbtEclipsePlugin extends Plugin {
 
         def srcEntries(directories: Seq[File], output: File) =
           directories flatMap { directory =>
-            if (directory.exists) {
-              logger(state).debug("""Creating src entry for directory "%s".""" format directory)
-              val relative = IO.relativize(baseDirectory, directory).get
-              val relativeOutput = IO.relativize(baseDirectory, output).get
-              <classpathentry kind="src" path={ relative.toString } output={ relativeOutput.toString }/>
-            } else {
-              logger(state).debug("""Skipping src entry for non-existent directory "%s".""" format directory)
-              NodeSeq.Empty
-            }
+            if (!directory.exists && (args contains "create-src")) directory.mkdirs()
+            logger(state).debug("""Creating src entry for directory "%s".""" format directory)
+            val relative = IO.relativize(baseDirectory, directory).get
+            val relativeOutput = IO.relativize(baseDirectory, output).get
+            <classpathentry kind="src" path={ relative.toString } output={ relativeOutput.toString }/>
           }
 
         def libEntries =
