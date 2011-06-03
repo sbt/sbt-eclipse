@@ -1,6 +1,6 @@
-h1. sbt-eclipse
+h1. sbteclipse
 
-This project is a plugin for "SBT 0.9":http://github.com/harrah/xsbt/ providing a command to create "Eclipse":http://www.eclipse.org/ project files from a SBT project.
+This project is a plugin for "SBT 0.10":http://github.com/harrah/xsbt/ providing a command to create "Eclipse":http://www.eclipse.org/ project files from a SBT project (possibly containing subprojects).
 
 h2. Usage
 
@@ -9,25 +9,30 @@ h2. Usage
 * Now you can use the command _eclipse_ to create Eclipse project files
 * Finally you can import the project in Eclipse unsing the "Import Wizard"
 
+Options:
+
+* _create-src_ to create the common source directories, e.g. _src/main/scala_, _src/main/test_, etc.
+* _skip-root_ to skip project creation for the root project
+
 Example:
 
 <pre><code>~$ mkdir -p .sbt/plugins
 ~$ cd .sbt/plugins/
-plugins$ sbt09
-> set libraryDependencies += "com.weiglewilczek.sbteclipse" %% "sbteclipse" % "0.7"
+plugins$ sbt
+> set libraryDependencies += "com.weiglewilczek.sbteclipse" %% "sbteclipse" % "1.0"
 > session save
 > exit
 
 tmp$ mkdir test
 tmp$ cd test
-test$ sbt09
+test$ sbt
 > eclipse
 [error] Only for Scala 2.9!
 > set scalaVersion := "2.9.0-1"
-> eclipse
+> eclipse create-src skip-root
 [info] Successfully created an Eclipse project for you. Have fun!
 </code></pre>
 
 h2. License
 
-sbt-eclipse is open source software licensed under the "Apache 2.0 License":http://www.apache.org/licenses/LICENSE-2.0.html. If you like it, feel free use it!
+sbteclipse is open source software licensed under the "Apache 2.0 License":http://www.apache.org/licenses/LICENSE-2.0.html. If you like it, feel free use it!
