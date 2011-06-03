@@ -4,26 +4,32 @@ This project is a plugin for "SBT 0.10":http://github.com/harrah/xsbt/ providing
 
 h2. Usage
 
-* First add the plugin to your global plugins project _~/.sbt/plugins_
+* First add the plugin to your global plugins project _~/.sbt/plugins_. Pay attention to add the resolver and libraryDependency like shown below!
 * Then create a SBT project
 * Now you can use the command _eclipse_ to create Eclipse project files
 * Finally you can import the project in Eclipse unsing the "Import Wizard"
 
-Options:
+h3. Adding the plugin
+
+<pre><code>resolvers += {
+  val typesafeRepoUrl = new java.net.URL("http://typesafe.artifactoryonline.com/typesafe/ivy-releases")
+  val pattern = Patterns(false, "[organisation]/[module]/[sbtversion]/[revision]/[type]s/[module](-[classifier])-[revision].[ext]")
+  Resolver.url("Typesafe Repository", typesafeRepoUrl)(pattern)
+}
+
+libraryDependencies <<= (libraryDependencies, sbtVersion) { (deps, version) => 
+  deps :+ ("com.typesafe.sbteclipse" %% "sbteclipse" % "1.0" extra("sbtversion" -> version))
+}
+</code></pre>
+
+h3. Options
 
 * _create-src_ to create the common source directories, e.g. _src/main/scala_, _src/main/test_, etc.
 * _skip-root_ to skip project creation for the root project
 
-Example:
+h3. Example
 
-<pre><code>~$ mkdir -p .sbt/plugins
-~$ cd .sbt/plugins/
-plugins$ sbt
-> set libraryDependencies += "com.weiglewilczek.sbteclipse" %% "sbteclipse" % "1.0"
-> session save
-> exit
-
-tmp$ mkdir test
+<pre><code>tmp$ mkdir test
 tmp$ cd test
 test$ sbt
 > eclipse
