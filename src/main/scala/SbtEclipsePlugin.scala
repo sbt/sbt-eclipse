@@ -89,11 +89,19 @@ object SbtEclipsePlugin extends Plugin {
 
         def srcEntries(directories: Seq[File], output: File) =
           directories flatMap { directory =>
-            if (!directory.exists && (args contains "create-src")) directory.mkdirs()
-            logger(state).debug("""Creating src entry for directory "%s".""" format directory)
-            val relative = IO.relativize(baseDirectory, directory).get
-            val relativeOutput = IO.relativize(baseDirectory, output).get
-            <classpathentry kind="src" path={ relative.toString } output={ relativeOutput.toString }/>
+            if (!directory.exists && (args contains "create-src")) {
+              logger(state).debug("""Creating src directory "%s".""" format directory)
+              directory.mkdirs()
+            }
+            if (directory.exists) {
+              logger(state).debug("""Creating src entry for directory "%s".""" format directory)
+              val relative = IO.relativize(baseDirectory, directory).get
+              val relativeOutput = IO.relativize(baseDirectory, output).get
+              <classpathentry kind="src" path={ relative.toString } output={ relativeOutput.toString }/>
+            } else {
+              logger(state).debug("""Skipping src entry for not-existing directory "%s".""" format directory)
+              NodeSeq.Empty
+            }
           }
 
         def libEntries =
