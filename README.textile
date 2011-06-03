@@ -18,7 +18,7 @@ h3. Adding the plugin
 }
 
 libraryDependencies <<= (libraryDependencies, sbtVersion) { (deps, version) => 
-  deps :+ ("com.typesafe.sbteclipse" %% "sbteclipse" % "1.0" extra("sbtversion" -> version))
+  deps :+ ("com.typesafe.sbteclipse" %% "sbteclipse" % "1.0.1" extra("sbtversion" -> version))
 }
 </code></pre>
 
