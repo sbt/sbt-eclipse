@@ -12,7 +12,7 @@ h2. Usage
 h3. Adding the plugin
 
 <pre><code>resolvers += {
-  val typesafeRepoUrl = new java.net.URL("http://repo.typesafe.com/ivy-releases")
+  val typesafeRepoUrl = new java.net.URL("http://repo.typesafe.com/typesafe/ivy-releases")
   val pattern = Patterns(false, "[organisation]/[module]/[sbtversion]/[revision]/[type]s/[module](-[classifier])-[revision].[ext]")
   Resolver.url("Typesafe Repository", typesafeRepoUrl)(pattern)
 }
