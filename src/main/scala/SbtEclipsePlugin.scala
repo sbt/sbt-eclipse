@@ -62,7 +62,7 @@ object SbtEclipsePlugin extends Plugin {
         compileDirectories: Directories,
         testDirectories: Directories,
         libraries: Seq[File],
-        projectDependencies: Seq[String]) {
+        projectDependencies: Seq[String]) = {
 
       def projectXml(name: String) =
         <projectDescription>
@@ -141,6 +141,8 @@ object SbtEclipsePlugin extends Plugin {
               baseDirectory),
           "UTF-8",
           true)
+
+      scalaVersion
     }
 
     logger(state).debug("Trying to create an Eclipse project for you ...")
@@ -149,11 +151,7 @@ object SbtEclipsePlugin extends Plugin {
       implicit val implicitRef = ref
 
       val projectName = setting(Keys.name, "Missing project name for %s!" format ref.project)
-      val scalaVersion = setting(Keys.scalaVersion, "Missing Scala version for %s!" format ref.project) match {
-        case f @ Failure(_) => f
-        case Success(s) if (s startsWith "2.9") => s.success
-        case _ => "Only for Scala 2.9!".failNel
-      }
+      val scalaVersion = setting(Keys.scalaVersion, "Missing Scala version for %s!" format ref.project)
       val baseDirectory = setting(Keys.baseDirectory, "Missing base directory for %s!" format ref.project)
       val compileDirectories = (setting(Keys.unmanagedSourceDirectories, "Missing unmanaged source directories for %s!" format ref.project) |@|
           setting(Keys.unmanagedResourceDirectories, "Missing unmanaged resource directories for %s!" format ref.project) |@|
@@ -180,7 +178,7 @@ object SbtEclipsePlugin extends Plugin {
         case Some(project) => project.dependencies map { dependency =>
           setting(Keys.name, "Missing project name for %s!" format ref.project)(dependency.project)
         }
-      }).sequence[({type L[A]=Validation[NonEmptyList[String], A]})#L, String]
+      }).sequence[({type A[B]=Validation[NonEmptyList[String], B]})#A, String]
       (projectName |@| 
           scalaVersion |@| 
           baseDirectory |@| 
@@ -190,9 +188,9 @@ object SbtEclipsePlugin extends Plugin {
           projectDependencies) {
         saveEclipseFiles
       }
-    }).sequence[({type L[A]=Validation[NonEmptyList[String], A]})#L, Unit] match {
-      case Success(_) =>
-        logger(state).info("Successfully created one or more Eclipse projects for you. Have fun!")
+    }).sequence[({type A[B]=Validation[NonEmptyList[String], B]})#A, String] match {
+      case Success(scalaVersion) =>
+        logger(state).info("Successfully created Eclipse project files. Please select the appropriate Eclipse plugin for Scala %s!" format scalaVersion.head)
         state
       case Failure(errors) =>
         logger(state).error(errors.list mkString ", ")
