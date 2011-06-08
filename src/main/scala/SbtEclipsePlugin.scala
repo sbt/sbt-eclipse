@@ -114,7 +114,7 @@ object SbtEclipsePlugin extends Plugin {
 
         def projectDependencyEntries = projectDependencies flatMap { projectDependency =>
           logger(state).debug("""Creating project dependency entry for "%s".""" format projectDependency)
-          <classpathentry kind="src" path={"/" + projectDependency } combineaccessrules="false"/>
+          <classpathentry kind="src" path={"/" + projectDependency } exported="true" combineaccessrules="false"/>
         }
 
         <classpath>{
