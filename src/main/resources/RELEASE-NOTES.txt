@@ -1,0 +1,7 @@
+v1.1
+====
+
+closes #6: Upgraded to Scalaz 6.0
+closes #2: Made project dependencies transitive
+re #2: Added example showing nested project dependencies are resolved correctly
+closes #3: Removed restriction to Scala 2.9
