@@ -18,7 +18,7 @@ h3. Adding the plugin
 }
 
 libraryDependencies <<= (libraryDependencies, sbtVersion) { (deps, version) => 
-  deps :+ ("com.typesafe.sbteclipse" %% "sbteclipse" % "1.0.1" extra("sbtversion" -> version))
+  deps :+ ("com.typesafe.sbteclipse" %% "sbteclipse" % "1.1" extra("sbtversion" -> version))
 }
 </code></pre>
 
@@ -32,11 +32,8 @@ h3. Example
 <pre><code>tmp$ mkdir test
 tmp$ cd test
 test$ sbt
-> eclipse
-[error] Only for Scala 2.9!
-> set scalaVersion := "2.9.0-1"
 > eclipse create-src skip-root
-[info] Successfully created an Eclipse project for you. Have fun!
+[info] Successfully created Eclipse project files. Please select the appropriate Eclipse plugin for Scala 2.8.1!
 </code></pre>
 
 h2. License
