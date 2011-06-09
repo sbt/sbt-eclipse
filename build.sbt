@@ -7,7 +7,7 @@ version := "1.1-SNAPSHOT"
 
 sbtPlugin := true
 
-libraryDependencies += "org.scalaz" %% "scalaz-core" % "6.0.RC2"
+libraryDependencies += "org.scalaz" %% "scalaz-core" % "6.0"
 
 publishMavenStyle := false
 
