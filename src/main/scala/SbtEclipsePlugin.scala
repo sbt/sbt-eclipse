@@ -18,12 +18,12 @@
 
 package com.typesafe.sbteclipse
 
-import java.io.{ File, FileWriter, StringWriter }
+import java.io.{ File, FileWriter }
 import sbt._
 import sbt.complete._
 import sbt.complete.Parsers._
 import sbt.CommandSupport.logger
-import scala.xml.{ Elem, Node, NodeSeq, XML, PrettyPrinter, Unparsed }
+import scala.xml.{ Node, NodeSeq, XML, PrettyPrinter }
 import scalaz.{ Failure, NonEmptyList, Success, Validation }
 import scalaz.Scalaz._
 
