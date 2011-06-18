@@ -132,7 +132,8 @@ object SbtEclipsePlugin extends Plugin {
         }</classpath>
       }
 
-      writeFile((baseDirectory / ".project").getAbsolutePath, projectXml(projectName))
+      writeFile((baseDirectory / ".project").getAbsolutePath,
+	   projectXml(projectName))
 
       writeFile((baseDirectory / ".classpath").getAbsolutePath, 
 	   classpathXml(compileDirectories.sources,
@@ -205,9 +206,7 @@ object SbtEclipsePlugin extends Plugin {
       pp.format(n, sb)
       
       val fw = new FileWriter(filePath)
-      fw.write("<?xml version='1.0' encoding='UTF-8'?>\n")
-      fw.write(sb.toString)
-      fw.write("\n");
+      fw.write("<?xml version='1.0' encoding='UTF-8'?>\n" + sb.toString + "\n")
       fw.close()
   }
 
