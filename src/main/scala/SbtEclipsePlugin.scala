@@ -190,7 +190,10 @@ object SbtEclipsePlugin extends Plugin {
       }
     }).sequence[({type A[B]=Validation[NonEmptyList[String], B]})#A, String] match {
       case Success(scalaVersion) =>
-        logger(state).info("Successfully created Eclipse project files. Please select the appropriate Eclipse plugin for Scala %s!" format scalaVersion.head)
+        if (scalaVersion.isEmpty)
+          logger(state).warn("Attention: There was no project to create Eclipse project files for! Maybe you used skip-root on a build without sub-projects.")
+        else
+          logger(state).info("Successfully created Eclipse project files. Please select the appropriate Eclipse plugin for Scala %s!" format scalaVersion.head)
         state
       case Failure(errors) =>
         logger(state).error(errors.list mkString ", ")
