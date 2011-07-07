@@ -2,14 +2,12 @@ h1. sbteclipse
 
 This project is a plugin for "SBT 0.10":http://github.com/harrah/xsbt/ providing a command to create "Eclipse":http://www.eclipse.org/ project files from a SBT project (possibly containing subprojects).
 
-h2. Usage
+h2. Installing sbteclipse as a SBT plugin
 
-* First you have to "install" the plugin. Since SBT 0.10 (0.9) this is as easy as adding a library dependency on sbteclipse to your project. Or even better: Create a global plugin project (just a _build.sbt_ file) in the directory _~/.sbt/plugins_, if you don't already have one, and add the library dependency there. Then you can use sbteclipse in any of your projects "for free". For details about SBT plugins please see the "SBT documentation":https://github.com/harrah/xsbt/wiki/Plugins.
-* In order to add the library dependency on sbteclipse, you have to add the below lines to your _build.sbt_ file
-* Now you can use the command _eclipse_ to create Eclipse project files
-* Finally you can import the project in Eclipse unsing the "Import Wizard"
-
-h3. Add this to your _build.sbt_ file
+* To "install" the plugin, either use a local or the globel plugin definition (for details about SBT plugins please see the "SBT documentation":https://github.com/harrah/xsbt/wiki/Plugins):
+** The local plugin is just a _build.sbt_ file in the _project/plugins_ folder of your project
+** The global plugin is defined via a _build.sbt_ file in the directory _~/.sbt/plugins_.
+* Just add the below lines to your _build.sbt_ file, paying attention to the blank line between the two blocks:
 
 <pre><code>resolvers += {
   val typesafeRepoUrl = new java.net.URL("http://repo.typesafe.com/typesafe/releases")
@@ -22,6 +20,11 @@ libraryDependencies <<= (libraryDependencies, sbtVersion) { (deps, version) =>
 }
 </code></pre>
 
+h2. Using sbteclipse to create Eclipse project files
+
+* As soon as sbteclipse is properly set up as a plugin, you can use the command _eclipse_ in an SBT session to create Eclipse project files
+* After having created the Eclipse project files you can import the project in Eclipse using the "Import Wizard" to import "Existing Projects into Workspace"
+
 h2. Options
 
 * _create-src_ to create the common source directories, e.g. _src/main/scala_, _src/main/test_, etc.
@@ -32,7 +35,7 @@ h2. Example
 <pre><code>tmp$ mkdir test
 tmp$ cd test
 test$ sbt
-> eclipse create-src skip-root
+> eclipse create-src
 [info] Successfully created Eclipse project files. Please select the appropriate Eclipse plugin for Scala 2.8.1!
 </code></pre>
 
