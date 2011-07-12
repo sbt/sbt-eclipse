@@ -18,12 +18,12 @@
 
 package com.typesafe.sbteclipse
 
-import java.io.File
+import java.io.{ File, FileWriter }
 import sbt._
 import sbt.complete._
 import sbt.complete.Parsers._
 import sbt.CommandSupport.logger
-import scala.xml.{ NodeSeq, XML }
+import scala.xml.{ Node, NodeSeq, XML, PrettyPrinter }
 import scalaz.{ Failure, NonEmptyList, Success, Validation }
 import scalaz.Scalaz._
 
@@ -32,6 +32,8 @@ object SbtEclipsePlugin extends Plugin {
   override lazy val settings = Seq(Keys.commands += eclipseCommand)
 
   private val args = (Space ~> "skip-root" | Space ~> "create-src").*
+
+  private val pp = new PrettyPrinter(500, 2)
 
   private val eclipseCommand = Command("eclipse")(_ => args) { (state, args) =>
     logger(state).debug("Args = %s" format args)
@@ -130,17 +132,17 @@ object SbtEclipsePlugin extends Plugin {
         }</classpath>
       }
 
-      XML.save((baseDirectory / ".project").getAbsolutePath , projectXml(projectName))
-      XML.save((baseDirectory / ".classpath").getAbsolutePath, 
-          classpathXml(compileDirectories.sources,
-              compileDirectories.resources,
-              compileDirectories.clazz,
-              testDirectories.sources,
-              testDirectories.resources,
-              testDirectories.clazz,
-              baseDirectory),
-          "UTF-8",
-          true)
+      writeFile((baseDirectory / ".project").getAbsolutePath,
+	   projectXml(projectName))
+
+      writeFile((baseDirectory / ".classpath").getAbsolutePath, 
+	   classpathXml(compileDirectories.sources,
+		  compileDirectories.resources,
+		  compileDirectories.clazz,
+		  testDirectories.sources,
+		  testDirectories.resources,
+		  testDirectories.clazz,
+		  baseDirectory))
 
       scalaVersion
     }
@@ -199,6 +201,16 @@ object SbtEclipsePlugin extends Plugin {
         logger(state).error(errors.list mkString ", ")
         state.fail
     }
+  }
+
+  def writeFile(filePath: String, n: Node) = {
+      val sb = new StringBuilder()
+
+      pp.format(n, sb)
+      
+      val fw = new FileWriter(filePath)
+      fw.write("<?xml version='1.0' encoding='UTF-8'?>\n" + sb.toString + "\n")
+      fw.close()
   }
 
   private case class Directories(sources: Seq[File], resources: Seq[File], clazz: File)
