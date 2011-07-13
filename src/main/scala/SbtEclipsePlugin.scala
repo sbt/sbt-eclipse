@@ -31,13 +31,16 @@ object SbtEclipsePlugin extends Plugin {
 
   override lazy val settings = Seq(Keys.commands += eclipseCommand)
 
-  private val args = (Space ~> "skip-root" | Space ~> "create-src").*
+  private val args = (Space ~> "create-src" | Space ~> "skip-root" | Space ~> "with-sources").*
 
   private val eclipseCommand = Command("eclipse")(_ => args) { (state, args) =>
     logger(state).debug("Args = %s" format args)
 
-    val extracted = Project.extract(state)
+    val createSrc = args contains "create-src"
+    val skipRoot = args contains "skip-root"
+    val withSources = args contains "with-sources"
 
+    val extracted = Project.extract(state)
     val structure = extracted.structure
 
     def setting[A](
@@ -56,7 +59,7 @@ object SbtEclipsePlugin extends Plugin {
     def evaluateTask[A](taskKey: ScopedKey[Task[A]]) = 
       EvaluateTask.evaluateTask(structure, taskKey, state, extracted.currentRef, false, EvaluateTask.SystemProcessors)
 
-    def notSkipped(ref: ProjectRef) = (!(args contains "skip-root")) || (ref.project != (extracted rootProject ref.build))
+    def notSkipped(ref: ProjectRef) = !skipRoot || (ref.project != (extracted rootProject ref.build))
 
     def saveEclipseFiles(
         projectName: String,
@@ -92,7 +95,7 @@ object SbtEclipsePlugin extends Plugin {
 
         def srcEntries(directories: Seq[File], output: File) =
           directories flatMap { directory =>
-            if (!directory.exists && (args contains "create-src")) {
+            if (!directory.exists && createSrc) {
               logger(state).debug("""Creating src directory "%s".""" format directory)
               directory.mkdirs()
             }
@@ -198,24 +201,30 @@ object SbtEclipsePlugin extends Plugin {
             }).success
           case _ => ("Error running externalDependencyClasspath task for %s" format ref.project).failNel
         }
-        val binaries = evaluateTask(Keys.update in Configurations.Test) match {
-          case Some(Value(updateReport)) => 
-            (for {
-              configurationReport <- (updateReport configuration "test").toSeq
-              moduleReport <- configurationReport.modules
-              (_, file) <- moduleReport.artifacts
-            } yield moduleReport.module -> file.getAbsolutePath).toMap.success
-          case _ => ("Error running update task for %s" format ref.project).failNel
-        }
-        val sources = evaluateTask(Keys.updateClassifiers in Configurations.Test) match {
-          case Some(Value(updateReport)) => 
-            (for {
-              configurationReport <- updateReport.configurations // Cannot use "test" because of https://github.com/harrah/xsbt/issues/104
-              moduleReport <- configurationReport.modules
-              (artifact, file) <- moduleReport.artifacts if artifact.classifier == Some("sources")
-            } yield moduleReport.module -> file.getAbsolutePath).toMap.success
-          case _ => ("Error running updateClassifiers task for %s" format ref.project).failNel
-        }
+        val (binaries, sources) =
+          if (!withSources)
+            Map[ModuleID, String]().success[NonEmptyList[String]] -> Map[ModuleID, String]().success[NonEmptyList[String]]
+          else {
+            val binaries = evaluateTask(Keys.update in Configurations.Test) match {
+              case Some(Value(updateReport)) => 
+                (for {
+                  configurationReport <- (updateReport configuration "test").toSeq
+                  moduleReport <- configurationReport.modules
+                  (_, file) <- moduleReport.artifacts
+                } yield moduleReport.module -> file.getAbsolutePath).toMap.success
+              case _ => ("Error running update task for %s" format ref.project).failNel
+            }
+            val sources = evaluateTask(Keys.updateClassifiers in Configurations.Test) match {
+              case Some(Value(updateReport)) => 
+                (for {
+                  configurationReport <- updateReport.configurations // Cannot use "test" because of https://github.com/harrah/xsbt/issues/104
+                  moduleReport <- configurationReport.modules
+                  (artifact, file) <- moduleReport.artifacts if artifact.classifier == Some("sources")
+                } yield moduleReport.module -> file.getAbsolutePath).toMap.success
+              case _ => ("Error running updateClassifiers task for %s" format ref.project).failNel
+            }
+            binaries -> sources
+          }
         (classpathLibraries |@| binaries |@| sources) { (ls, bs, ss) =>
           val bsToSs = bs flatMap { case (moduleId, binaryFile) =>
             ss get moduleId map { sourceFile => binaryFile -> sourceFile }
