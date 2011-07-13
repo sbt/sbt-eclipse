@@ -5,3 +5,10 @@ closes #6: Upgraded to Scalaz 6.0
 closes #2: Made project dependencies transitive
 re #2: Added example showing nested project dependencies are resolved correctly
 closes #3: Removed restriction to Scala 2.9
+
+v1.2
+====
+
+#11: Upgrade to Scalaz 6.0.1
+#15: No more exception when using skip-root without sub-projects
+#16: Using the new option with-sources will create source attachments for library dependencies
