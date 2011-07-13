@@ -169,7 +169,7 @@ object SbtEclipsePlugin extends Plugin {
           ref,
           false,
           EvaluateTask.SystemProcessors) match {
-        case Some(Value(attributedLibs)) => (attributedLibs map { _.data }).success
+        case Some(Value(attributedLibs)) => attributedLibs.files.success
         case Some(Inc(_)) => ("Error determining compile libraries for %s" format ref.project).failNel
         case None => ("Missing compile libraries for %s!" format ref.project).failNel
       }
