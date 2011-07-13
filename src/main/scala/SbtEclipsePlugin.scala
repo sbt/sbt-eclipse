@@ -53,6 +53,9 @@ object SbtEclipsePlugin extends Plugin {
       }
     }
 
+    def evaluateTask[A](taskKey: ScopedKey[Task[A]]) = 
+      EvaluateTask.evaluateTask(structure, taskKey, state, extracted.currentRef, false, EvaluateTask.SystemProcessors)
+
     def notSkipped(ref: ProjectRef) = (!(args contains "skip-root")) || (ref.project != (extracted rootProject ref.build))
 
     def saveEclipseFiles(
@@ -61,7 +64,7 @@ object SbtEclipsePlugin extends Plugin {
         baseDirectory: File,
         compileDirectories: Directories,
         testDirectories: Directories,
-        libraries: Seq[File],
+        libraries: Seq[Library],
         projectDependencies: Seq[String]) = {
 
       def projectXml(name: String) =
@@ -105,11 +108,13 @@ object SbtEclipsePlugin extends Plugin {
           }
 
         def libEntries =
-          libraries collect {
-            case PathExtractor(path) if !(path endsWith "scala-library.jar") => path
-          } flatMap { path =>
-            logger(state).debug("""Creating lib entry for dependency "%s".""" format path)
-            <classpathentry kind="lib" path={ path }/>
+          libraries flatMap {
+            case Library(binaryPath, Some(sourcePath)) =>
+              logger(state).debug("""Creating lib entry with source attachment for dependency "%s".""" format binaryPath)
+              <classpathentry kind="lib" path={ binaryPath } sourcepath={ sourcePath }/>
+            case Library(binaryPath, _) =>
+              logger(state).debug("""Creating lib entry for dependency "%s".""" format binaryPath)
+              <classpathentry kind="lib" path={ binaryPath }/>
           }
 
         def projectDependencyEntries = projectDependencies flatMap { projectDependency =>
@@ -145,6 +150,28 @@ object SbtEclipsePlugin extends Plugin {
       scalaVersion
     }
 
+    def libraryBinariesToSources = {
+      val binaries = {
+        val updateReport = evaluateTask(Keys.update in Configurations.Test).get.toEither.right.get
+        (for {
+          configurationReport <- (updateReport configuration "test").toSeq
+          moduleReport <- configurationReport.modules
+          (_, file) <- moduleReport.artifacts
+        } yield moduleReport.module -> file.getAbsolutePath).toMap
+      }
+      val sources = {
+        val updateReport = evaluateTask(Keys.updateClassifiers in Configurations.Test).get.toEither.right.get
+        (for {
+          configurationReport <- updateReport.configurations // Cannot use "test" because of https://github.com/harrah/xsbt/issues/104
+          moduleReport <- configurationReport.modules
+          (artifact, file) <- moduleReport.artifacts if artifact.classifier == Some("sources")
+        } yield moduleReport.module -> file.getAbsolutePath).toMap
+      }
+      binaries flatMap { case (moduleId, binaryFile) =>
+        sources get moduleId map { sourceFile => binaryFile -> sourceFile }
+      }
+    }
+
     logger(state).debug("Trying to create an Eclipse project for you ...")
 
     (for (ref <- structure.allProjectRefs if notSkipped(ref)) yield {
@@ -163,15 +190,38 @@ object SbtEclipsePlugin extends Plugin {
           setting(Keys.classDirectory, "Missing test class directory for %s!" format ref.project, Configurations.Test)) {
         Directories
       }
-      val libraries = EvaluateTask.evaluateTask(structure,
-          Keys.externalDependencyClasspath in Configurations.Test, // Configurations.Test contains items from Configurations.Compile!
-          state,
-          ref,
-          false,
-          EvaluateTask.SystemProcessors) match {
-        case Some(Value(attributedLibs)) => attributedLibs.files.success
-        case Some(Inc(_)) => ("Error determining compile libraries for %s" format ref.project).failNel
-        case None => ("Missing compile libraries for %s!" format ref.project).failNel
+      val libraries = {
+        val classpathLibraries = evaluateTask(Keys.externalDependencyClasspath in Configurations.Test) match {
+          case Some(Value(attributedLibs)) => 
+            (attributedLibs.files collect {
+              case PathExtractor(path) if !(path endsWith "scala-library.jar") => path
+            }).success
+          case _ => ("Error running externalDependencyClasspath task for %s" format ref.project).failNel
+        }
+        val binaries = evaluateTask(Keys.update in Configurations.Test) match {
+          case Some(Value(updateReport)) => 
+            (for {
+              configurationReport <- (updateReport configuration "test").toSeq
+              moduleReport <- configurationReport.modules
+              (_, file) <- moduleReport.artifacts
+            } yield moduleReport.module -> file.getAbsolutePath).toMap.success
+          case _ => ("Error running update task for %s" format ref.project).failNel
+        }
+        val sources = evaluateTask(Keys.updateClassifiers in Configurations.Test) match {
+          case Some(Value(updateReport)) => 
+            (for {
+              configurationReport <- updateReport.configurations // Cannot use "test" because of https://github.com/harrah/xsbt/issues/104
+              moduleReport <- configurationReport.modules
+              (artifact, file) <- moduleReport.artifacts if artifact.classifier == Some("sources")
+            } yield moduleReport.module -> file.getAbsolutePath).toMap.success
+          case _ => ("Error running updateClassifiers task for %s" format ref.project).failNel
+        }
+        (classpathLibraries |@| binaries |@| sources) { (ls, bs, ss) =>
+          val bsToSs = bs flatMap { case (moduleId, binaryFile) =>
+            ss get moduleId map { sourceFile => binaryFile -> sourceFile }
+          }
+          ls map { l => Library(l, bsToSs get l) }
+        }
       }
       val projectDependencies = (Project.getProject(ref, structure) match {
         case None => Seq(("Cannot resolve project for reference %s!" format ref.project).failNel)
@@ -202,6 +252,8 @@ object SbtEclipsePlugin extends Plugin {
   }
 
   private case class Directories(sources: Seq[File], resources: Seq[File], clazz: File)
+
+  private case class Library(binaryPath: String, sourcePath: Option[String] = None)
 
   private object PathExtractor {
     def unapply(file: File): Option[String] = Some(file.getAbsolutePath)
