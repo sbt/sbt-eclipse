@@ -16,7 +16,7 @@ h2. Installing sbteclipse as a SBT plugin
 }
 
 libraryDependencies <<= (libraryDependencies, sbtVersion) { (deps, version) => 
-  deps :+ ("com.typesafe.sbteclipse" %% "sbteclipse" % "1.1" extra("sbtversion" -> version))
+  deps :+ ("com.typesafe.sbteclipse" %% "sbteclipse" % "1.2" extra("sbtversion" -> version))
 }
 </code></pre>
 
@@ -29,6 +29,7 @@ h2. Options
 
 * _create-src_ to create the common source directories, e.g. _src/main/scala_, _src/main/test_, etc.
 * _skip-root_ to skip project creation for the root project
+* _with-sources_ to create source attachments for the library dependencies
 
 h2. Example
 
