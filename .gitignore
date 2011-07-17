@@ -1,6 +1,7 @@
 # SBT
 boot
 target
+.history
 
 # Eclipse
 .classpath

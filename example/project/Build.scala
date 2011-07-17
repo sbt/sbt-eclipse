@@ -4,7 +4,7 @@ import sbt.Keys._
 object Build extends Build {
 
   // Dependencies
-  val specs2 = "org.specs2" %% "specs2" % "1.4" % "test"
+  val specs2 = "org.specs2" %% "specs2" % "1.5" % "test"
 
   // Settings
   val commonSettings = Defaults.defaultSettings ++ Seq(
