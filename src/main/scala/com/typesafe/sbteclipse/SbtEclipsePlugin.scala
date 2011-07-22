@@ -18,10 +18,10 @@
 
 package com.typesafe.sbteclipse
 
-import java.io.File
+import java.io.{ File, FileWriter }
 import sbt.{ Path => _,  _ }
 import sbt.complete.Parsers._
-import scala.xml.{ NodeSeq, XML }
+import scala.xml.{ Elem, NodeSeq, PrettyPrinter }
 import scalaz.{ Failure, NonEmptyList, Success, Validation }
 import scalaz.Scalaz._
 
@@ -134,17 +134,21 @@ object SbtEclipsePlugin extends Plugin {
       projectDependencies: Seq[String])(
       implicit state: State): String = {
 
-    XML.save((baseDirectory / ".project").getAbsolutePath , projectXml(projectName))
-    XML.save((baseDirectory / ".classpath").getAbsolutePath, 
-        classpathXml(createSrc,
-            sameTargets,
-            baseDirectory,
-            compileDirectories,
-            testDirectories,
-            libraries,
-            projectDependencies),
-        "UTF-8",
-        true)
+    def savePretty(xml: Elem, file: File): Unit = {
+      val out = new FileWriter(file)
+      out.write(new PrettyPrinter(999, 2) format xml)
+      out.close()
+    }
+
+    savePretty(projectXml(projectName), baseDirectory / ".project")
+    savePretty(classpathXml(createSrc,
+        sameTargets,
+        baseDirectory,
+        compileDirectories,
+        testDirectories,
+        libraries,
+        projectDependencies),
+        baseDirectory / ".classpath")
 
     scalaVersion
   }
