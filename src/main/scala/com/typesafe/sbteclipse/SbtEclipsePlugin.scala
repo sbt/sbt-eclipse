@@ -19,7 +19,7 @@
 package com.typesafe.sbteclipse
 
 import java.io.File
-import sbt.{ Path => SbtPath,  _ }
+import sbt.{ Path => _,  _ }
 import sbt.complete.Parsers._
 import scala.xml.{ NodeSeq, XML }
 import scalaz.{ Failure, NonEmptyList, Success, Validation }
@@ -29,19 +29,19 @@ object SbtEclipsePlugin extends Plugin {
 
   override def settings = Seq(Keys.commands += eclipseCommand)
 
-  private val args = (Space ~> "create-src" | Space ~> "skip-root" | Space ~> "with-sources").*
+  private val (createSrc, sameTargets, skipRoot, withSources) = ("create-src", "same-targets", "skip-root", "with-sources")
+
+  private val args = (Space ~> createSrc | 
+      Space ~> sameTargets | 
+      Space ~> skipRoot | 
+      Space ~> withSources).*
 
   private val eclipseCommand = Command("eclipse")(_ => args) { (state, args) =>
     implicit val implicitState = state
 
-    val skipRoot = args contains "skip-root"
-    val withSources = args contains "with-sources"
-
-    def notSkipped(projectRef: ProjectRef) = !skipRoot || !isRootProject(projectRef)
-
     logDebug("Trying to create an Eclipse project for you ...")
 
-    (for (ref <- structure.allProjectRefs if (!skipRoot || !isRootProject(ref))) yield {
+    (for (ref <- structure.allProjectRefs if (!(args contains skipRoot) || !isRootProject(ref))) yield {
 
       val projectName = setting(Keys.name, "Missing project name for %s!" format ref.project, ref)
       val scalaVersion = setting(Keys.scalaVersion, "Missing Scala version for %s!" format ref.project, ref)
@@ -65,7 +65,7 @@ object SbtEclipsePlugin extends Plugin {
           case _ => ("Error running externalDependencyClasspath task for %s" format ref.project).failNel
         }
         val (binaries, sources) =
-          if (!withSources)
+          if (!(args contains withSources))
             Map[ModuleID, File]().success[NonEmptyList[String]] -> Map[ModuleID, File]().success[NonEmptyList[String]]
           else {
             val binaries = evaluateTask(Keys.update in Configurations.Test) match {
@@ -108,7 +108,7 @@ object SbtEclipsePlugin extends Plugin {
           testDirectories |@| 
           libraries |@| 
           projectDependencies) {
-        saveEclipseFiles(args contains "create-src")
+        saveEclipseFiles(args contains createSrc, args contains sameTargets)
       }
     }).sequence[({type A[B]=Validation[NonEmptyList[String], B]})#A, String] match {
       case Success(scalaVersion) =>
@@ -124,7 +124,7 @@ object SbtEclipsePlugin extends Plugin {
   }
 
   private def saveEclipseFiles(
-      createSrc: Boolean)(
+      createSrc: Boolean, sameTargets: Boolean)(
       projectName: String,
       scalaVersion: String,
       baseDirectory: File,
@@ -134,94 +134,103 @@ object SbtEclipsePlugin extends Plugin {
       projectDependencies: Seq[String])(
       implicit state: State): String = {
 
-    def projectXml(name: String) =
-      <projectDescription>
-          <name>{ name }</name>
-          <buildSpec>
-            <buildCommand>
-              <name>org.scala-ide.sdt.core.scalabuilder</name>
-            </buildCommand>
-          </buildSpec>
-          <natures>
-            <nature>org.scala-ide.sdt.core.scalanature</nature>
-            <nature>org.eclipse.jdt.core.javanature</nature>
-          </natures>
-        </projectDescription>
-
-    def classpathXml(
-        compileSourceDirectories: Seq[File],
-        compileResourceDirectories: Seq[File],
-        classDirectory: File,
-        testSourceDirectories: Seq[File],
-        testResourceDirectories: Seq[File],
-        testClassDirectory: File,
-        baseDirectory: File) = {
-
-      def srcEntries(directories: Seq[File], output: File) =
-        directories flatMap { directory =>
-          if (!directory.exists && createSrc) {
-            logDebug("""Creating src directory "%s".""" format directory)
-            directory.mkdirs()
-          }
-          if (directory.exists) {
-            logDebug("""Creating src entry for directory "%s".""" format directory)
-            val relative = IO.relativize(baseDirectory, directory).get
-            val relativeOutput = IO.relativize(baseDirectory, output).get
-            <classpathentry kind="src" path={ relative.toString } output={ relativeOutput.toString }/>
-          } else {
-            logDebug("""Skipping src entry for not-existing directory "%s".""" format directory)
-            NodeSeq.Empty
-          }
-        }
-
-      def libEntries =
-        libraries flatMap {
-          case Library(Path(binary), Some(Path(sources))) =>
-            logDebug("""Creating lib entry with source attachment for dependency "%s".""" format binary)
-            <classpathentry kind="lib" path={ binary } sourcepath={ sources }/>
-          case Library(Path(binary), _) =>
-            logDebug("""Creating lib entry for dependency "%s".""" format binary)
-            <classpathentry kind="lib" path={ binary }/>
-        }
-
-      def projectDependencyEntries = projectDependencies flatMap { projectDependency =>
-        logDebug("""Creating project dependency entry for "%s".""" format projectDependency)
-        <classpathentry kind="src" path={"/" + projectDependency } exported="true" combineaccessrules="false"/>
-      }
-
-      <classpath>{
-        srcEntries(compileSourceDirectories, classDirectory) ++
-        srcEntries(compileResourceDirectories, classDirectory) ++
-        srcEntries(testSourceDirectories, testClassDirectory) ++
-        srcEntries(testResourceDirectories, testClassDirectory) ++
-        libEntries ++
-        projectDependencyEntries ++
-        <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/>
-        <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
-        <classpathentry kind="output" path="target/classes"/>
-      }</classpath>
-    }
-
     XML.save((baseDirectory / ".project").getAbsolutePath , projectXml(projectName))
     XML.save((baseDirectory / ".classpath").getAbsolutePath, 
-        classpathXml(compileDirectories.sources,
-            compileDirectories.resources,
-            compileDirectories.clazz,
-            testDirectories.sources,
-            testDirectories.resources,
-            testDirectories.clazz,
-            baseDirectory),
+        classpathXml(createSrc,
+            sameTargets,
+            baseDirectory,
+            compileDirectories,
+            testDirectories,
+            libraries,
+            projectDependencies),
         "UTF-8",
         true)
 
     scalaVersion
   }
 
-  private case class Directories(sources: Seq[File], resources: Seq[File], clazz: File)
+  private def projectXml(name: String) =
+    <projectDescription>
+      <name>{ name }</name>
+      <buildSpec>
+        <buildCommand>
+          <name>org.scala-ide.sdt.core.scalabuilder</name>
+        </buildCommand>
+      </buildSpec>
+      <natures>
+        <nature>org.scala-ide.sdt.core.scalanature</nature>
+        <nature>org.eclipse.jdt.core.javanature</nature>
+      </natures>
+    </projectDescription>
 
-  private case class Library(binary: File, sources: Option[File] = None)
 
-  private object Path {
-    def unapply(file: File): Option[String] = Some(file.getAbsolutePath)
+  def classpathXml(
+      createSrc: Boolean,
+      sameTargets: Boolean,
+      baseDirectory: File,
+      compileDirectories: Directories,
+      testDirectories: Directories,
+      libraries: Seq[Library],
+      projectDependencies: Seq[String])(
+      implicit state: State) = {
+
+    def outputPath(file: File) = {
+      val relative = IO.relativize(baseDirectory, file).get // TODO Is this safe?
+      if (sameTargets) relative
+      else IO.relativize(baseDirectory, new File(baseDirectory, "." + relative)).get // TODO Is this safe?
+    }
+
+    def srcEntries(directories: Seq[File], output: File) =
+      directories flatMap { directory =>
+        if (!directory.exists && createSrc) {
+          logDebug("""Creating src directory "%s".""" format directory)
+          directory.mkdirs()
+        }
+        if (directory.exists) {
+          logDebug("""Creating src entry for directory "%s".""" format directory)
+          val relative = IO.relativize(baseDirectory, directory).get // TODO Is this safe?
+          val relativeOutput = outputPath(output)
+          <classpathentry kind="src" path={ relative.toString } output={ relativeOutput.toString }/>
+        } else {
+          logDebug("""Skipping src entry for not-existing directory "%s".""" format directory)
+          NodeSeq.Empty
+        }
+      }
+
+    def libEntries =
+      libraries flatMap {
+        case Library(Path(binary), Some(Path(sources))) =>
+          logDebug("""Creating lib entry with source attachment for dependency "%s".""" format binary)
+          <classpathentry kind="lib" path={ binary } sourcepath={ sources }/>
+        case Library(Path(binary), _) =>
+          logDebug("""Creating lib entry for dependency "%s".""" format binary)
+          <classpathentry kind="lib" path={ binary }/>
+      }
+
+    def projectDependencyEntries = projectDependencies flatMap { projectDependency =>
+      logDebug("""Creating project dependency entry for "%s".""" format projectDependency)
+      <classpathentry kind="src" path={"/" + projectDependency } exported="true" combineaccessrules="false"/>
+    }
+
+    <classpath>{
+      srcEntries(compileDirectories.sources, compileDirectories.clazz) ++
+      srcEntries(compileDirectories.resources, compileDirectories.clazz) ++
+      srcEntries(testDirectories.sources, testDirectories.clazz) ++
+      srcEntries(testDirectories.resources, testDirectories.clazz) ++
+      libEntries ++
+      projectDependencyEntries ++
+      <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/>
+      <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
+      <classpathentry kind="output" path={ outputPath(compileDirectories.clazz) }/>
+    }</classpath>
   }
+
 }
+
+object Path {
+  def unapply(file: File): Option[String] = Some(file.getAbsolutePath)
+}
+
+case class Directories(sources: Seq[File], resources: Seq[File], clazz: File)
+
+case class Library(binary: File, sources: Option[File] = None)

@@ -28,6 +28,7 @@ h2. Using sbteclipse to create Eclipse project files
 h2. Options
 
 * _create-src_ to create the common source directories, e.g. _src/main/scala_, _src/main/test_, etc.
+* _same-targets_ to make sbt and Eclipse compile into the same target directories
 * _skip-root_ to skip project creation for the root project
 * _with-sources_ to create source attachments for the library dependencies
 
