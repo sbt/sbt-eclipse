@@ -1,6 +1,11 @@
 h1. sbteclipse
 
-This project is a plugin for "SBT 0.10":http://github.com/harrah/xsbt/ providing a command to create "Eclipse":http://www.eclipse.org/ project files from a SBT project (possibly containing subprojects).
+This project is a plugin for "SBT 0.10.x":http://github.com/harrah/xsbt/ providing a command to create "Eclipse":http://www.eclipse.org/ project files from a SBT project (possibly containing subprojects).
+
+h2. Changes in latest version
+
+* #10: Pretty print Eclipse XML files
+* #19: Added option for same target directory
 
 h2. Installing sbteclipse as a SBT plugin
 
@@ -16,7 +21,7 @@ h2. Installing sbteclipse as a SBT plugin
 }
 
 libraryDependencies <<= (libraryDependencies, sbtVersion) { (deps, version) => 
-  deps :+ ("com.typesafe.sbteclipse" %% "sbteclipse" % "1.2" extra("sbtversion" -> version))
+  deps :+ ("com.typesafe.sbteclipse" %% "sbteclipse" % "1.3-RC1" extra("sbtversion" -> version))
 }
 </code></pre>
 
@@ -28,7 +33,7 @@ h2. Using sbteclipse to create Eclipse project files
 h2. Options
 
 * _create-src_ to create the common source directories, e.g. _src/main/scala_, _src/main/test_, etc.
-* _same-targets_ to make sbt and Eclipse compile into the same target directories
+* _same-targets_ to make sbt and Eclipse compile into the same target directories; by default the Eclipse directories will be different, e.g. _.target_
 * _skip-root_ to skip project creation for the root project
 * _with-sources_ to create source attachments for the library dependencies
 
@@ -43,4 +48,4 @@ test$ sbt
 
 h2. License
 
-sbteclipse is open source software licensed under the "Apache 2.0 License":http://www.apache.org/licenses/LICENSE-2.0.html. If you like it, feel free use it!
+sbteclipse is open source software licensed under the "Apache 2.0 License":http://www.apache.org/licenses/LICENSE-2.0.html. If you like it, feel free to use it!
