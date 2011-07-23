@@ -3,7 +3,7 @@ organization := "com.typesafe.sbteclipse"
 
 name := "sbteclipse"
 
-version := "1.3-SNAPSHOT"
+version := "1.3-RC1"
 
 sbtPlugin := true
 
@@ -14,7 +14,7 @@ publishMavenStyle := false
 projectID <<= (projectID, sbtVersion) { (id, version) => id.extra("sbtversion" -> version.toString) }
 
 publishTo := {
-  val typesafeRepoUrl = new java.net.URL("http://typesafe.artifactoryonline.com/typesafe/ivy-snapshots")
+  val typesafeRepoUrl = new java.net.URL("http://typesafe.artifactoryonline.com/typesafe/ivy-releases")
   val pattern = Patterns(false, "[organisation]/[module]/[sbtversion]/[revision]/[type]s/[module](-[classifier])-[revision].[ext]")
   Some(Resolver.url("Typesafe Repository", typesafeRepoUrl)(pattern))
 }
