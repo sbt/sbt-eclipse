@@ -2,6 +2,12 @@
 sbteclipse
 ==========
 
+v1.3
+====
+
+#10: Pretty print Eclipse XML files
+#19: Added option for same target directory
+
 v1.2
 ====
 
