@@ -12,12 +12,26 @@ object Build extends Build {
       scalaVersion := "2.9.0-1",
       libraryDependencies ++= Seq(specs2),
       shellPrompt := { "sbt (%s)> " format projectId(_) })
+  val slf4sDependency = libraryDependencies += "com.weiglewilczek.slf4s" %% "slf4s" % "1.0.6"
 
   // Projects
-  lazy val root  = Project("root",  file("."),          settings = commonSettings)
-  lazy val sub1  = Project("sub1",  file("sub1"),       settings = commonSettings) dependsOn(root)
-  lazy val sub11 = Project("sub11", file("sub1/sub11"), settings = commonSettings) dependsOn(sub1)
-  lazy val sub12 = Project("sub12", file("sub1/sub12"), settings = commonSettings) dependsOn(sub1, sub11)
+  lazy val root: Project = Project("root",
+      file("."),
+      settings = commonSettings,
+      aggregate = Seq(sub1))
+  lazy val sub1: Project = Project("sub1", 
+      file("sub1"),
+      settings = commonSettings,
+      dependencies = Seq(root),
+      aggregate = Seq(sub11, sub12))
+  lazy val sub11: Project = Project("sub11",
+      file("sub1/sub11"),
+      settings = commonSettings :+ slf4sDependency,
+      dependencies = Seq(sub1))
+  lazy val sub12: Project = Project("sub12",
+      file("sub1/sub12"),
+      settings = commonSettings,
+      dependencies = Seq(sub1, sub11))
 
   // Helpers
   def projectId(state: State) = extracted(state).currentProject.id

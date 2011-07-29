@@ -57,7 +57,7 @@ object SbtEclipsePlugin extends Plugin {
         Directories
       }
       val libraries = {
-        val classpathLibraries = evaluateTask(Keys.externalDependencyClasspath in Configurations.Test) match {
+        val classpathLibraries = evaluateTask(Keys.externalDependencyClasspath in Configurations.Test, ref) match {
           case Some(Value(attributedLibs)) => 
             (attributedLibs.files collect {
               case file @ Path(path) if !(path endsWith "scala-library.jar") => file
@@ -68,7 +68,7 @@ object SbtEclipsePlugin extends Plugin {
           if (!(args contains withSources))
             Map[ModuleID, File]().success[NonEmptyList[String]] -> Map[ModuleID, File]().success[NonEmptyList[String]]
           else {
-            val binaries = evaluateTask(Keys.update in Configurations.Test) match {
+            val binaries = evaluateTask(Keys.update in Configurations.Test, ref) match {
               case Some(Value(updateReport)) => 
                 (for {
                   configurationReport <- (updateReport configuration "test").toSeq
@@ -77,7 +77,7 @@ object SbtEclipsePlugin extends Plugin {
                 } yield moduleReport.module -> file).toMap.success
               case _ => ("Error running update task for %s" format ref.project).failNel
             }
-            val sources = evaluateTask(Keys.updateClassifiers in Configurations.Test) match {
+            val sources = evaluateTask(Keys.updateClassifiers in Configurations.Test, ref) match {
               case Some(Value(updateReport)) => 
                 (for {
                   configurationReport <- updateReport.configurations // Cannot use "test" because of https://github.com/harrah/xsbt/issues/104
