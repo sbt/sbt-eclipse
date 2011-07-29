@@ -5,6 +5,7 @@ sbteclipse
 v1.3
 ====
 
+#20: Multi-module library dependencies support broken
 #10: Pretty print Eclipse XML files
 #19: Added option for same target directory
 
