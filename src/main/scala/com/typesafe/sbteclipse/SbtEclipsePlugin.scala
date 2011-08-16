@@ -211,7 +211,7 @@ object SbtEclipsePlugin extends Plugin {
           <classpathentry kind="lib" path={ binary }/>
       }
 
-    def projectDependencyEntries = projectDependencies flatMap { projectDependency =>
+    def projectDependencyEntries = projectDependencies.distinct flatMap { projectDependency =>
       logDebug("""Creating project dependency entry for "%s".""" format projectDependency)
       <classpathentry kind="src" path={"/" + projectDependency } exported="true" combineaccessrules="false"/>
     }
