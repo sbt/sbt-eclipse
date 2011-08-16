@@ -5,10 +5,11 @@ sbteclipse
 v1.3
 ====
 
-#21: Duplicate project dependency in Eclipse if normal and test dependency
-#20: Multi-module library dependencies support broken
-#10: Pretty print Eclipse XML files
-#19: Added option for same target directory
+#22: Use test configuration for UpdateReport from updateClassifiers (improvement)
+#21: Duplicate project dependency in Eclipse if normal and test dependency (bug)
+#20: Multi-module library dependencies support broken (bug)
+#10: Pretty print Eclipse XML files (feature)
+#19: Added option for same target directory (feature)
 
 v1.2
 ====

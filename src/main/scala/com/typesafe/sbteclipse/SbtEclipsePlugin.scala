@@ -80,7 +80,7 @@ object SbtEclipsePlugin extends Plugin {
             val sources = evaluateTask(Keys.updateClassifiers in Configurations.Test, ref) match {
               case Some(Value(updateReport)) => 
                 (for {
-                  configurationReport <- updateReport.configurations // Cannot use "test" because of https://github.com/harrah/xsbt/issues/104
+                  configurationReport <- (updateReport configuration "test").toSeq
                   moduleReport <- configurationReport.modules
                   (artifact, file) <- moduleReport.artifacts if artifact.classifier == Some("sources")
                 } yield moduleReport.module -> file).toMap.success
