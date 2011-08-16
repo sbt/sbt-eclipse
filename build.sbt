@@ -13,8 +13,12 @@ publishMavenStyle := false
 
 projectID <<= (projectID, sbtVersion) { (id, version) => id.extra("sbtversion" -> version.toString) }
 
-publishTo := {
-  val typesafeRepoUrl = new java.net.URL("http://typesafe.artifactoryonline.com/typesafe/ivy-snapshots")
+publishTo <<= (version) { version =>
+  val typesafeRepoUrl =
+    if (version endsWith "SNAPSHOT")
+      new java.net.URL("http://typesafe.artifactoryonline.com/typesafe/ivy-snapshots")
+    else
+      new java.net.URL("http://typesafe.artifactoryonline.com/typesafe/ivy-releases")
   val pattern = Patterns(false, "[organisation]/[module]/[sbtversion]/[revision]/[type]s/[module](-[classifier])-[revision].[ext]")
   Some(Resolver.url("Typesafe Repository", typesafeRepoUrl)(pattern))
 }
