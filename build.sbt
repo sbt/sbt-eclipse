@@ -3,24 +3,21 @@ organization := "com.typesafe.sbteclipse"
 
 name := "sbteclipse"
 
-version := "1.3-SNAPSHOT"
+version := "1.4-SNAPSHOT"
 
 sbtPlugin := true
 
-libraryDependencies += "org.scalaz" %% "scalaz-core" % "6.0.1"
+resolvers += ScalaToolsSnapshots
+
+libraryDependencies += "org.scalaz" % "scalaz-core_2.9.1.RC1" % "6.0.2-SNAPSHOT"
+
+scalacOptions ++= Seq("-unchecked", "-deprecation")
 
 publishMavenStyle := false
 
-projectID <<= (projectID, sbtVersion) { (id, version) => id.extra("sbtversion" -> version.toString) }
-
-publishTo <<= (version) { version =>
-  val typesafeRepoUrl =
-    if (version endsWith "SNAPSHOT")
-      new java.net.URL("http://typesafe.artifactoryonline.com/typesafe/ivy-snapshots")
-    else
-      new java.net.URL("http://typesafe.artifactoryonline.com/typesafe/ivy-releases")
-  val pattern = Patterns(false, "[organisation]/[module]/[sbtversion]/[revision]/[type]s/[module](-[classifier])-[revision].[ext]")
-  Some(Resolver.url("Typesafe Repository", typesafeRepoUrl)(pattern))
+publishTo <<= (version) { v =>
+  import Classpaths._
+  Option(if (v endsWith "SNAPSHOT") typesafeSnapshots else typesafeResolver)
 }
 
 credentials += Credentials(Path.userHome / ".ivy2" / ".typesafe-credentials")
