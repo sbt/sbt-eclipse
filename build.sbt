@@ -13,8 +13,6 @@ libraryDependencies += "org.scalaz" % "scalaz-core_2.9.1.RC1" % "6.0.2-SNAPSHOT"
 
 scalacOptions ++= Seq("-unchecked", "-deprecation")
 
-publishMavenStyle := false
-
 publishTo <<= (version) { v =>
   import Classpaths._
   Option(if (v endsWith "SNAPSHOT") typesafeSnapshots else typesafeResolver)
