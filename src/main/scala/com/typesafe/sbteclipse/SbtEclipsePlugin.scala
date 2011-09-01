@@ -39,7 +39,8 @@ object SbtEclipsePlugin extends Plugin {
   private val eclipseCommand = Command("eclipse")(_ => args) { (state, args) =>
     implicit val implicitState = state
 
-    logDebug("Trying to create an Eclipse project for you ...")
+    logInfo("About to create an Eclipse project for you.")
+    logInfo("Please hang on, because it might be necessary to perform an update and this might take some time ...")
 
     (for (ref <- structure.allProjectRefs if (!(args contains skipRoot) || !isRootProject(ref))) yield {
 
