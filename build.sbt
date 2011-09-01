@@ -7,9 +7,7 @@ version := "1.4-SNAPSHOT"
 
 sbtPlugin := true
 
-resolvers += ScalaToolsSnapshots
-
-libraryDependencies += "org.scalaz" % "scalaz-core_2.9.1.RC1" % "6.0.2-SNAPSHOT"
+libraryDependencies += "org.scalaz" % "scalaz-core_2.9.1" % "6.0.2"
 
 scalacOptions ++= Seq("-unchecked", "-deprecation")
 
