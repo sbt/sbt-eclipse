@@ -6,12 +6,12 @@ object Build extends Build {
   // Dependencies
   val specs2 = "org.specs2" %% "specs2" % "1.5"
   val specs2Test = "org.specs2" %% "specs2" % "1.5" % "test"
-  val slf4s = "com.weiglewilczek.slf4s" %% "slf4s" % "1.0.6"
+  val slf4s = "com.weiglewilczek.slf4s" %% "slf4s" % "1.0.7"
 
   // Settings
   val commonSettings = Defaults.defaultSettings ++ Seq(
       organization := "localhost",
-      scalaVersion := "2.9.0-1",
+      scalaVersion := "2.9.1",
       libraryDependencies ++= Seq(specs2Test),
       shellPrompt := { "sbt (%s)> " format projectId(_) })
 
