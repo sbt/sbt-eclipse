@@ -1,36 +1,29 @@
 h1. sbteclipse
 
-This project is a plugin for "SBT 0.10.x":http://github.com/harrah/xsbt/ providing a command to create "Eclipse":http://www.eclipse.org/ project files from a SBT project (possibly containing subprojects).
+This project is a plugin for "sbt 0.11.x":http://github.com/harrah/xsbt/ providing a command to create "Eclipse":http://www.eclipse.org/ project files from a sbt project (possibly containing subprojects).
 
-h2. Changes in latest version
+h2. Latest changes
 
-* #22: Use test configuration for UpdateReport from updateClassifiers (improvement)
-* #21: Duplicate project dependency in Eclipse if normal and test dependency (bug)
-* #20: Multi-module library dependencies support broken (bug)
-* #10: Pretty print Eclipse XML files (feature)
-* #19: Added option for same target directory (feature)
+* #27: Add info message "This might take some time ..." when command starts
+* #24: Switch to sbt 0.11
 
-h2. Installing sbteclipse as a SBT plugin
+h2. Installing sbteclipse as a sbt plugin
 
-* To "install" the plugin, either use a local or the globel plugin definition (for details about SBT plugins please see the "SBT documentation":https://github.com/harrah/xsbt/wiki/Plugins):
+* To "install" the plugin, either use a local or the globel plugin definition (for details about sbt plugins please see the "sbt documentation":https://github.com/harrah/xsbt/wiki/Plugins):
 ** The local plugin is just a _build.sbt_ file in the _project/plugins_ folder of your project
 ** The global plugin is defined via a _build.sbt_ file in the directory _~/.sbt/plugins_.
-* Just add the below lines to your _build.sbt_ file, paying attention to the blank line between the two blocks:
+* Just add the below lines to your _build.sbt_ file, paying attention to the blank lines:
 
-<pre><code>resolvers += {
-  val typesafeRepoUrl = new java.net.URL("http://repo.typesafe.com/typesafe/releases")
-  val pattern = Patterns(false, "[organisation]/[module]/[sbtversion]/[revision]/[type]s/[module](-[classifier])-[revision].[ext]")
-  Resolver.url("Typesafe Repository", typesafeRepoUrl)(pattern)
-}
+<pre><code>
+resolvers += Classpaths.typesafeResolver
 
-libraryDependencies <<= (libraryDependencies, sbtVersion) { (deps, version) => 
-  deps :+ ("com.typesafe.sbteclipse" %% "sbteclipse" % "1.3-RC3" extra("sbtversion" -> version))
-}
+addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse" % "1.4-RC1")
 </code></pre>
 
 h2. Using sbteclipse to create Eclipse project files
 
-* As soon as sbteclipse is properly set up as a plugin, you can use the command _eclipse_ in an SBT session to create Eclipse project files
+* As soon as sbteclipse is properly set up as a plugin, you can use the command _eclipse_ in an sbt session to create Eclipse project files
+* There is autocompletion available, just use the tab key
 * After having created the Eclipse project files you can import the project in Eclipse using the "Import Wizard" to import "Existing Projects into Workspace"
 
 h2. Options
@@ -46,7 +39,7 @@ h2. Example
 tmp$ cd test
 test$ sbt
 > eclipse create-src
-[info] Successfully created Eclipse project files. Please select the appropriate Eclipse plugin for Scala 2.8.1!
+[info] Successfully created Eclipse project files. Please select the appropriate Eclipse plugin for Scala 2.9.1!
 </code></pre>
 
 h2. License
