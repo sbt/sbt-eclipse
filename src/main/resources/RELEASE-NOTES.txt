@@ -5,6 +5,7 @@ sbteclipse
 v1.4
 ====
 
+* #28: Add skip-parents option
 * #27: Add info message "This might take some time ..." when command starts
 * #24: Switch to sbt 0.11
 

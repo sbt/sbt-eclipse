@@ -29,20 +29,29 @@ object SbtEclipsePlugin extends Plugin {
 
   override def settings = Seq(Keys.commands += eclipseCommand)
 
-  private val (createSrc, sameTargets, skipRoot, withSources) = ("create-src", "same-targets", "skip-root", "with-sources")
+  private val (createSrc, sameTargets, skipParents, skipRoot, withSources) =
+    ("create-src", "same-targets", "skip-parents", "skip-root", "with-sources")
 
-  private val args = (Space ~> createSrc | 
-      Space ~> sameTargets | 
-      Space ~> skipRoot | 
-      Space ~> withSources).*
+  private val parsedArgs = (Space ~> createSrc |
+      Space ~> sameTargets |
+      Space ~> skipParents | 
+      Space ~> skipRoot |
+      Space ~> withSources)
 
-  private val eclipseCommand = Command("eclipse")(_ => args) { (state, args) =>
+  private val eclipseCommand = Command("eclipse")(_ => parsedArgs) { (state, args) =>
     implicit val implicitState = state
 
     logInfo("About to create an Eclipse project for you.")
     logInfo("Please hang on, because it might be necessary to perform an update and this might take some time ...")
 
-    (for (ref <- structure.allProjectRefs if (!(args contains skipRoot) || !isRootProject(ref))) yield {
+    val shouldSkipParents = args contains skipParents
+    val shouldSkipRoot = args contains skipRoot
+
+    (for {
+      ref <- structure.allProjectRefs
+      project <- Project.getProject(ref, structure) // TODO Is it safe to assume that getProject will always return Some?
+      if shouldSkipParents && !isParentProject(project) || shouldSkipRoot && !isRootProject(ref) || !(shouldSkipParents || shouldSkipRoot)
+    } yield {
 
       val projectName = setting(Keys.name, "Missing project name for %s!" format ref.project, ref)
       val scalaVersion = setting(Keys.scalaVersion, "Missing Scala version for %s!" format ref.project, ref)
@@ -96,11 +105,8 @@ object SbtEclipsePlugin extends Plugin {
           ls map { l => Library(l, bsToSs get l) }
         }
       }
-      val projectDependencies = (Project.getProject(ref, structure) match {
-        case None => Seq(("Cannot resolve project for reference %s!" format ref.project).failNel)
-        case Some(project) => project.dependencies map { dependency =>
-          setting(Keys.name, "Missing project name for %s!" format ref.project, dependency.project)
-        }
+      val projectDependencies = (project.dependencies map { dependency =>
+        setting(Keys.name, "Missing project name for %s!" format ref.project, dependency.project)
       }).sequence[({type A[B]=Validation[NonEmptyList[String], B]})#A, String]
       (projectName |@| 
           scalaVersion |@| 

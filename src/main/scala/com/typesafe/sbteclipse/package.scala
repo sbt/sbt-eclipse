@@ -45,6 +45,8 @@ package object sbteclipse {
   def evaluateTask[A](taskKey: ScopedKey[Task[A]], ref: ProjectRef)(implicit state: State): Option[Result[A]] = 
     EvaluateTask.evaluateTask(structure, taskKey, state, ref, false, EvaluateTask.SystemProcessors)
 
+  def isParentProject(project: ResolvedProject): Boolean = !project.aggregate.isEmpty
+
   def isRootProject(projectRef: ProjectRef)(implicit state: State): Boolean = 
     projectRef.project == (extracted rootProject projectRef.build)
 
