@@ -22,102 +22,46 @@ import java.io.{ File, FileWriter }
 import sbt.{ Path => _,  _ }
 import sbt.complete.Parsers._
 import scala.xml.{ Elem, NodeSeq, PrettyPrinter }
-import scalaz.{ Failure, NonEmptyList, Success, Validation }
+import scalaz.{ Failure, NonEmptyList, Success }
 import scalaz.Scalaz._
 
 object SbtEclipsePlugin extends Plugin {
 
+  private val CreateSrc = "create-src"
+
+  private val SameTargets = "same-targets"
+
+  private val SkipParents = "skip-parents"
+
+  private val SkipRoot = "skip-root"
+
+  private val WithSources = "with-sources"
+
+  private val Parser = (Space ~> CreateSrc |
+      Space ~> SameTargets |
+      Space ~> SkipParents | 
+      Space ~> SkipRoot |
+      Space ~> WithSources)
+
   override def settings = Seq(Keys.commands += eclipseCommand)
 
-  private val (createSrc, sameTargets, skipParents, skipRoot, withSources) =
-    ("create-src", "same-targets", "skip-parents", "skip-root", "with-sources")
-
-  private val parsedArgs = (Space ~> createSrc |
-      Space ~> sameTargets |
-      Space ~> skipParents | 
-      Space ~> skipRoot |
-      Space ~> withSources)
-
-  private val eclipseCommand = Command("eclipse")(_ => parsedArgs) { (state, args) =>
+  private def eclipseCommand = Command("eclipse")(_ => Parser) { (state, args) =>
     implicit val implicitState = state
-
     logInfo("About to create an Eclipse project for you.")
-    logInfo("Please hang on, because it might be necessary to perform an update and this might take some time ...")
-
-    val shouldSkipParents = args contains skipParents
-    val shouldSkipRoot = args contains skipRoot
-
-    (for {
+    logInfo("Please hang on, because it might be necessary to perform one or more updates and this might take some time ...")
+    val (skipParents, skipRoot) = (args contains SkipParents, args contains SkipRoot)
+    val results = for {
       ref <- structure.allProjectRefs
       project <- Project.getProject(ref, structure) // TODO Is it safe to assume that getProject will always return Some?
-      if shouldSkipParents && !isParentProject(project) || shouldSkipRoot && !isRootProject(ref) || !(shouldSkipParents || shouldSkipRoot)
+      if skipParents && !isParentProject(project) || skipRoot && !isRootProject(ref) || !(skipParents || skipRoot)
     } yield {
-
-      val projectName = setting(Keys.name, "Missing project name for %s!" format ref.project, ref)
-      val scalaVersion = setting(Keys.scalaVersion, "Missing Scala version for %s!" format ref.project, ref)
-      val baseDirectory = setting(Keys.baseDirectory, "Missing base directory for %s!" format ref.project, ref)
-      val compileDirectories = (setting(Keys.unmanagedSourceDirectories, "Missing unmanaged source directories for %s!" format ref.project, ref) |@|
-          setting(Keys.unmanagedResourceDirectories, "Missing unmanaged resource directories for %s!" format ref.project, ref) |@|
-          setting(Keys.classDirectory, "Missing class directory for %s!" format ref.project, ref)) {
-        Directories
+      implicit val implicitRef = ref
+      (projectName |@| scalaVersion |@| baseDirectory |@| compileDirectories |@| testDirectories |@| 
+          libraries(args contains WithSources) |@| projectDependencies(project)) {
+        saveEclipseFiles(args contains CreateSrc, args contains SameTargets)
       }
-      val testDirectories = (setting(Keys.unmanagedSourceDirectories, "Missing unmanaged test source directories for %s!" format ref.project, ref, Configurations.Test) |@|
-          setting(Keys.unmanagedResourceDirectories, "Missing unmanaged test resource directories for %s!" format ref.project, ref, Configurations.Test) |@|
-          setting(Keys.classDirectory, "Missing test class directory for %s!" format ref.project, ref, Configurations.Test)) {
-        Directories
-      }
-      val libraries = {
-        val classpathLibraries = evaluateTask(Keys.externalDependencyClasspath in Configurations.Test, ref) match {
-          case Some(Value(attributedLibs)) => 
-            (attributedLibs.files collect {
-              case file @ Path(path) if !(path endsWith "scala-library.jar") => file
-            }).success
-          case _ => ("Error running externalDependencyClasspath task for %s" format ref.project).failNel
-        }
-        val (binaries, sources) =
-          if (!(args contains withSources))
-            Map[ModuleID, File]().success[NonEmptyList[String]] -> Map[ModuleID, File]().success[NonEmptyList[String]]
-          else {
-            val binaries = evaluateTask(Keys.update in Configurations.Test, ref) match {
-              case Some(Value(updateReport)) => 
-                (for {
-                  configurationReport <- (updateReport configuration "test").toSeq
-                  moduleReport <- configurationReport.modules
-                  (_, file) <- moduleReport.artifacts
-                } yield moduleReport.module -> file).toMap.success
-              case _ => ("Error running update task for %s" format ref.project).failNel
-            }
-            val sources = evaluateTask(Keys.updateClassifiers in Configurations.Test, ref) match {
-              case Some(Value(updateReport)) => 
-                (for {
-                  configurationReport <- (updateReport configuration "test").toSeq
-                  moduleReport <- configurationReport.modules
-                  (artifact, file) <- moduleReport.artifacts if artifact.classifier == Some("sources")
-                } yield moduleReport.module -> file).toMap.success
-              case _ => ("Error running updateClassifiers task for %s" format ref.project).failNel
-            }
-            binaries -> sources
-          }
-        (classpathLibraries |@| binaries |@| sources) { (ls, bs, ss) =>
-          val bsToSs = bs flatMap { case (moduleId, binaryFile) =>
-            ss get moduleId map { sourceFile => binaryFile -> sourceFile }
-          }
-          ls map { l => Library(l, bsToSs get l) }
-        }
-      }
-      val projectDependencies = (project.dependencies map { dependency =>
-        setting(Keys.name, "Missing project name for %s!" format ref.project, dependency.project)
-      }).sequence[({type A[B]=Validation[NonEmptyList[String], B]})#A, String]
-      (projectName |@| 
-          scalaVersion |@| 
-          baseDirectory |@| 
-          compileDirectories |@| 
-          testDirectories |@| 
-          libraries |@| 
-          projectDependencies) {
-        saveEclipseFiles(args contains createSrc, args contains sameTargets)
-      }
-    }).sequence[({type A[B]=Validation[NonEmptyList[String], B]})#A, String] match {
+    }
+    results.sequence[ValidationNELString, String] match {
       case Success(scalaVersion) =>
         if (scalaVersion.isEmpty)
           logWarn("Attention: There was no project to create Eclipse project files for! Maybe you used skip-root on a build without sub-projects.")
@@ -130,8 +74,74 @@ object SbtEclipsePlugin extends Plugin {
     }
   }
 
-  private def saveEclipseFiles(
-      createSrc: Boolean, sameTargets: Boolean)(
+  private def projectName(implicit ref: ProjectRef, state: State) =
+    setting(Keys.name, "Missing project name for %s!" format ref.project, ref)
+
+  private def scalaVersion(implicit ref: ProjectRef, state: State) =
+    setting(Keys.scalaVersion, "Missing Scala version for %s!" format ref.project, ref)
+
+  private def baseDirectory(implicit ref: ProjectRef, state: State) =
+    setting(Keys.baseDirectory, "Missing base directory for %s!" format ref.project, ref)
+
+  private def compileDirectories(implicit ref: ProjectRef, state: State) =
+    (setting(Keys.unmanagedSourceDirectories, "Missing unmanaged source directories for %s!" format ref.project, ref) |@|
+        setting(Keys.unmanagedResourceDirectories, "Missing unmanaged resource directories for %s!" format ref.project, ref) |@|
+            setting(Keys.classDirectory, "Missing class directory for %s!" format ref.project, ref)) { Directories }
+
+  private def testDirectories(implicit ref: ProjectRef, state: State) =
+    (setting(Keys.unmanagedSourceDirectories, "Missing unmanaged test source directories for %s!" format ref.project, ref, Configurations.Test) |@|
+        setting(Keys.unmanagedResourceDirectories, "Missing unmanaged test resource directories for %s!" format ref.project, ref, Configurations.Test) |@|
+            setting(Keys.classDirectory, "Missing test class directory for %s!" format ref.project, ref, Configurations.Test)) { Directories }
+
+  private def libraries(withSources: Boolean)(implicit ref: ProjectRef, state: State) = {
+    val classpathLibraries = evaluateTask(Keys.externalDependencyClasspath in Configurations.Test, ref) match {
+      case Some(Value(attributedLibs)) => 
+        (attributedLibs.files collect {
+          case file @ Path(path) if !(path endsWith "scala-library.jar") => file
+        }).success
+      case _ => ("Error running externalDependencyClasspath task for %s" format ref.project).failNel
+    }
+    val (binaries, sources) =
+      if (!withSources)
+        Map[ModuleID, File]().success[NonEmptyList[String]] -> Map[ModuleID, File]().success[NonEmptyList[String]]
+      else {
+        val binaries = evaluateTask(Keys.update in Configurations.Test, ref) match {
+          case Some(Value(updateReport)) => 
+            (for {
+              configurationReport <- (updateReport configuration "test").toSeq
+              moduleReport <- configurationReport.modules
+              (_, file) <- moduleReport.artifacts
+            } yield moduleReport.module -> file).toMap.success
+          case _ => ("Error running update task for %s" format ref.project).failNel
+        }
+        val sources = evaluateTask(Keys.updateClassifiers in Configurations.Test, ref) match {
+          case Some(Value(updateReport)) => 
+            (for {
+              configurationReport <- (updateReport configuration "test").toSeq
+              moduleReport <- configurationReport.modules
+              (artifact, file) <- moduleReport.artifacts if artifact.classifier == Some("sources")
+            } yield moduleReport.module -> file).toMap.success
+          case _ => ("Error running updateClassifiers task for %s" format ref.project).failNel
+        }
+        binaries -> sources
+      }
+    (classpathLibraries |@| binaries |@| sources) { (ls, bs, ss) =>
+      val bsToSs = bs flatMap { case (moduleId, binaryFile) =>
+        ss get moduleId map { sourceFile => binaryFile -> sourceFile }
+      }
+      ls map { l => Library(l, bsToSs get l) }
+    }
+  }
+
+  private def projectDependencies(project: ResolvedProject)(implicit ref: ProjectRef, state: State) = {
+    val projectDependencies = project.dependencies map { dependency =>
+      setting(Keys.name, "Missing project name for %s!" format ref.project, dependency.project)
+    }
+    projectDependencies.sequence[ValidationNELString, String]
+  }
+
+  private def saveEclipseFiles(createSrc: Boolean,
+      sameTargets: Boolean)(
       projectName: String,
       scalaVersion: String,
       baseDirectory: File,
@@ -140,13 +150,11 @@ object SbtEclipsePlugin extends Plugin {
       libraries: Seq[Library],
       projectDependencies: Seq[String])(
       implicit state: State): String = {
-
     def savePretty(xml: Elem, file: File): Unit = {
       val out = new FileWriter(file)
       out.write(new PrettyPrinter(999, 2) format xml)
       out.close()
     }
-
     savePretty(projectXml(projectName), baseDirectory / ".project")
     savePretty(classpathXml(createSrc,
         sameTargets,
@@ -156,7 +164,6 @@ object SbtEclipsePlugin extends Plugin {
         libraries,
         projectDependencies),
         baseDirectory / ".classpath")
-
     scalaVersion
   }
 
@@ -174,9 +181,7 @@ object SbtEclipsePlugin extends Plugin {
       </natures>
     </projectDescription>
 
-
-  def classpathXml(
-      createSrc: Boolean,
+  def classpathXml(createSrc: Boolean,
       sameTargets: Boolean,
       baseDirectory: File,
       compileDirectories: Directories,
@@ -184,45 +189,38 @@ object SbtEclipsePlugin extends Plugin {
       libraries: Seq[Library],
       projectDependencies: Seq[String])(
       implicit state: State) = {
-
     def outputPath(file: File) = {
       val relative = IO.relativize(baseDirectory, file).get // TODO Is this safe?
       if (sameTargets) relative
       else IO.relativize(baseDirectory, new File(baseDirectory, "." + relative)).get // TODO Is this safe?
     }
-
-    def srcEntries(directories: Seq[File], output: File) =
-      directories flatMap { directory =>
-        if (!directory.exists && createSrc) {
-          logDebug("""Creating src directory "%s".""" format directory)
-          directory.mkdirs()
-        }
-        if (directory.exists) {
-          logDebug("""Creating src entry for directory "%s".""" format directory)
-          val relative = IO.relativize(baseDirectory, directory).get // TODO Is this safe?
-          val relativeOutput = outputPath(output)
-          <classpathentry kind="src" path={ relative.toString } output={ relativeOutput.toString }/>
-        } else {
-          logDebug("""Skipping src entry for not-existing directory "%s".""" format directory)
-          NodeSeq.Empty
-        }
+    def srcEntries(directories: Seq[File], output: File) = directories flatMap { directory =>
+      if (!directory.exists && createSrc) {
+        logDebug("""Creating src directory "%s".""" format directory)
+        directory.mkdirs()
       }
-
-    def libEntries =
-      libraries flatMap {
-        case Library(Path(binary), Some(Path(sources))) =>
-          logDebug("""Creating lib entry with source attachment for dependency "%s".""" format binary)
-          <classpathentry kind="lib" path={ binary } sourcepath={ sources }/>
-        case Library(Path(binary), _) =>
-          logDebug("""Creating lib entry for dependency "%s".""" format binary)
-          <classpathentry kind="lib" path={ binary }/>
+      if (directory.exists) {
+        logDebug("""Creating src entry for directory "%s".""" format directory)
+        val relative = IO.relativize(baseDirectory, directory).get // TODO Is this safe?
+        val relativeOutput = outputPath(output)
+        <classpathentry kind="src" path={ relative.toString } output={ relativeOutput.toString }/>
+      } else {
+        logDebug("""Skipping src entry for not-existing directory "%s".""" format directory)
+        NodeSeq.Empty
       }
-
+    }
+    def libEntries = libraries flatMap {
+      case Library(Path(binary), Some(Path(sources))) =>
+        logDebug("""Creating lib entry with source attachment for dependency "%s".""" format binary)
+        <classpathentry kind="lib" path={ binary } sourcepath={ sources }/>
+      case Library(Path(binary), _) =>
+        logDebug("""Creating lib entry for dependency "%s".""" format binary)
+        <classpathentry kind="lib" path={ binary }/>
+    }
     def projectDependencyEntries = projectDependencies.distinct flatMap { projectDependency =>
       logDebug("""Creating project dependency entry for "%s".""" format projectDependency)
       <classpathentry kind="src" path={"/" + projectDependency } exported="true" combineaccessrules="false"/>
     }
-
     <classpath>{
       srcEntries(compileDirectories.sources, compileDirectories.clazz) ++
       srcEntries(compileDirectories.resources, compileDirectories.clazz) ++
@@ -235,7 +233,6 @@ object SbtEclipsePlugin extends Plugin {
       <classpathentry kind="output" path={ outputPath(compileDirectories.clazz) }/>
     }</classpath>
   }
-
 }
 
 object Path {

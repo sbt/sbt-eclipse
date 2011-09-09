@@ -25,6 +25,8 @@ import scalaz.Scalaz._
 
 package object sbteclipse {
 
+  type ValidationNELString[A] = Validation[NonEmptyList[String], A]
+
   def extracted(implicit state: State) = Project extract state
 
   def structure(implicit state: State) = extracted.structure
@@ -33,7 +35,7 @@ package object sbteclipse {
       errorMessage: => String,
       projectReference: ProjectReference,
       configuration: Configuration = Configurations.Compile)(
-      implicit state: State): Validation[NonEmptyList[String], A] = {
+      implicit state: State): ValidationNELString[A] = {
     key in (projectReference, configuration) get structure.data match {
       case Some(a) =>
         logDebug("Setting for key %s = %s".format(key.key, a))
