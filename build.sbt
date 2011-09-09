@@ -3,7 +3,7 @@ organization := "com.typesafe.sbteclipse"
 
 name := "sbteclipse"
 
-version := "1.4.0-SNAPSHOT"
+version := "1.4.0-RC2"
 
 sbtPlugin := true
 
