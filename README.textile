@@ -16,9 +16,9 @@ h2. Installing sbteclipse as a sbt plugin
 * Just add the below lines to your _build.sbt_ file, paying attention to the blank lines:
 
 <pre><code>
-resolvers += Classpaths.typesafeSnapshots
+resolvers += Classpaths.typesafeResolver
 
-addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse" % "1.4.0-SNAPSHOT")
+addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse" % "1.4.0-RC2")
 </code></pre>
 
 h2. Using sbteclipse to create Eclipse project files
