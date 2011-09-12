@@ -10,7 +10,7 @@ h2. Latest changes
 
 h2. Installing sbteclipse as a sbt plugin
 
-* To "install" the plugin, either use a local or the globel plugin definition (for details about sbt plugins please see the "sbt documentation":https://github.com/harrah/xsbt/wiki/Plugins):
+* To "install" the plugin, either use a local or the global plugin definition (for details about sbt plugins please see the "sbt documentation":https://github.com/harrah/xsbt/wiki/Plugins):
 ** The local plugin is just a _build.sbt_ file in the _project/plugins_ folder of your project
 ** The global plugin is defined via a _build.sbt_ file in the directory _~/.sbt/plugins_.
 * Just add the below lines to your _build.sbt_ file, paying attention to the blank lines:
