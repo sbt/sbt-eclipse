@@ -16,4 +16,6 @@ publishTo <<= (version) { v =>
   Option(if (v endsWith "SNAPSHOT") typesafeSnapshots else typesafeResolver)
 }
 
+publishMavenStyle := false
+
 credentials += Credentials(Path.userHome / ".ivy2" / ".typesafe-credentials")
