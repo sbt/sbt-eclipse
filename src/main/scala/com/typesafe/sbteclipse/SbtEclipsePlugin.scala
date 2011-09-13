@@ -26,26 +26,30 @@ import scalaz.{ Failure, NonEmptyList, Success }
 import scalaz.Scalaz._
 
 object SbtEclipsePlugin extends Plugin {
+  import SbtEclipse._
 
-  private val CreateSrc = "create-src"
+  override def settings = Seq(Keys.commands += eclipseCommand)
+}
 
-  private val SameTargets = "same-targets"
+object SbtEclipse {
 
-  private val SkipParents = "skip-parents"
+  private[sbteclipse] val CreateSrc = "create-src"
 
-  private val SkipRoot = "skip-root"
+  private[sbteclipse] val SameTargets = "same-targets"
 
-  private val WithSources = "with-sources"
+  private[sbteclipse] val SkipParents = "skip-parents"
 
-  private val Parser = (Space ~> CreateSrc |
+  private[sbteclipse] val SkipRoot = "skip-root"
+
+  private[sbteclipse] val WithSources = "with-sources"
+
+  private[sbteclipse] val Parser = (Space ~> CreateSrc |
       Space ~> SameTargets |
       Space ~> SkipParents | 
       Space ~> SkipRoot |
       Space ~> WithSources).*
 
-  override def settings = Seq(Keys.commands += eclipseCommand)
-
-  private def eclipseCommand = Command("eclipse")(_ => Parser) { (state, args) =>
+  private[sbteclipse] def eclipseCommand = Command("eclipse")(_ => Parser) { (state, args) =>
     implicit val implicitState = state
     logInfo("About to create an Eclipse project for you.")
     logInfo("Please hang on, because it might be necessary to perform one or more updates and this might take some time ...")
@@ -74,26 +78,26 @@ object SbtEclipsePlugin extends Plugin {
     }
   }
 
-  private def projectName(implicit ref: ProjectRef, state: State) =
+  private[sbteclipse] def projectName(implicit ref: ProjectRef, state: State) =
     setting(Keys.name, "Missing project name for %s!" format ref.project, ref)
 
-  private def scalaVersion(implicit ref: ProjectRef, state: State) =
+  private[sbteclipse] def scalaVersion(implicit ref: ProjectRef, state: State) =
     setting(Keys.scalaVersion, "Missing Scala version for %s!" format ref.project, ref)
 
-  private def baseDirectory(implicit ref: ProjectRef, state: State) =
+  private[sbteclipse] def baseDirectory(implicit ref: ProjectRef, state: State) =
     setting(Keys.baseDirectory, "Missing base directory for %s!" format ref.project, ref)
 
-  private def compileDirectories(implicit ref: ProjectRef, state: State) =
+  private[sbteclipse] def compileDirectories(implicit ref: ProjectRef, state: State) =
     (setting(Keys.unmanagedSourceDirectories, "Missing unmanaged source directories for %s!" format ref.project, ref) |@|
         setting(Keys.unmanagedResourceDirectories, "Missing unmanaged resource directories for %s!" format ref.project, ref) |@|
             setting(Keys.classDirectory, "Missing class directory for %s!" format ref.project, ref)) { Directories }
 
-  private def testDirectories(implicit ref: ProjectRef, state: State) =
+  private[sbteclipse] def testDirectories(implicit ref: ProjectRef, state: State) =
     (setting(Keys.unmanagedSourceDirectories, "Missing unmanaged test source directories for %s!" format ref.project, ref, Configurations.Test) |@|
         setting(Keys.unmanagedResourceDirectories, "Missing unmanaged test resource directories for %s!" format ref.project, ref, Configurations.Test) |@|
             setting(Keys.classDirectory, "Missing test class directory for %s!" format ref.project, ref, Configurations.Test)) { Directories }
 
-  private def libraries(withSources: Boolean)(implicit ref: ProjectRef, state: State) = {
+  private[sbteclipse] def libraries(withSources: Boolean)(implicit ref: ProjectRef, state: State) = {
     val classpathLibraries = evaluateTask(Keys.externalDependencyClasspath in Configurations.Test, ref) match {
       case Some(Value(attributedLibs)) => 
         (attributedLibs.files collect {
@@ -133,14 +137,14 @@ object SbtEclipsePlugin extends Plugin {
     }
   }
 
-  private def projectDependencies(project: ResolvedProject)(implicit ref: ProjectRef, state: State) = {
+  private[sbteclipse] def projectDependencies(project: ResolvedProject)(implicit ref: ProjectRef, state: State) = {
     val projectDependencies = project.dependencies map { dependency =>
       setting(Keys.name, "Missing project name for %s!" format ref.project, dependency.project)
     }
     projectDependencies.sequence[ValidationNELString, String]
   }
 
-  private def saveEclipseFiles(createSrc: Boolean,
+  private[sbteclipse] def saveEclipseFiles(createSrc: Boolean,
       sameTargets: Boolean)(
       projectName: String,
       scalaVersion: String,
@@ -167,7 +171,7 @@ object SbtEclipsePlugin extends Plugin {
     scalaVersion
   }
 
-  private def projectXml(name: String) =
+  private[sbteclipse] def projectXml(name: String) =
     <projectDescription>
       <name>{ name }</name>
       <buildSpec>

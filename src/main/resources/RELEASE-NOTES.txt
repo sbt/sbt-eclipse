@@ -5,9 +5,10 @@ sbteclipse
 v1.4
 ====
 
-* #28: Add skip-parents option
-* #27: Add info message "This might take some time ..." when command starts
-* #24: Switch to sbt 0.11
+#31: Reference to scalaVersion is ambiguous
+#28: Add skip-parents option
+#27: Add info message "This might take some time ..." when command starts
+#24: Switch to sbt 0.11
 
 v1.3 (no release due to switch to sbt 0.11)
 ====
