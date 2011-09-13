@@ -19,7 +19,7 @@ h2. Installing sbteclipse as a sbt plugin
 <pre><code>
 resolvers += Classpaths.typesafeResolver
 
-addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse" % "1.4.0-RC3")
+addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse" % "1.4.0-RC4")
 </code></pre>
 
 h2. Using sbteclipse to create Eclipse project files
