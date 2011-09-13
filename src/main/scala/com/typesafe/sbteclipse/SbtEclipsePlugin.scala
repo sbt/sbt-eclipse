@@ -41,7 +41,7 @@ object SbtEclipsePlugin extends Plugin {
       Space ~> SameTargets |
       Space ~> SkipParents | 
       Space ~> SkipRoot |
-      Space ~> WithSources)
+      Space ~> WithSources).*
 
   override def settings = Seq(Keys.commands += eclipseCommand)
 
