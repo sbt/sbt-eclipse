@@ -233,7 +233,7 @@ object SbtEclipse {
       libEntries ++
       projectDependencyEntries ++
       <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/>
-      <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
+      <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
       <classpathentry kind="output" path={ outputPath(compileDirectories.clazz) }/>
     }</classpath>
   }

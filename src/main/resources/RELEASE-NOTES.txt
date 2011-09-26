@@ -2,6 +2,11 @@
 sbteclipse
 ==========
 
+v1.5
+====
+
+#37: Use workspace default JRE (contribution of Jarod Liu <liuyuanzhi@gmail.com>)
+
 v1.4
 ====
 

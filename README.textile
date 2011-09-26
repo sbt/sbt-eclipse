@@ -4,6 +4,7 @@ This project is a plugin for "sbt 0.11.x":http://github.com/harrah/xsbt/ providi
 
 h2. Latest changes
 
+* #37: Use workspace default JRE
 * #31: Reference to scalaVersion is ambiguous
 * #28: Add skip-parents option
 * #27: Add info message "This might take some time ..." when command starts
