@@ -31,10 +31,10 @@ package object sbteclipse {
 
   def structure(implicit state: State) = extracted.structure
 
-  def setting[A](key: SettingKey[A], 
-      errorMessage: => String,
-      projectReference: ProjectReference,
-      configuration: Configuration = Configurations.Compile)(
+  def setting[A](key: SettingKey[A],
+    errorMessage: => String,
+    projectReference: ProjectReference,
+    configuration: Configuration = Configurations.Compile)(
       implicit state: State): ValidationNELString[A] = {
     key in (projectReference, configuration) get structure.data match {
       case Some(a) =>
@@ -44,12 +44,12 @@ package object sbteclipse {
     }
   }
 
-  def evaluateTask[A](taskKey: ScopedKey[Task[A]], ref: ProjectRef)(implicit state: State): Option[Result[A]] = 
+  def evaluateTask[A](taskKey: ScopedKey[Task[A]], ref: ProjectRef)(implicit state: State): Option[Result[A]] =
     EvaluateTask.evaluateTask(structure, taskKey, state, ref, false, EvaluateTask.SystemProcessors)
 
   def isParentProject(project: ResolvedProject): Boolean = !project.aggregate.isEmpty
 
-  def isRootProject(projectRef: ProjectRef)(implicit state: State): Boolean = 
+  def isRootProject(projectRef: ProjectRef)(implicit state: State): Boolean =
     projectRef.project == (extracted rootProject projectRef.build)
 
   def logDebug(message: => String)(implicit state: State): Unit = logger(state).debug(message)

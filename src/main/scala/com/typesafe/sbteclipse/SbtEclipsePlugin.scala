@@ -19,7 +19,7 @@
 package com.typesafe.sbteclipse
 
 import java.io.{ File, FileWriter }
-import sbt.{ Path => _,  _ }
+import sbt.{ Path => _, _ }
 import sbt.complete.Parsers._
 import scala.xml.{ Elem, NodeSeq, PrettyPrinter }
 import scalaz.{ Failure, NonEmptyList, Success }
@@ -44,10 +44,10 @@ object SbtEclipse {
   private[sbteclipse] val WithSources = "with-sources"
 
   private[sbteclipse] val Parser = (Space ~> CreateSrc |
-      Space ~> SameTargets |
-      Space ~> SkipParents | 
-      Space ~> SkipRoot |
-      Space ~> WithSources).*
+    Space ~> SameTargets |
+    Space ~> SkipParents |
+    Space ~> SkipRoot |
+    Space ~> WithSources).*
 
   private[sbteclipse] def eclipseCommand = Command("eclipse")(_ => Parser) { (state, args) =>
     implicit val implicitState = state
@@ -60,10 +60,10 @@ object SbtEclipse {
       if skipParents && !isParentProject(project) || skipRoot && !isRootProject(ref) || !(skipParents || skipRoot)
     } yield {
       implicit val implicitRef = ref
-      (projectName |@| scalaVersion |@| baseDirectory |@| compileDirectories |@| testDirectories |@| 
-          libraries(args contains WithSources) |@| projectDependencies(project)) {
-        saveEclipseFiles(args contains CreateSrc, args contains SameTargets)
-      }
+      (projectName |@| scalaVersion |@| baseDirectory |@| compileDirectories |@| testDirectories |@|
+        libraries(args contains WithSources) |@| projectDependencies(project)) {
+          saveEclipseFiles(args contains CreateSrc, args contains SameTargets)
+        }
     }
     results.sequence[ValidationNELString, String] match {
       case Success(scalaVersion) =>
@@ -89,17 +89,17 @@ object SbtEclipse {
 
   private[sbteclipse] def compileDirectories(implicit ref: ProjectRef, state: State) =
     (setting(Keys.unmanagedSourceDirectories, "Missing unmanaged source directories for %s!" format ref.project, ref) |@|
-        setting(Keys.unmanagedResourceDirectories, "Missing unmanaged resource directories for %s!" format ref.project, ref) |@|
-            setting(Keys.classDirectory, "Missing class directory for %s!" format ref.project, ref)) { Directories }
+      setting(Keys.unmanagedResourceDirectories, "Missing unmanaged resource directories for %s!" format ref.project, ref) |@|
+      setting(Keys.classDirectory, "Missing class directory for %s!" format ref.project, ref)) { Directories }
 
   private[sbteclipse] def testDirectories(implicit ref: ProjectRef, state: State) =
     (setting(Keys.unmanagedSourceDirectories, "Missing unmanaged test source directories for %s!" format ref.project, ref, Configurations.Test) |@|
-        setting(Keys.unmanagedResourceDirectories, "Missing unmanaged test resource directories for %s!" format ref.project, ref, Configurations.Test) |@|
-            setting(Keys.classDirectory, "Missing test class directory for %s!" format ref.project, ref, Configurations.Test)) { Directories }
+      setting(Keys.unmanagedResourceDirectories, "Missing unmanaged test resource directories for %s!" format ref.project, ref, Configurations.Test) |@|
+      setting(Keys.classDirectory, "Missing test class directory for %s!" format ref.project, ref, Configurations.Test)) { Directories }
 
   private[sbteclipse] def libraries(withSources: Boolean)(implicit ref: ProjectRef, state: State) = {
     val classpathLibraries = evaluateTask(Keys.externalDependencyClasspath in Configurations.Test, ref) match {
-      case Some(Value(attributedLibs)) => 
+      case Some(Value(attributedLibs)) =>
         (attributedLibs.files collect {
           case file @ Path(path) if !(path endsWith "scala-library.jar") => file
         }).success
@@ -110,7 +110,7 @@ object SbtEclipse {
         Map[ModuleID, File]().success[NonEmptyList[String]] -> Map[ModuleID, File]().success[NonEmptyList[String]]
       else {
         val binaries = evaluateTask(Keys.update in Configurations.Test, ref) match {
-          case Some(Value(updateReport)) => 
+          case Some(Value(updateReport)) =>
             (for {
               configurationReport <- (updateReport configuration "test").toSeq
               moduleReport <- configurationReport.modules
@@ -119,7 +119,7 @@ object SbtEclipse {
           case _ => ("Error running update task for %s" format ref.project).failNel
         }
         val sources = evaluateTask(Keys.updateClassifiers in Configurations.Test, ref) match {
-          case Some(Value(updateReport)) => 
+          case Some(Value(updateReport)) =>
             (for {
               configurationReport <- (updateReport configuration "test").toSeq
               moduleReport <- configurationReport.modules
@@ -130,8 +130,9 @@ object SbtEclipse {
         binaries -> sources
       }
     (classpathLibraries |@| binaries |@| sources) { (ls, bs, ss) =>
-      val bsToSs = bs flatMap { case (moduleId, binaryFile) =>
-        ss get moduleId map { sourceFile => binaryFile -> sourceFile }
+      val bsToSs = bs flatMap {
+        case (moduleId, binaryFile) =>
+          ss get moduleId map { sourceFile => binaryFile -> sourceFile }
       }
       ls map { l => Library(l, bsToSs get l) }
     }
@@ -145,7 +146,7 @@ object SbtEclipse {
   }
 
   private[sbteclipse] def saveEclipseFiles(createSrc: Boolean,
-      sameTargets: Boolean)(
+    sameTargets: Boolean)(
       projectName: String,
       scalaVersion: String,
       baseDirectory: File,
@@ -153,7 +154,7 @@ object SbtEclipse {
       testDirectories: Directories,
       libraries: Seq[Library],
       projectDependencies: Seq[String])(
-      implicit state: State): String = {
+        implicit state: State): String = {
     def savePretty(xml: Elem, file: File): Unit = {
       val out = new FileWriter(file)
       out.write(new PrettyPrinter(999, 2) format xml)
@@ -161,13 +162,13 @@ object SbtEclipse {
     }
     savePretty(projectXml(projectName), baseDirectory / ".project")
     savePretty(classpathXml(createSrc,
-        sameTargets,
-        baseDirectory,
-        compileDirectories,
-        testDirectories,
-        libraries,
-        projectDependencies),
-        baseDirectory / ".classpath")
+      sameTargets,
+      baseDirectory,
+      compileDirectories,
+      testDirectories,
+      libraries,
+      projectDependencies),
+      baseDirectory / ".classpath")
     scalaVersion
   }
 
@@ -186,12 +187,12 @@ object SbtEclipse {
     </projectDescription>
 
   def classpathXml(createSrc: Boolean,
-      sameTargets: Boolean,
-      baseDirectory: File,
-      compileDirectories: Directories,
-      testDirectories: Directories,
-      libraries: Seq[Library],
-      projectDependencies: Seq[String])(
+    sameTargets: Boolean,
+    baseDirectory: File,
+    compileDirectories: Directories,
+    testDirectories: Directories,
+    libraries: Seq[Library],
+    projectDependencies: Seq[String])(
       implicit state: State) = {
     def outputPath(file: File) = {
       val relative = IO.relativize(baseDirectory, file).get // TODO Is this safe?
@@ -223,18 +224,18 @@ object SbtEclipse {
     }
     def projectDependencyEntries = projectDependencies.distinct flatMap { projectDependency =>
       logDebug("""Creating project dependency entry for "%s".""" format projectDependency)
-      <classpathentry kind="src" path={"/" + projectDependency } exported="true" combineaccessrules="false"/>
+      <classpathentry kind="src" path={ "/" + projectDependency } exported="true" combineaccessrules="false"/>
     }
     <classpath>{
       srcEntries(compileDirectories.sources, compileDirectories.clazz) ++
-      srcEntries(compileDirectories.resources, compileDirectories.clazz) ++
-      srcEntries(testDirectories.sources, testDirectories.clazz) ++
-      srcEntries(testDirectories.resources, testDirectories.clazz) ++
-      libEntries ++
-      projectDependencyEntries ++
-      <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/>
-      <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-      <classpathentry kind="output" path={ outputPath(compileDirectories.clazz) }/>
+        srcEntries(compileDirectories.resources, compileDirectories.clazz) ++
+        srcEntries(testDirectories.sources, testDirectories.clazz) ++
+        srcEntries(testDirectories.resources, testDirectories.clazz) ++
+        libEntries ++
+        projectDependencyEntries ++
+        <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/>
+        <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+        <classpathentry kind="output" path={ outputPath(compileDirectories.clazz) }/>
     }</classpath>
   }
 }
