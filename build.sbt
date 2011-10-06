@@ -7,7 +7,7 @@ version := "1.5.0-SNAPSHOT"
 
 sbtPlugin := true
 
-libraryDependencies += "org.scalaz" %% "scalaz-core" % "6.0.2"
+libraryDependencies += "org.scalaz" %% "scalaz-core" % "6.0.3"
 
 scalacOptions ++= Seq("-unchecked", "-deprecation")
 
