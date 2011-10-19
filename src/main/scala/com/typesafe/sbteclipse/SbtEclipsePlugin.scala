@@ -215,6 +215,10 @@ object SbtEclipse {
       }
     }
     def libEntries = libraries flatMap {
+      //Scala compiler (and library) are treated as special kind of dependencies in Scala IDE
+      case Library(file, _) if file.getName == "scala-compiler.jar" =>
+        logDebug("Creating lib entry for Scala compiler.")
+        <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_COMPILER_CONTAINER"/>
       case Library(Path(binary), Some(Path(sources))) =>
         logDebug("""Creating lib entry with source attachment for dependency "%s".""" format binary)
         <classpathentry kind="lib" path={ binary } sourcepath={ sources }/>
