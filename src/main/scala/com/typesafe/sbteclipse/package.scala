@@ -20,6 +20,7 @@ package com.typesafe
 
 import sbt._
 import sbt.CommandSupport.logger
+import sbt.Load.BuildStructure
 import scalaz.{ NonEmptyList, Validation }
 import scalaz.Scalaz._
 
@@ -27,16 +28,18 @@ package object sbteclipse {
 
   type ValidationNELString[A] = Validation[NonEmptyList[String], A]
 
-  def extracted(implicit state: State) = Project extract state
+  def extracted(implicit state: State): Extracted =
+    Project extract state
 
-  def structure(implicit state: State) = extracted.structure
+  def structure(implicit state: State): BuildStructure =
+    extracted.structure
 
   def setting[A](key: SettingKey[A],
     errorMessage: => String,
-    projectReference: ProjectReference,
+    reference: ProjectReference,
     configuration: Configuration = Configurations.Compile)(
       implicit state: State): ValidationNELString[A] = {
-    key in (projectReference, configuration) get structure.data match {
+    key in (reference, configuration) get structure.data match {
       case Some(a) =>
         logDebug("Setting for key %s = %s".format(key.key, a))
         a.success
@@ -47,16 +50,21 @@ package object sbteclipse {
   def evaluateTask[A](taskKey: ScopedKey[Task[A]], ref: ProjectRef)(implicit state: State): Option[Result[A]] =
     EvaluateTask.evaluateTask(structure, taskKey, state, ref, false, EvaluateTask.SystemProcessors)
 
-  def isParentProject(project: ResolvedProject): Boolean = !project.aggregate.isEmpty
+  def isParentProject(project: ResolvedProject): Boolean =
+    !project.aggregate.isEmpty
 
-  def isRootProject(projectRef: ProjectRef)(implicit state: State): Boolean =
-    projectRef.project == (extracted rootProject projectRef.build)
+  def isRootProject(ref: ProjectRef)(implicit state: State): Boolean =
+    ref.project == (extracted rootProject ref.build)
 
-  def logDebug(message: => String)(implicit state: State): Unit = logger(state).debug(message)
+  def logDebug(message: => String)(implicit state: State): Unit =
+    logger(state).debug(message)
 
-  def logInfo(message: => String)(implicit state: State): Unit = logger(state).info(message)
+  def logInfo(message: => String)(implicit state: State): Unit =
+    logger(state).info(message)
 
-  def logWarn(message: => String)(implicit state: State): Unit = logger(state).warn(message)
+  def logWarn(message: => String)(implicit state: State): Unit =
+    logger(state).warn(message)
 
-  def logError(message: => String)(implicit state: State): Unit = logger(state).error(message)
+  def logError(message: => String)(implicit state: State): Unit =
+    logger(state).error(message)
 }

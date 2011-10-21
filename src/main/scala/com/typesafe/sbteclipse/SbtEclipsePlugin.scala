@@ -20,52 +20,43 @@ package com.typesafe.sbteclipse
 
 import java.io.{ File, FileWriter }
 import sbt.{ Path => _, _ }
+import sbt.complete.Parser
 import sbt.complete.Parsers._
 import scala.xml.{ Elem, NodeSeq, PrettyPrinter }
 import scalaz.{ Failure, NonEmptyList, Success }
 import scalaz.Scalaz._
 
 object SbtEclipsePlugin extends Plugin {
-  import SbtEclipse._
-
-  override def settings = Seq(Keys.commands += eclipseCommand)
+  override def settings: Seq[Setting[_]] =
+    Seq(Keys.commands += SbtEclipse.eclipseCommand)
 }
 
-object SbtEclipse {
+private object SbtEclipse {
 
-  private[sbteclipse] val CreateSrc = "create-src"
+  val CreateSrc: String = "create-src"
 
-  private[sbteclipse] val SameTargets = "same-targets"
+  val SameTargets: String = "same-targets"
 
-  private[sbteclipse] val SkipParents = "skip-parents"
+  val SkipParents: String = "skip-parents"
 
-  private[sbteclipse] val SkipRoot = "skip-root"
+  val SkipRoot: String = "skip-root"
 
-  private[sbteclipse] val WithSources = "with-sources"
+  val WithSources: String = "with-sources"
 
-  private[sbteclipse] val Parser = (Space ~> CreateSrc |
-    Space ~> SameTargets |
-    Space ~> SkipParents |
-    Space ~> SkipRoot |
-    Space ~> WithSources).*
+  def eclipseCommand: Command =
+    Command("eclipse")(_ => parser)((state, args) => action(args)(state))
 
-  private[sbteclipse] def eclipseCommand = Command("eclipse")(_ => Parser) { (state, args) =>
-    implicit val implicitState = state
+  def parser: Parser[Seq[String]] =
+    (Space ~> CreateSrc |
+      Space ~> SameTargets |
+      Space ~> SkipParents |
+      Space ~> SkipRoot |
+      Space ~> WithSources).*
+
+  def action(args: Seq[String])(implicit state: State): State = {
     logInfo("About to create an Eclipse project for you.")
     logInfo("Please hang on, because it might be necessary to perform one or more updates and this might take some time ...")
-    val (skipParents, skipRoot) = (args contains SkipParents, args contains SkipRoot)
-    val results = for {
-      ref <- structure.allProjectRefs
-      project <- Project.getProject(ref, structure) // TODO Is it safe to assume that getProject will always return Some?
-      if skipParents && !isParentProject(project) || skipRoot && !isRootProject(ref) || !(skipParents || skipRoot)
-    } yield {
-      implicit val implicitRef = ref
-      (projectName |@| scalaVersion |@| baseDirectory |@| compileDirectories |@| testDirectories |@|
-        libraries(args contains WithSources) |@| projectDependencies(project)) {
-          saveEclipseFiles(args contains CreateSrc, args contains SameTargets)
-        }
-    }
-    results.sequence[ValidationNELString, String] match {
+    eclipseFiles(args).sequence[ValidationNELString, String] match {
       case Success(scalaVersion) =>
         if (scalaVersion.isEmpty)
           logWarn("Attention: There was no project to create Eclipse project files for! Maybe you used skip-root on a build without sub-projects.")
@@ -78,81 +69,88 @@ object SbtEclipse {
     }
   }
 
-  private[sbteclipse] def projectName(implicit ref: ProjectRef, state: State) =
+  def eclipseFiles(args: Seq[String])(implicit state: State): Seq[ValidationNELString[String]] =
+    for {
+      ref <- structure.allProjectRefs
+      project <- Project.getProject(ref, structure) if isNotSkipped(args, ref, project)
+    } yield {
+      (projectName(ref) |@|
+        scalaVersion(ref) |@|
+        baseDirectory(ref) |@|
+        compileDirectories(ref) |@|
+        testDirectories(ref) |@|
+        libraries(ref, args contains WithSources) |@|
+        projectDependencies(ref, project))(saveEclipseFiles(args contains CreateSrc, args contains SameTargets))
+    }
+
+  def isNotSkipped(args: Seq[String], ref: ProjectRef, project: ResolvedProject)(implicit state: State): Boolean = {
+    val skipParents = args contains SkipParents
+    val skipRoot = args contains SkipRoot
+    skipParents && !isParentProject(project) ||
+      skipRoot && !isRootProject(ref) ||
+      !(skipParents || skipRoot)
+  }
+
+  def projectName(ref: ProjectRef)(implicit state: State): ValidationNELString[String] =
     setting(Keys.name, "Missing project name for %s!" format ref.project, ref)
 
-  private[sbteclipse] def scalaVersion(implicit ref: ProjectRef, state: State) =
+  def scalaVersion(ref: ProjectRef)(implicit state: State): ValidationNELString[String] =
     setting(Keys.scalaVersion, "Missing Scala version for %s!" format ref.project, ref)
 
-  private[sbteclipse] def baseDirectory(implicit ref: ProjectRef, state: State) =
+  def baseDirectory(ref: ProjectRef)(implicit state: State): ValidationNELString[File] =
     setting(Keys.baseDirectory, "Missing base directory for %s!" format ref.project, ref)
 
-  private[sbteclipse] def compileDirectories(implicit ref: ProjectRef, state: State) =
+  def compileDirectories(ref: ProjectRef)(implicit state: State): ValidationNELString[Directories] =
     (setting(Keys.sourceDirectories, "Missing source directories for %s!" format ref.project, ref) |@|
       setting(Keys.resourceDirectories, "Missing resource directories for %s!" format ref.project, ref) |@|
-      setting(Keys.classDirectory, "Missing class directory for %s!" format ref.project, ref)) { Directories }
+      setting(Keys.classDirectory, "Missing class directory for %s!" format ref.project, ref))(Directories)
 
-  private[sbteclipse] def testDirectories(implicit ref: ProjectRef, state: State) =
+  def testDirectories(ref: ProjectRef)(implicit state: State): ValidationNELString[Directories] =
     (setting(Keys.sourceDirectories, "Missing test source directories for %s!" format ref.project, ref, Configurations.Test) |@|
       setting(Keys.resourceDirectories, "Missing test resource directories for %s!" format ref.project, ref, Configurations.Test) |@|
-      setting(Keys.classDirectory, "Missing test class directory for %s!" format ref.project, ref, Configurations.Test)) { Directories }
+      setting(Keys.classDirectory, "Missing test class directory for %s!" format ref.project, ref, Configurations.Test))(Directories)
 
-  private[sbteclipse] def libraries(withSources: Boolean)(implicit ref: ProjectRef, state: State) = {
-    val classpathLibraries = evaluateTask(Keys.externalDependencyClasspath in Configurations.Test, ref) match {
-      case Some(Value(attributedLibs)) =>
-        (attributedLibs.files collect {
-          case file @ Path(path) if !(path endsWith "scala-library.jar") => file
-        }).success
-      case _ => ("Error running externalDependencyClasspath task for %s" format ref.project).failNel
-    }
-    val (binaries, sources) =
-      if (!withSources)
-        Map[ModuleID, File]().success[NonEmptyList[String]] -> Map[ModuleID, File]().success[NonEmptyList[String]]
-      else {
-        val binaries = evaluateTask(Keys.update in Configurations.Test, ref) match {
-          case Some(Value(updateReport)) =>
-            (for {
-              configurationReport <- (updateReport configuration "test").toSeq
-              moduleReport <- configurationReport.modules
-              (_, file) <- moduleReport.artifacts
-            } yield moduleReport.module -> file).toMap.success
-          case _ => ("Error running update task for %s" format ref.project).failNel
-        }
-        val sources = evaluateTask(Keys.updateClassifiers in Configurations.Test, ref) match {
-          case Some(Value(updateReport)) =>
-            (for {
-              configurationReport <- (updateReport configuration "test").toSeq
-              moduleReport <- configurationReport.modules
-              (artifact, file) <- moduleReport.artifacts if artifact.classifier == Some("sources")
-            } yield moduleReport.module -> file).toMap.success
-          case _ => ("Error running updateClassifiers task for %s" format ref.project).failNel
-        }
-        binaries -> sources
-      }
-    (classpathLibraries |@| binaries |@| sources) { (ls, bs, ss) =>
-      val bsToSs = bs flatMap {
-        case (moduleId, binaryFile) =>
-          ss get moduleId map { sourceFile => binaryFile -> sourceFile }
-      }
-      ls map { l => Library(l, bsToSs get l) }
+  def libraries(ref: ProjectRef, withSources: Boolean)(implicit state: State): ValidationNELString[Iterable[Library]] = {
+    (libraryBinaries(ref) |@| librarySources(ref, withSources)) { (binaries, sources) =>
+      binaries map { case (moduleId, binaryFile) => Library(binaryFile, sources get moduleId) }
     }
   }
 
-  private[sbteclipse] def projectDependencies(project: ResolvedProject)(implicit ref: ProjectRef, state: State) = {
+  def libraryBinaries(ref: ProjectRef)(implicit state: State): ValidationNELString[Map[ModuleID, File]] =
+    modules(ref, Keys.update, (_, file) => !(file.getName endsWith "scala-library.jar"))
+
+  def librarySources(ref: ProjectRef, withSources: Boolean)(implicit state: State): ValidationNELString[Map[ModuleID, File]] =
+    if (withSources)
+      modules(ref, Keys.updateClassifiers, (artifact, file) => !(file.getName endsWith "scala-library.jar") && artifact.classifier == Some("sources"))
+    else
+      Map.empty.success
+
+  def modules(ref: ProjectRef, key: TaskKey[UpdateReport], p: (Artifact, File) => Boolean)(implicit state: State): ValidationNELString[Map[ModuleID, File]] =
+    evaluateTask(key in Configurations.Test, ref) match {
+      case Some(Value(updateReport)) =>
+        (for {
+          configurationReport <- (updateReport configuration "test").toSeq
+          moduleReport <- configurationReport.modules
+          (artifact, file) <- moduleReport.artifacts if p(artifact, file)
+        } yield moduleReport.module -> file).toMap.success
+      case _ => ("Error running task %s for %s".format(key, ref.project)).failNel
+    }
+
+  def projectDependencies(ref: ProjectRef, project: ResolvedProject)(implicit state: State): ValidationNELString[Seq[String]] = {
     val projectDependencies = project.dependencies map { dependency =>
       setting(Keys.name, "Missing project name for %s!" format ref.project, dependency.project)
     }
     projectDependencies.sequence[ValidationNELString, String]
   }
 
-  private[sbteclipse] def saveEclipseFiles(createSrc: Boolean,
+  def saveEclipseFiles(createSrc: Boolean,
     sameTargets: Boolean)(
       projectName: String,
       scalaVersion: String,
       baseDirectory: File,
       compileDirectories: Directories,
       testDirectories: Directories,
-      libraries: Seq[Library],
+      libraries: Iterable[Library],
       projectDependencies: Seq[String])(
         implicit state: State): String = {
     def savePretty(xml: Elem, file: File): Unit = {
@@ -172,7 +170,7 @@ object SbtEclipse {
     scalaVersion
   }
 
-  private[sbteclipse] def projectXml(name: String) =
+  def projectXml(name: String) =
     <projectDescription>
       <name>{ name }</name>
       <buildSpec>
@@ -191,7 +189,7 @@ object SbtEclipse {
     baseDirectory: File,
     compileDirectories: Directories,
     testDirectories: Directories,
-    libraries: Seq[Library],
+    libraries: Iterable[Library],
     projectDependencies: Seq[String])(
       implicit state: State) = {
     def outputPath(file: File) = {
@@ -245,10 +243,11 @@ object SbtEclipse {
   }
 }
 
-object Path {
-  def unapply(file: File): Option[String] = Some(file.getAbsolutePath)
+private object Path {
+  def unapply(file: File): Option[String] =
+    Some(file.getAbsolutePath)
 }
 
-case class Directories(sources: Seq[File], resources: Seq[File], clazz: File)
+private case class Directories(sources: Seq[File], resources: Seq[File], clazz: File)
 
-case class Library(binary: File, sources: Option[File] = None)
+private case class Library(binary: File, sources: Option[File] = None)
