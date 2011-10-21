@@ -88,13 +88,13 @@ object SbtEclipse {
     setting(Keys.baseDirectory, "Missing base directory for %s!" format ref.project, ref)
 
   private[sbteclipse] def compileDirectories(implicit ref: ProjectRef, state: State) =
-    (setting(Keys.unmanagedSourceDirectories, "Missing unmanaged source directories for %s!" format ref.project, ref) |@|
-      setting(Keys.unmanagedResourceDirectories, "Missing unmanaged resource directories for %s!" format ref.project, ref) |@|
+    (setting(Keys.sourceDirectories, "Missing source directories for %s!" format ref.project, ref) |@|
+      setting(Keys.resourceDirectories, "Missing resource directories for %s!" format ref.project, ref) |@|
       setting(Keys.classDirectory, "Missing class directory for %s!" format ref.project, ref)) { Directories }
 
   private[sbteclipse] def testDirectories(implicit ref: ProjectRef, state: State) =
-    (setting(Keys.unmanagedSourceDirectories, "Missing unmanaged test source directories for %s!" format ref.project, ref, Configurations.Test) |@|
-      setting(Keys.unmanagedResourceDirectories, "Missing unmanaged test resource directories for %s!" format ref.project, ref, Configurations.Test) |@|
+    (setting(Keys.sourceDirectories, "Missing test source directories for %s!" format ref.project, ref, Configurations.Test) |@|
+      setting(Keys.resourceDirectories, "Missing test resource directories for %s!" format ref.project, ref, Configurations.Test) |@|
       setting(Keys.classDirectory, "Missing test class directory for %s!" format ref.project, ref, Configurations.Test)) { Directories }
 
   private[sbteclipse] def libraries(withSources: Boolean)(implicit ref: ProjectRef, state: State) = {
