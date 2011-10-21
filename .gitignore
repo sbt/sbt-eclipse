@@ -1,23 +1,22 @@
 # SBT
-boot
-target
+boot/
+target/
 .history
 
 # Eclipse
+.cache
 .classpath
-.launch
-.metadata
 .project
 .scala_dependencies
 .settings
-.target
+.target/
 
 # IntelliJ
-.idea
+.idea/
 *.iml
 *.ipr
 *.iws
-out
+out/
 
 # TextMate
 *.tmproj
