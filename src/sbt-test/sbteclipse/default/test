@@ -1,0 +1,49 @@
+# eclipse without options
+$ exec find . -name .classpath -delete
+$ exec find . -name .project -delete
+> eclipse
+$ exists .classpath
+$ exists .project
+$ exists sub1/.classpath
+$ exists sub1/.project
+$ exists sub1/sub11/.classpath
+$ exists sub1/sub11/.project
+$ exists sub1/sub12/.classpath
+$ exists sub1/sub12/.project
+> verify-project-files
+> verify-classpath-files
+
+# eclipse create-src
+$ delete src/main/java
+$ delete src/main/resources
+$ delete src/main/scala
+> eclipse create-src
+$ exists src/main/java
+$ exists src/main/resources
+$ exists src/main/scala
+
+# eclipse skip-parents
+$ exec find . -name .classpath -delete
+$ exec find . -name .project -delete
+> eclipse skip-parents
+$ absent .classpath
+$ absent .project
+$ absent sub1/.classpath
+$ absent sub1/.project
+$ exists sub1/sub11/.classpath
+$ exists sub1/sub11/.project
+$ exists sub1/sub12/.classpath
+$ exists sub1/sub12/.project
+
+# eclipse skip-root
+$ exec find . -name .classpath -delete
+$ exec find . -name .project -delete
+> eclipse skip-root
+$ absent .classpath
+$ absent .project
+$ exists sub1/.classpath
+$ exists sub1/.project
+$ exists sub1/sub11/.classpath
+$ exists sub1/sub11/.project
+$ exists sub1/sub12/.classpath
+$ exists sub1/sub12/.project
