@@ -56,12 +56,17 @@ private object SbtEclipse {
   def action(args: Seq[String])(implicit state: State): State = {
     logInfo("About to create an Eclipse project for you.")
     logInfo("Please hang on, because it might be necessary to perform one or more updates and this might take some time ...")
-    eclipseFiles(args).sequence[ValidationNELString, String] match {
-      case Success(scalaVersion) =>
-        if (scalaVersion.isEmpty)
+    allEclipseFiles(args).sequence match {
+      case Success(files) =>
+        if (files.isEmpty)
           logWarn("Attention: There was no project to create Eclipse project files for! Maybe you used skip-root on a build without sub-projects.")
-        else
-          logInfo("Successfully created Eclipse project files. Please select the appropriate Eclipse plugin for Scala %s!" format scalaVersion.head)
+        else {
+          for ((file, project, classpath) <- files) {
+            savePretty(project, file / ".project")
+            savePretty(classpath, file / ".classpath")
+          }
+          logInfo("Successfully created Eclipse project files.")
+        }
         state
       case Failure(errors) =>
         logError(errors.list mkString ", ")
@@ -69,7 +74,7 @@ private object SbtEclipse {
     }
   }
 
-  def eclipseFiles(args: Seq[String])(implicit state: State): Seq[ValidationNELString[String]] =
+  def allEclipseFiles(args: Seq[String])(implicit state: State): Seq[ValidationNELString[(File, Elem, Elem)]] =
     for {
       ref <- structure.allProjectRefs
       project <- Project.getProject(ref, structure) if isNotSkipped(args, ref, project)
@@ -80,7 +85,7 @@ private object SbtEclipse {
         compileDirectories(ref) |@|
         testDirectories(ref) |@|
         libraries(ref, args contains WithSources) |@|
-        projectDependencies(ref, project))(saveEclipseFiles(args contains CreateSrc, args contains SameTargets))
+        projectDependencies(ref, project))(eclipseFiles(args contains CreateSrc, args contains SameTargets))
     }
 
   def isNotSkipped(args: Seq[String], ref: ProjectRef, project: ResolvedProject)(implicit state: State): Boolean = {
@@ -143,7 +148,7 @@ private object SbtEclipse {
     projectDependencies.sequence[ValidationNELString, String]
   }
 
-  def saveEclipseFiles(createSrc: Boolean,
+  def eclipseFiles(createSrc: Boolean,
     sameTargets: Boolean)(
       projectName: String,
       scalaVersion: String,
@@ -152,22 +157,16 @@ private object SbtEclipse {
       testDirectories: Directories,
       libraries: Iterable[Library],
       projectDependencies: Seq[String])(
-        implicit state: State): String = {
-    def savePretty(xml: Elem, file: File): Unit = {
-      val out = new FileWriter(file)
-      out.write(new PrettyPrinter(999, 2) format xml)
-      out.close()
-    }
-    savePretty(projectXml(projectName), baseDirectory / ".project")
-    savePretty(classpathXml(createSrc,
-      sameTargets,
-      baseDirectory,
-      compileDirectories,
-      testDirectories,
-      libraries,
-      projectDependencies),
-      baseDirectory / ".classpath")
-    scalaVersion
+        implicit state: State): (File, Elem, Elem) = {
+    (baseDirectory,
+      projectXml(projectName),
+      classpathXml(createSrc,
+        sameTargets,
+        baseDirectory,
+        compileDirectories,
+        testDirectories,
+        libraries,
+        projectDependencies))
   }
 
   def projectXml(name: String) =
@@ -240,6 +239,12 @@ private object SbtEclipse {
         <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
         <classpathentry kind="output" path={ outputPath(compileDirectories.clazz) }/>
     }</classpath>
+  }
+
+  def savePretty(xml: Elem, file: File): Unit = {
+    val out = new FileWriter(file)
+    out.write(new PrettyPrinter(999, 2) format xml)
+    out.close()
   }
 }
 
