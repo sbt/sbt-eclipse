@@ -5,6 +5,7 @@ sbteclipse
 v1.5
 ====
 
+#49: Add unmanaged library dependencies
 #46: Add managed source directories
 #44: Dependency on scala compiler should be treated in special way
 #37: Use workspace default JRE (contribution of Jarod Liu <liuyuanzhi@gmail.com>)

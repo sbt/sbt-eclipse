@@ -116,21 +116,35 @@ private object SbtEclipse {
       setting(Keys.classDirectory, "Missing test class directory for %s!" format ref.project, ref, Configurations.Test))(Directories)
 
   def libraries(ref: ProjectRef, withSources: Boolean)(implicit state: State): ValidationNELString[Iterable[Library]] = {
-    (libraryBinaries(ref) |@| librarySources(ref, withSources)) { (binaries, sources) =>
-      binaries map { case (moduleId, binaryFile) => Library(binaryFile, sources get moduleId) }
+    (libraryFiles(ref) |@| libraryBinaries(ref) |@| librarySources(ref, withSources)) { (files, binaries, sources) =>
+      val binaryFilesToSourceFiles =
+        for {
+          (moduleId, binaryFile) <- binaries
+          sourceFile <- sources get moduleId
+        } yield binaryFile -> sourceFile
+      files map { file => Library(file, binaryFilesToSourceFiles get file) }
     }
   }
 
+  def libraryFiles(ref: ProjectRef)(implicit state: State): ValidationNELString[Seq[File]] =
+    evaluateTask(Keys.externalDependencyClasspath in Configurations.Test, ref) match {
+      case Some(Value(attributedLibs)) =>
+        (attributedLibs.files collect {
+          case file if !(file.getAbsolutePath contains "scala-library.jar") => file
+        }).success
+      case _ => ("Error running externalDependencyClasspath task for %s" format ref.project).failNel
+    }
+
   def libraryBinaries(ref: ProjectRef)(implicit state: State): ValidationNELString[Map[ModuleID, File]] =
-    modules(ref, Keys.update, (_, file) => !(file.getName endsWith "scala-library.jar"))
+    modules(ref, Keys.update)
 
   def librarySources(ref: ProjectRef, withSources: Boolean)(implicit state: State): ValidationNELString[Map[ModuleID, File]] =
     if (withSources)
-      modules(ref, Keys.updateClassifiers, (artifact, file) => !(file.getName endsWith "scala-library.jar") && artifact.classifier == Some("sources"))
+      modules(ref, Keys.updateClassifiers, (artifact, _) => artifact.classifier == Some("sources"))
     else
       Map.empty.success
 
-  def modules(ref: ProjectRef, key: TaskKey[UpdateReport], p: (Artifact, File) => Boolean)(implicit state: State): ValidationNELString[Map[ModuleID, File]] =
+  def modules(ref: ProjectRef, key: TaskKey[UpdateReport], p: (Artifact, File) => Boolean = (_, _) => true)(implicit state: State): ValidationNELString[Map[ModuleID, File]] =
     evaluateTask(key in Configurations.Test, ref) match {
       case Some(Value(updateReport)) =>
         (for {
@@ -249,6 +263,7 @@ private object SbtEclipse {
 }
 
 private object Path {
+
   def unapply(file: File): Option[String] =
     Some(file.getAbsolutePath)
 }

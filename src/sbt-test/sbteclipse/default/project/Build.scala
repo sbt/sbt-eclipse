@@ -76,6 +76,8 @@ object Build extends Build {
     }
     // root
     verifyCommonEntries(classpathXml(root))
+    assertContains(classpathXml(root),
+      <classpathentry path={ file(".").getCanonicalPath + "/lib/bndlib-1.43.0.jar" } kind="lib"/>)
     // sub1
     verifyCommonEntries(classpathXml(sub1))
     assertContains(classpathXml(sub1),

@@ -4,13 +4,10 @@ This project is a plugin for "sbt 0.11.x":http://github.com/harrah/xsbt/ providi
 
 h2. Latest changes
 
-* #46: Add managed source directories
-* #44: Dependency on scala compiler should be treated in special way
-* #37: Use workspace default JRE
-* #31: Reference to scalaVersion is ambiguous
-* #28: Add skip-parents option
-* #27: Add info message "This might take some time ..." when command starts
-* #24: Switch to sbt 0.11
+#31: Reference to scalaVersion is ambiguous
+#28: Add skip-parents option
+#27: Add info message "This might take some time ..." when command starts
+#24: Switch to sbt 0.11
 
 h2. Installing sbteclipse as a sbt plugin
 
