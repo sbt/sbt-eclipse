@@ -3,8 +3,6 @@ organization := "com.typesafe.sbteclipse"
 
 name := "sbteclipse"
 
-version := "1.5.0-SNAPSHOT"
-
 sbtPlugin := true
 
 libraryDependencies += "org.scalaz" %% "scalaz-core" % "6.0.3"
