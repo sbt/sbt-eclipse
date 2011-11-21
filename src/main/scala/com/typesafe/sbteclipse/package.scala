@@ -47,8 +47,8 @@ package object sbteclipse {
     }
   }
 
-  def evaluateTask[A](taskKey: ScopedKey[Task[A]], ref: ProjectRef)(implicit state: State): Option[Result[A]] =
-    EvaluateTask.evaluateTask(structure, taskKey, state, ref, false, EvaluateTask.SystemProcessors)
+  def evaluateTask[A](taskKey: ScopedKey[Task[A]], ref: ProjectRef)(implicit state: State): Option[(State, Result[A])] =
+    EvaluateTask(structure, taskKey, state, ref, EvaluateConfig(false))
 
   def isParentProject(project: ResolvedProject): Boolean =
     !project.aggregate.isEmpty

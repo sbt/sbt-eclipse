@@ -13,6 +13,7 @@ object Build extends Build {
       organization := "localhost",
       scalaVersion := "2.9.1",
       libraryDependencies ++= Seq(specs2Test),
+      scalacOptions ++= Seq("-unchecked", "-deprecation"),
       shellPrompt := { "sbt (%s)> " format projectId(_) })
 
   // Projects

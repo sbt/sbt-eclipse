@@ -18,7 +18,7 @@
 
 package com.typesafe.sbteclipse
 
-import java.io.{ File, FileWriter }
+import java.io.{ File, FileWriter, PrintWriter }
 import sbt.{ Path => _, _ }
 import sbt.complete.Parser
 import sbt.complete.Parsers._
@@ -33,15 +33,17 @@ object SbtEclipsePlugin extends Plugin {
 
 private object SbtEclipse {
 
-  val CreateSrc: String = "create-src"
+  val CreateSrc = "create-src"
 
-  val SameTargets: String = "same-targets"
+  val SameTargets = "same-targets"
 
-  val SkipParents: String = "skip-parents"
+  val SkipParents = "skip-parents"
 
-  val SkipRoot: String = "skip-root"
+  val SkipRoot = "skip-root"
 
-  val WithSources: String = "with-sources"
+  val WithSources = "with-sources"
+
+  val SettingFormat = """-?([^:]*):?(.*)""".r
 
   def eclipseCommand: Command =
     Command("eclipse")(_ => parser)((state, args) => action(args)(state))
@@ -61,9 +63,11 @@ private object SbtEclipse {
         if (files.isEmpty)
           logWarn("Attention: There was no project to create Eclipse project files for! Maybe you used skip-root on a build without sub-projects.")
         else {
-          for ((file, project, classpath) <- files) {
+          for ((file, project, classpath, settings) <- files) {
             savePretty(project, file / ".project")
             savePretty(classpath, file / ".classpath")
+            (file / ".settings").mkdirs()
+            save(settings, file / ".settings" / "org.scala-ide.sdt.core.prefs")
           }
           logInfo("Successfully created Eclipse project files.")
         }
@@ -74,7 +78,7 @@ private object SbtEclipse {
     }
   }
 
-  def allEclipseFiles(args: Seq[String])(implicit state: State): Seq[ValidationNELString[(File, Elem, Elem)]] =
+  def allEclipseFiles(args: Seq[String])(implicit state: State): Seq[ValidationNELString[(File, Elem, Elem, Seq[String])]] =
     for {
       ref <- structure.allProjectRefs
       project <- Project.getProject(ref, structure) if isNotSkipped(args, ref, project)
@@ -85,7 +89,8 @@ private object SbtEclipse {
         compileDirectories(ref) |@|
         testDirectories(ref) |@|
         libraries(ref, args contains WithSources) |@|
-        projectDependencies(ref, project))(eclipseFiles(args contains CreateSrc, args contains SameTargets))
+        projectDependencies(ref, project) |@|
+        settings(ref))(eclipseFiles(args contains CreateSrc, args contains SameTargets))
     }
 
   def isNotSkipped(args: Seq[String], ref: ProjectRef, project: ResolvedProject)(implicit state: State): Boolean = {
@@ -128,7 +133,7 @@ private object SbtEclipse {
 
   def libraryFiles(ref: ProjectRef)(implicit state: State): ValidationNELString[Seq[File]] =
     evaluateTask(Keys.externalDependencyClasspath in Configurations.Test, ref) match {
-      case Some(Value(attributedLibs)) =>
+      case Some((_, Value(attributedLibs))) => // Hopefully ignoring the returned state is safe for externalDependencyClasspath!
         (attributedLibs.files collect {
           case file if !(file.getAbsolutePath contains "scala-library.jar") => file
         }).success
@@ -146,7 +151,7 @@ private object SbtEclipse {
 
   def modules(ref: ProjectRef, key: TaskKey[UpdateReport], p: (Artifact, File) => Boolean = (_, _) => true)(implicit state: State): ValidationNELString[Map[ModuleID, File]] =
     evaluateTask(key in Configurations.Test, ref) match {
-      case Some(Value(updateReport)) =>
+      case Some((_, Value(updateReport))) => // Hopefully ignoring the returned state is safe for update and updateClassifiers!
         (for {
           configurationReport <- (updateReport configuration "test").toSeq
           moduleReport <- configurationReport.modules
@@ -162,25 +167,32 @@ private object SbtEclipse {
     projectDependencies.sequence[ValidationNELString, String]
   }
 
-  def eclipseFiles(createSrc: Boolean,
-    sameTargets: Boolean)(
-      projectName: String,
-      scalaVersion: String,
-      baseDirectory: File,
-      compileDirectories: Directories,
-      testDirectories: Directories,
-      libraries: Iterable[Library],
-      projectDependencies: Seq[String])(
-        implicit state: State): (File, Elem, Elem) = {
-    (baseDirectory,
-      projectXml(projectName),
-      classpathXml(createSrc,
-        sameTargets,
-        baseDirectory,
-        compileDirectories,
-        testDirectories,
-        libraries,
-        projectDependencies))
+  def settings(ref: ProjectRef)(implicit state: State): ValidationNELString[Seq[String]] =
+    evaluateTask(Keys.scalacOptions in Configurations.Compile, ref) match {
+      case Some((_, Value(Nil))) => Nil.success // Hopefully ignoring the returned state is safe for externalDependencyClasspath!
+      case Some((_, Value(options))) => ("scala.compiler.useProjectSettings" +: options).success // Hopefully ignoring ...!
+      case _ => ("Error running externalDependencyClasspath task for %s" format ref.project).failNel
+    }
+
+  def eclipseFiles(createSrc: Boolean, sameTargets: Boolean)(
+    projectName: String,
+    scalaVersion: String,
+    baseDirectory: File,
+    compileDirectories: Directories,
+    testDirectories: Directories,
+    libraries: Iterable[Library],
+    projectDependencies: Seq[String],
+    settings: Seq[String])(
+      implicit state: State): (File, Elem, Elem, Seq[String]) = {
+    (baseDirectory, projectXml(projectName), classpathXml(
+      createSrc,
+      sameTargets,
+      baseDirectory,
+      compileDirectories,
+      testDirectories,
+      libraries,
+      projectDependencies),
+      settings)
   }
 
   def projectXml(name: String) =
@@ -257,8 +269,20 @@ private object SbtEclipse {
 
   def savePretty(xml: Elem, file: File): Unit = {
     val out = new FileWriter(file)
-    out.write(new PrettyPrinter(999, 2) format xml)
-    out.close()
+    try out.write(new PrettyPrinter(999, 2) format xml)
+    finally out.close()
+  }
+
+  def save(settings: Seq[String], file: File): Unit = {
+    if (!settings.isEmpty) {
+      val out = new PrintWriter(new FileWriter(file))
+      try settings map settingToEclipseFormat foreach out.println finally out.close()
+    }
+  }
+
+  def settingToEclipseFormat(setting: String): String = {
+    val SettingFormat(key, value) = setting
+    "%s=%s".format(key, if (!value.isEmpty) value else true)
   }
 }
 
