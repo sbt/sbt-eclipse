@@ -20,4 +20,4 @@ publishTo <<= (version) { version =>
 
 publishMavenStyle := false
 
-credentials += Credentials(Path.userHome / ".ivy2" / ".typesafe-credentials")
+credentials += Credentials(Path.userHome / ".ivy2" / ".credentials")
