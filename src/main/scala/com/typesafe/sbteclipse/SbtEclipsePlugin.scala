@@ -254,10 +254,10 @@ private object SbtEclipse {
       <classpathentry kind="src" path={ "/" + projectDependency } exported="true" combineaccessrules="false"/>
     }
     <classpath>{
-      srcEntries(compileDirectories.sources, compileDirectories.clazz) ++
-        srcEntries(compileDirectories.resources, compileDirectories.clazz) ++
-        srcEntries(testDirectories.sources, testDirectories.clazz) ++
-        srcEntries(testDirectories.resources, testDirectories.clazz) ++
+      srcEntries(compileDirectories.sources.distinct, compileDirectories.clazz) ++
+        srcEntries(compileDirectories.resources.distinct, compileDirectories.clazz) ++
+        srcEntries(testDirectories.sources.distinct, testDirectories.clazz) ++
+        srcEntries(testDirectories.resources.distinct, testDirectories.clazz) ++
         libEntries ++
         projectDependencyEntries ++
         <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/>
