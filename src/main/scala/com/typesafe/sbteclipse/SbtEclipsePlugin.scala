@@ -66,7 +66,6 @@ private object SbtEclipse {
           for ((file, project, classpath, settings) <- files) {
             savePretty(project, file / ".project")
             savePretty(classpath, file / ".classpath")
-            (file / ".settings").mkdirs()
             save(settings, file / ".settings" / "org.scala-ide.sdt.core.prefs")
           }
           logInfo("Successfully created Eclipse project files.")
@@ -275,6 +274,7 @@ private object SbtEclipse {
 
   def save(settings: Seq[String], file: File): Unit = {
     if (!settings.isEmpty) {
+      file.getParentFile.mkdirs()
       val out = new PrintWriter(new FileWriter(file))
       try settings map settingToEclipseFormat foreach out.println finally out.close()
     }
