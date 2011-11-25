@@ -4,10 +4,12 @@ This project is a plugin for "sbt 0.11.x":http://github.com/harrah/xsbt/ providi
 
 h2. Latest changes
 
-#31: Reference to scalaVersion is ambiguous
-#28: Add skip-parents option
-#27: Add info message "This might take some time ..." when command starts
-#24: Switch to sbt 0.11
+#59: Drop duplicate directories
+#40: Use scalacOptions to configure ch.epfl.lamp.sdt.core.prefs
+#49: Add unmanaged library dependencies
+#46: Add managed source directories
+#44: Dependency on scala compiler should be treated in special way
+#37: Use workspace default JRE
 
 h2. Installing sbteclipse as a sbt plugin
 
@@ -19,7 +21,7 @@ h2. Installing sbteclipse as a sbt plugin
 <pre><code>
 resolvers += Classpaths.typesafeResolver
 
-addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse" % "1.4.0")
+addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse" % "1.5.0")
 </code></pre>
 
 h2. Using sbteclipse to create Eclipse project files

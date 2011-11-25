@@ -5,6 +5,8 @@ sbteclipse
 v1.5
 ====
 
+#59: Drop duplicate directories
+#40: Use scalacOptions to configure ch.epfl.lamp.sdt.core.prefs
 #49: Add unmanaged library dependencies
 #46: Add managed source directories
 #44: Dependency on scala compiler should be treated in special way
