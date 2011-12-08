@@ -22,8 +22,6 @@ publishTo <<= (version) { version =>
 
 publishMavenStyle := false
 
-credentials += Credentials(Path.userHome / ".ivy2" / ".credentials")
-
 seq(posterousSettings: _*)
 
 (email in Posterous) <<= PropertiesKeys.properties(_ get "posterous.email")
