@@ -18,9 +18,8 @@
 
 package com.typesafe.sbteclipse
 
-import sbt.{ Command, File, Plugin, Setting, SettingKey, State }
+import sbt.{ File, Plugin, Setting, SettingKey }
 import sbt.Keys.{ baseDirectory, commands }
-import sbt.CommandSupport.logger
 
 object EclipsePlugin extends Plugin {
 
@@ -32,39 +31,8 @@ object EclipsePlugin extends Plugin {
       target <<= baseDirectory(new File(_, ".target")),
       skipParents := true,
       withSource := false,
-      commands <+= (commandName, executionEnvironment, skipParents, target, withSource)(eclipseCommand)
+      commands <+= (commandName, executionEnvironment, skipParents, target, withSource)(Eclipse.eclipseCommand)
     )
-  }
-
-  protected def eclipseCommand(
-    commandName: String,
-    executionEnvironment: Option[EclipseExecutionEnvironment.Value],
-    skipParents: Boolean,
-    target: File,
-    withSource: Boolean): Command =
-    Command(commandName)(_ => parser)((state, args) =>
-      action(executionEnvironment, skipParents, target, withSource, args.toMap)(state)
-    )
-
-  private def parser = {
-    import EclipseOpts._
-    (boolOpt(ExecutionEnvironment) | boolOpt(SkipParents) | boolOpt(WithSource)).*
-  }
-
-  private def action(
-    executionEnvironment: Option[EclipseExecutionEnvironment.Value],
-    skipParents: Boolean,
-    target: File,
-    withSource: Boolean,
-    args: Map[String, Boolean])(implicit state: State) = {
-
-    logger(state).info("About to create Eclipse project files for your project(s).")
-    import EclipseOpts._
-    val ee = args get ExecutionEnvironment getOrElse executionEnvironment
-    val sp = args get SkipParents getOrElse skipParents
-    val ws = args get WithSource getOrElse withSource
-
-    state
   }
 
   object EclipseKeys {
@@ -113,14 +81,5 @@ object EclipsePlugin extends Plugin {
     val J2SE12 = Value("J2SE-1.2")
 
     val JRE11 = Value("JRE-1.1")
-  }
-
-  private object EclipseOpts {
-
-    val ExecutionEnvironment = "execution-environment"
-
-    val SkipParents = "skip-parents"
-
-    val WithSource = "with-source"
   }
 }

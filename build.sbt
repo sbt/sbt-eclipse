@@ -11,6 +11,8 @@ sbtPlugin := true
 
 scalacOptions ++= Seq("-unchecked", "-deprecation")
 
+libraryDependencies ++= Seq("org.scalaz" %% "scalaz-core" % "6.0.3")
+
 publishTo <<= (version) { version =>
   val (name, url) =
     if (version endsWith "SNAPSHOT")

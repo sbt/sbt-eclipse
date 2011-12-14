@@ -1,4 +1,4 @@
-# Default settings (skipParents=true)
+# Default settings (skip-parents=true)
 $ exec find . -path "*.classpath*" -delete
 $ exec find . -path "*.project*" -delete
 $ exec find . -path "*/.settings" -delete
@@ -16,11 +16,11 @@ $ exists sub/subb/.classpath
 $ exists sub/subb/.project
 $ exists sub/subb/.settings
 
-# skipParents=false
+# skip-parents=false
 $ exec find . -path "*.classpath*" -delete
 $ exec find . -path "*.project*" -delete
 $ exec find . -path "*/.settings" -delete
-> eclipse
+> eclipse skip-parents=false
 $ exists .classpath
 $ exists .project
 $ absent .settings

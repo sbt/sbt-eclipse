@@ -18,7 +18,7 @@ object Build extends Build {
   lazy val suba = Project(
     "suba",
     new File("sub/suba"),
-    settings = Seq(
+    settings = Project.defaultSettings ++ Seq(
       libraryDependencies ++= Seq(
         "com.weiglewilczek.slf4s" %% "slf4s" % "1.0.7"
       )
@@ -28,7 +28,7 @@ object Build extends Build {
   lazy val subb = Project(
     "subb",
     new File("sub/subb"),
-    settings = Seq(
+    settings = Project.defaultSettings ++ Seq(
       libraryDependencies ++= Seq(
         "com.weiglewilczek.slf4s" %% "slf4s" % "1.0.7" % "test",
         "biz.aQute" % "bndlib" % "1.50.0"

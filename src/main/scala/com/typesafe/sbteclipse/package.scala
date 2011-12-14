@@ -18,7 +18,28 @@
 
 package com.typesafe
 
+import java.util.Properties
+import sbt.{
+  Configuration,
+  Configurations,
+  Extracted,
+  EvaluateConfig,
+  EvaluateTask,
+  Inc,
+  Incomplete,
+  Project,
+  ProjectRef,
+  Result,
+  TaskKey,
+  SettingKey,
+  State,
+  Task,
+  Value
+}
+import sbt.Load.BuildStructure
 import sbt.complete.Parser
+import scalaz.{ NonEmptyList, Validation }
+import scalaz.Scalaz._
 
 package object sbteclipse {
 
@@ -26,4 +47,42 @@ package object sbteclipse {
     import sbt.complete.DefaultParsers._
     (Space ~> key ~ ("=" ~> ("true" | "false"))) map { case (k, v) => k -> v.toBoolean }
   }
+
+  def setting[A](
+    key: SettingKey[A],
+    ref: ProjectRef,
+    configuration: Configuration = Configurations.Compile)(
+      implicit state: State): ValidationNELS[A] = {
+    key in (ref, configuration) get structure.data match {
+      case Some(a) => a.success
+      case None => "Missing setting '%s' for '%s'!".format(key.key, ref.project).failNel
+    }
+  }
+
+  def evaluateTask[A](
+    key: TaskKey[A],
+    ref: ProjectRef,
+    configuration: Configuration = Configurations.Compile)(
+      implicit state: State): ValidationNELS[A] =
+    EvaluateTask(structure, key in configuration, state, ref, EvaluateConfig(false)) match {
+      case Some((_, Value(a))) => a.success
+      case Some((_, Inc(inc))) => "Error evaluating task '%s': %s".format(key.key, Incomplete.show(inc.tpe)).failNel
+      case None => "Missing task '%s' for '%s'!".format(key.key, ref.project).failNel
+    }
+
+  def extracted(implicit state: State): Extracted =
+    Project.extract(state)
+
+  def structure(implicit state: State): BuildStructure =
+    extracted.structure
+
+  implicit def mapToProperties(map: Map[String, String]): Properties = {
+    val properties = new Properties
+    for ((key, value) <- map) properties.setProperty(key, value)
+    properties
+  }
+
+  type NELS = NonEmptyList[String]
+
+  type ValidationNELS[A] = Validation[NELS, A]
 }
