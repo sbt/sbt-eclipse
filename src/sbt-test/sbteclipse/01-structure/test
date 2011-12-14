@@ -14,7 +14,7 @@ $ exists sub/suba/.project
 $ absent sub/suba/.settings
 $ exists sub/subb/.classpath
 $ exists sub/subb/.project
-$ exists sub/subb/.settings
+$ exists sub/subb/.settings/org.scala-ide.sdt.core.prefs
 
 # skip-parents=false
 $ exec find . -path "*.classpath*" -delete
@@ -32,4 +32,4 @@ $ exists sub/suba/.project
 $ absent sub/suba/.settings
 $ exists sub/subb/.classpath
 $ exists sub/subb/.project
-$ exists sub/subb/.settings
+$ exists sub/subb/.settings/org.scala-ide.sdt.core.prefs
