@@ -19,7 +19,7 @@
 package com.typesafe.sbteclipse
 
 import EclipsePlugin.EclipseExecutionEnvironment
-import java.io.FileWriter
+import java.io.{ FileWriter, PrintWriter }
 import java.util.Properties
 import sbt.{ Command, Configurations, File, Keys, Project, ProjectRef, State, richFile }
 import sbt.CommandSupport.logger
@@ -64,8 +64,20 @@ private object Eclipse {
     contentsForAllProjects(sp).fold(onFailure, onSuccess)
   }
 
+  def contentsForAllProjects(skipParents: Boolean)(implicit state: State) = {
+    val contents = for {
+      ref <- structure.allProjectRefs
+      project <- Project.getProject(ref, structure) if project.aggregate.isEmpty || !skipParents
+    } yield {
+      (name(ref) |@| baseDirectory(ref) |@| scalacOptions(ref))((name, baseDirectory, scalacOptions) =>
+        Content(name, baseDirectory, projectXml(name), <classpath/>, scalacOptions map settingToPair)
+      )
+    }
+    contents.sequence[ValidationNELS, Content]
+  }
+
   def onFailure(errors: NELS)(implicit state: State) = {
-    logger(state).error(errors.list mkString ", ")
+    logger(state).error("Could not create Eclipse project files: %s" format (errors.list mkString ", "))
     state.fail
   }
 
@@ -74,22 +86,26 @@ private object Eclipse {
       logger(state).warn("There was no project to create Eclipse project files for!")
     else {
       val names = contents map writeContent
-      logger(state).info("Successfully created Eclipse project files for %s" format (names mkString ", "))
+      logger(state).info("Successfully created Eclipse project files for project(s): %s" format (names mkString ", "))
     }
     state
   }
 
-  def contentsForAllProjects(skipParents: Boolean)(implicit state: State) = {
-    val contents = for {
-      ref <- structure.allProjectRefs
-      project <- Project.getProject(ref, structure) if project.aggregate.isEmpty || !skipParents
-    } yield {
-      (name(ref) |@| baseDirectory(ref) |@| scalacOptions(ref))((name, baseDirectory, scalacOptions) =>
-        Content(name, baseDirectory, <project/>, <classpath/>, scalacOptions map settingToPair toMap)
-      )
-    }
-    contents.sequence[ValidationNELS, Content]
-  }
+  def projectXml(name: String) =
+    <projectDescription>
+      <name>{ name }</name>
+      <buildSpec>
+        <buildCommand>
+          <name>org.scala-ide.sdt.core.scalabuilder</name>
+        </buildCommand>
+      </buildSpec>
+      <natures>
+        <nature>org.scala-ide.sdt.core.scalanature</nature>
+        <nature>org.eclipse.jdt.core.javanature</nature>
+      </natures>
+    </projectDescription>
+
+  // Getting settings and task results
 
   def name(ref: ProjectRef)(implicit state: State) =
     setting(Keys.name, ref)
@@ -102,6 +118,8 @@ private object Eclipse {
       if (options.isEmpty) options
       else ("scala.compiler.useProjectSettings" +: options)
     )
+
+  // Writing to disk
 
   def writeContent(contents: Content): String = {
     saveXml(contents.dir / ".project", contents.project)
@@ -117,12 +135,14 @@ private object Eclipse {
     finally if (out != null) out.close()
   }
 
-  private def saveProperties(file: File, properties: Map[String, String]): Unit = {
+  private def saveProperties(file: File, settings: Seq[(String, String)]): Unit = {
     file.getParentFile.mkdirs()
-    val out = new FileWriter(file)
-    try properties.store(out, null)
+    val out = new PrintWriter(file)
+    try settings foreach { case (key, value) => out.println("%s=%s".format(key, value)) }
     finally if (out != null) out.close()
   }
+
+  // Utilities
 
   def settingToPair(setting: String) = {
     val SettingFormat(key, value) = setting
@@ -144,4 +164,4 @@ private case class Content(
   dir: File,
   project: Elem,
   classpath: Elem,
-  scalacOptions: Map[String, String])
+  scalacOptions: Seq[(String, String)])
