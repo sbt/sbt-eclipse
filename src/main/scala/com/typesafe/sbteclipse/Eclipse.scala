@@ -73,7 +73,8 @@ private object Eclipse {
         baseDirectory(ref) |@|
         compileSrcDirectories(ref) |@|
         testSrcDirectories(ref) |@|
-        scalacOptions(ref))(content( /*target*/ ))
+        scalacOptions(ref) |@|
+        externalDependencies(ref))(content( /*target*/ ))
     }
     contents.sequence[ValidationNELS, Content]
   }
@@ -98,13 +99,14 @@ private object Eclipse {
     baseDirectory: File,
     compileSrcDirectories: (Seq[File], File),
     testSrcDirectories: (Seq[File], File),
-    scalacOptions: Seq[String])(
+    scalacOptions: Seq[String],
+    externalDependencies: Seq[File])(
       implicit state: State) =
     Content(
       name,
       baseDirectory,
       projectXml(name),
-      classpath(baseDirectory, compileSrcDirectories, testSrcDirectories),
+      classpath(baseDirectory, compileSrcDirectories, testSrcDirectories, externalDependencies),
       scalacOptions map settingToPair)
 
   def projectXml(name: String) =
@@ -124,11 +126,13 @@ private object Eclipse {
   def classpath(
     baseDirectory: File,
     compileSrcDirectories: (Seq[File], File),
-    testSrcDirectories: (Seq[File], File))(
+    testSrcDirectories: (Seq[File], File),
+    externalDependencies: Seq[File])(
       implicit state: State) =
     <classpath>{
       (compileSrcDirectories._1.distinct map srcEntry(baseDirectory, compileSrcDirectories._2)) ++
         (testSrcDirectories._1.distinct map srcEntry(baseDirectory, testSrcDirectories._2)) ++
+        (externalDependencies map libEntry) ++
         <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/>
         <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
         <classpathentry kind="output" path={ output(baseDirectory, compileSrcDirectories._2) }/>
@@ -143,6 +147,9 @@ private object Eclipse {
       logger(state).debug("Skipping src entry for not-existing directory '%s'." format srcDirectory)
       NodeSeq.Empty
     }
+
+  def libEntry(file: File)(implicit state: State) =
+    <classpathentry kind="lib" path={ file.getAbsolutePath }/>
 
   def relativize(baseDirectory: File, file: File) = IO.relativize(baseDirectory, file).get
 
@@ -170,6 +177,11 @@ private object Eclipse {
     evaluateTask(Keys.scalacOptions, ref) map (options =>
       if (options.isEmpty) options
       else ("scala.compiler.useProjectSettings" +: options)
+    )
+
+  def externalDependencies(ref: ProjectRef)(implicit state: State) =
+    evaluateTask(Keys.externalDependencyClasspath, ref, Configurations.Test) map (attributedFiles =>
+      attributedFiles.files filterNot (_.getAbsolutePath contains "scala-library.jar")
     )
 
   // Writing to disk

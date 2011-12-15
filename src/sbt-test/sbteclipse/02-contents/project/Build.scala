@@ -28,7 +28,8 @@ object Build extends Build {
     new File("sub/suba"),
     settings = Project.defaultSettings ++ Seq(
       libraryDependencies ++= Seq(
-        "com.weiglewilczek.slf4s" %% "slf4s" % "1.0.7"
+        "com.weiglewilczek.slf4s" %% "slf4s" % "1.0.7",
+        "biz.aQute" % "bndlib" % "1.50.0"
       )
     )
   )
@@ -38,7 +39,6 @@ object Build extends Build {
     new File("sub/subb"),
     settings = Project.defaultSettings ++ Seq(
       libraryDependencies ++= Seq(
-        "com.weiglewilczek.slf4s" %% "slf4s" % "1.0.7" % "test",
         "biz.aQute" % "bndlib" % "1.50.0"
       ),
       scalacOptions := Seq("-unchecked", "-deprecation")
