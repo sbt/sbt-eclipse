@@ -28,10 +28,10 @@ object EclipsePlugin extends Plugin {
     Seq(
       commandName := "eclipse",
       executionEnvironment := None,
-      target <<= baseDirectory(new File(_, ".target")),
+      //      target := ".target",
       skipParents := true,
       withSource := false,
-      commands <+= (commandName, executionEnvironment, skipParents, target, withSource)(Eclipse.eclipseCommand)
+      commands <+= (commandName, executionEnvironment, skipParents, /*target,*/ withSource)(Eclipse.eclipseCommand)
     )
   }
 
@@ -53,10 +53,10 @@ object EclipsePlugin extends Plugin {
         prefix(SkipParents),
         "Skip creating Eclipse files for parent project?")
 
-    val target: SettingKey[File] =
-      SettingKey[File](
-        prefix("target"),
-        "The target directory for Eclipse.")
+    //    val target: SettingKey[String] =
+    //      SettingKey[String](
+    //        prefix("target"),
+    //        "The target directory for Eclipse.")
 
     val withSource: SettingKey[Boolean] =
       SettingKey[Boolean](

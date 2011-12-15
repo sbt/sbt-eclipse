@@ -1,17 +1,25 @@
 import sbt._
 import sbt.Keys._
+import com.typesafe.sbteclipse.EclipsePlugin.{ EclipseKeys, EclipseExecutionEnvironment }
 
 object Build extends Build {
 
   lazy val root = Project(
     "root",
     new File("."),
+    settings = Project.defaultSettings ++ Seq(
+      unmanagedSourceDirectories in Compile <+= baseDirectory(new File(_, "src/main/scala")),
+      unmanagedSourceDirectories in Test <+= baseDirectory(new File(_, "src/test/scala"))
+    ),
     aggregate = Seq(sub)
   )
 
-  lazy val sub = Project(
+  lazy val sub: Project = Project(
     "sub",
     new File("sub"),
+    settings = Project.defaultSettings ++ Seq(
+      EclipseKeys.executionEnvironment := Some(EclipseExecutionEnvironment.JavaSE16)
+    ),
     aggregate = Seq(suba, subb)
   )
 

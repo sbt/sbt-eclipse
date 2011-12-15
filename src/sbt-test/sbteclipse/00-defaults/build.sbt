@@ -13,10 +13,10 @@ TaskKey[Unit]("verify-execution-environment") <<= EclipseKeys.executionEnvironme
   if (env != None) error("Expected execution-environment to be None, but was %s!" format env)
 )
 
-TaskKey[Unit]("verify-target") <<= (EclipseKeys.target, baseDirectory) map { (target, dir) =>
-  val expectedTarget = new File(dir, ".target")
-  if (target != expectedTarget) error("Expected target to be %s, but was %s!".format(expectedTarget, target))
-}
+//TaskKey[Unit]("verify-target") <<= (EclipseKeys.target, baseDirectory) map { (target, dir) =>
+//  val expectedTarget = new File(dir, ".target")
+//  if (target != expectedTarget) error("Expected target to be %s, but was %s!".format(expectedTarget, target))
+//}
 
 TaskKey[Unit]("verify-skip-parents") <<= EclipseKeys.skipParents map { skipParents =>
   if (!skipParents) error("Expected skip-parents to be true, but was false!")
