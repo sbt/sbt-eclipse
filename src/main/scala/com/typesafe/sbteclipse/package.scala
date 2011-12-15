@@ -76,12 +76,6 @@ package object sbteclipse {
   def structure(implicit state: State): BuildStructure =
     extracted.structure
 
-  implicit def mapToProperties(map: Map[String, String]): Properties = {
-    val properties = new Properties
-    for ((key, value) <- map) properties.setProperty(key, value)
-    properties
-  }
-
   type NELS = NonEmptyList[String]
 
   type ValidationNELS[A] = Validation[NELS, A]
