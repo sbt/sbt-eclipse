@@ -45,14 +45,17 @@ TaskKey[Unit]("verify-classpath-xml-root") <<= baseDirectory map { dir =>
 }
 
 TaskKey[Unit]("verify-classpath-xml-subb") <<= baseDirectory map { dir =>
-  // root: src entries
+  // src entries
   val home = System.getProperty("user.home")
   val classpath = XML.loadFile(dir / "sub" / "subb" / ".classpath")
   if ((classpath \ "classpathentry") != (classpath \ "classpathentry").distinct)
     error("Expected .classpath of subb project not to contain duplicate entries: %s" format classpath)
-  // root: lib entries without sources
+  // lib entries without sources
   if (!(classpath.child contains <classpathentry kind="lib" path={ home + "/.ivy2/cache/com.weiglewilczek.slf4s/slf4s_2.9.1/jars/slf4s_2.9.1-1.0.7.jar" } />))
-    error("""Expected .classpath of root project to contain <classpathentry kind="lib" path={ home + "/.ivy2/cache/com.weiglewilczek.slf4s/slf4s_2.9.1/jars/slf4s_2.9.1-1.0.7.jar" } />: %s""" format classpath)
+    error("""Expected .classpath of subb project to contain <classpathentry kind="lib" path={ home + "/.ivy2/cache/com.weiglewilczek.slf4s/slf4s_2.9.1/jars/slf4s_2.9.1-1.0.7.jar" } />: %s""" format classpath)
+  // project dependencies
+  if (!(classpath.child contains <classpathentry kind="src" path="/suba" exported="true" combineaccessrules="false" />))
+    error("""Expected .classpath of subb project to contain <classpathentry kind="src" path="/suba" exported="true" combineaccessrules="false" />: %s""" format classpath)
 }
 
 TaskKey[Unit]("verify-settings") <<= baseDirectory map { dir =>

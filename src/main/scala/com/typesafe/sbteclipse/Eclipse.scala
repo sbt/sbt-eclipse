@@ -21,7 +21,7 @@ package com.typesafe.sbteclipse
 import EclipsePlugin.EclipseExecutionEnvironment
 import java.io.{ FileWriter, PrintWriter }
 import java.util.Properties
-import sbt.{ Command, Configurations, File, IO, Keys, Project, ProjectRef, State, richFile }
+import sbt.{ Command, Configurations, File, IO, Keys, Project, ProjectRef, ResolvedProject, State, richFile }
 import sbt.CommandSupport.logger
 import scala.collection.JavaConverters
 import scala.xml.{ Elem, NodeSeq, PrettyPrinter }
@@ -74,7 +74,8 @@ private object Eclipse {
         compileSrcDirectories(ref) |@|
         testSrcDirectories(ref) |@|
         scalacOptions(ref) |@|
-        externalDependencies(ref))(content( /*target*/ ))
+        externalDependencies(ref) |@|
+        projectDependencies(ref, project))(content( /*target*/ ))
     }
     contents.sequence[ValidationNELS, Content]
   }
@@ -100,13 +101,20 @@ private object Eclipse {
     compileSrcDirectories: (Seq[File], File),
     testSrcDirectories: (Seq[File], File),
     scalacOptions: Seq[String],
-    externalDependencies: Seq[File])(
+    externalDependencies: Seq[File],
+    projectDependencies: Seq[String])(
       implicit state: State) =
     Content(
       name,
       baseDirectory,
       projectXml(name),
-      classpath(baseDirectory, compileSrcDirectories, testSrcDirectories, externalDependencies),
+      classpath(
+        baseDirectory,
+        compileSrcDirectories,
+        testSrcDirectories,
+        externalDependencies,
+        projectDependencies
+      ),
       scalacOptions map settingToPair)
 
   def projectXml(name: String) =
@@ -127,13 +135,15 @@ private object Eclipse {
     baseDirectory: File,
     compileSrcDirectories: (Seq[File], File),
     testSrcDirectories: (Seq[File], File),
-    externalDependencies: Seq[File])(
+    externalDependencies: Seq[File],
+    projectDependencies: Seq[String])(
       implicit state: State) = {
     val entries =
       Seq(
-        compileSrcDirectories._1.distinct flatMap srcEntry(baseDirectory, compileSrcDirectories._2),
-        testSrcDirectories._1.distinct flatMap srcEntry(baseDirectory, testSrcDirectories._2),
+        compileSrcDirectories._1 flatMap srcEntry(baseDirectory, compileSrcDirectories._2),
+        testSrcDirectories._1 flatMap srcEntry(baseDirectory, testSrcDirectories._2),
         externalDependencies map (file => ClasspathEntry.Lib(file.getAbsolutePath)),
+        projectDependencies map ClasspathEntry.Project,
         Seq("org.scala-ide.sdt.launching.SCALA_CONTAINER", "org.eclipse.jdt.launching.JRE_CONTAINER") map ClasspathEntry.Con,
         Seq(output(baseDirectory, compileSrcDirectories._2)) map ClasspathEntry.Output
       ).flatten map (_.toXml)
@@ -164,12 +174,12 @@ private object Eclipse {
   def compileSrcDirectories(ref: ProjectRef)(implicit state: State) =
     (setting(Keys.sourceDirectories, ref) |@|
       setting(Keys.resourceDirectories, ref) |@|
-      setting(Keys.classDirectory, ref))(_ ++ _ -> _)
+      setting(Keys.classDirectory, ref))(srcToOutput)
 
   def testSrcDirectories(ref: ProjectRef)(implicit state: State) =
     (setting(Keys.sourceDirectories, ref, Configurations.Test) |@|
       setting(Keys.resourceDirectories, ref, Configurations.Test) |@|
-      setting(Keys.classDirectory, ref, Configurations.Test))(_ ++ _ -> _)
+      setting(Keys.classDirectory, ref, Configurations.Test))(srcToOutput)
 
   def scalacOptions(ref: ProjectRef)(implicit state: State) =
     evaluateTask(Keys.scalacOptions, ref) map (options =>
@@ -181,6 +191,11 @@ private object Eclipse {
     evaluateTask(Keys.externalDependencyClasspath, ref, Configurations.Test) map (attributedFiles =>
       attributedFiles.files filterNot (_.getAbsolutePath contains "scala-library.jar")
     )
+
+  def projectDependencies(ref: ProjectRef, project: ResolvedProject)(implicit state: State) = {
+    val projectDependencies = project.dependencies map (dependency => setting(Keys.name, dependency.project))
+    projectDependencies.distinct.sequence
+  }
 
   // Writing to disk
 
@@ -211,6 +226,9 @@ private object Eclipse {
     val SettingFormat(key, value) = setting
     key -> (if (!value.isEmpty) value else "true")
   }
+
+  def srcToOutput(sourceDirectories: Seq[File], resourceDirectories: Seq[File], output: File) =
+    (sourceDirectories ++ resourceDirectories).distinct -> output
 }
 
 private object EclipseOpts {
@@ -241,6 +259,10 @@ private object ClasspathEntry {
 
   case class Lib(path: String, source: Option[String] = None) extends ClasspathEntry {
     override def toXml = <classpathentry kind="lib" path={ path }/>
+  }
+
+  case class Project(name: String) extends ClasspathEntry {
+    override def toXml = <classpathentry kind="src" path={ "/" + name } exported="true" combineaccessrules="false"/>
   }
 
   case class Con(path: String) extends ClasspathEntry {
