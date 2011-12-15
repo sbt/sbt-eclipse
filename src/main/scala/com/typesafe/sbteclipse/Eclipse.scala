@@ -128,28 +128,26 @@ private object Eclipse {
     compileSrcDirectories: (Seq[File], File),
     testSrcDirectories: (Seq[File], File),
     externalDependencies: Seq[File])(
-      implicit state: State) =
-    <classpath>{
-      (compileSrcDirectories._1.distinct map srcEntry(baseDirectory, compileSrcDirectories._2)) ++
-        (testSrcDirectories._1.distinct map srcEntry(baseDirectory, testSrcDirectories._2)) ++
-        (externalDependencies map libEntry) ++
-        <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/>
-        <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-        <classpathentry kind="output" path={ output(baseDirectory, compileSrcDirectories._2) }/>
-    }</classpath>
+      implicit state: State) = {
+    val entries =
+      Seq(
+        compileSrcDirectories._1.distinct flatMap srcEntry(baseDirectory, compileSrcDirectories._2),
+        testSrcDirectories._1.distinct flatMap srcEntry(baseDirectory, testSrcDirectories._2),
+        externalDependencies map (file => ClasspathEntry.Lib(file.getAbsolutePath)),
+        Seq("org.scala-ide.sdt.launching.SCALA_CONTAINER", "org.eclipse.jdt.launching.JRE_CONTAINER") map ClasspathEntry.Con,
+        Seq(output(baseDirectory, compileSrcDirectories._2)) map ClasspathEntry.Output
+      ).flatten map (_.toXml)
+    <classpath>{ entries }</classpath>
+  }
 
   def srcEntry(baseDirectory: File, classDirectory: File)(srcDirectory: File)(implicit state: State) =
     if (srcDirectory.exists()) {
-      val relClassDirectory = output(baseDirectory, classDirectory)
       logger(state).debug("Creating src entry for directory '%s'." format srcDirectory)
-      <classpathentry kind="src" path={ relativize(baseDirectory, srcDirectory) } output={ output(baseDirectory, classDirectory) }/>
+      Some(ClasspathEntry.Src(relativize(baseDirectory, srcDirectory), output(baseDirectory, classDirectory)))
     } else {
       logger(state).debug("Skipping src entry for not-existing directory '%s'." format srcDirectory)
-      NodeSeq.Empty
+      None
     }
-
-  def libEntry(file: File)(implicit state: State) =
-    <classpathentry kind="lib" path={ file.getAbsolutePath }/>
 
   def relativize(baseDirectory: File, file: File) = IO.relativize(baseDirectory, file).get
 
@@ -230,3 +228,26 @@ private case class Content(
   project: Elem,
   classpath: Elem,
   scalacOptions: Seq[(String, String)])
+
+private sealed trait ClasspathEntry {
+  def toXml: Elem
+}
+
+private object ClasspathEntry {
+
+  case class Src(path: String, output: String) extends ClasspathEntry {
+    override def toXml = <classpathentry kind="src" path={ path } output={ output }/>
+  }
+
+  case class Lib(path: String, source: Option[String] = None) extends ClasspathEntry {
+    override def toXml = <classpathentry kind="lib" path={ path }/>
+  }
+
+  case class Con(path: String) extends ClasspathEntry {
+    override def toXml = <classpathentry kind="con" path={ path }/>
+  }
+
+  case class Output(path: String) extends ClasspathEntry {
+    override def toXml = <classpathentry kind="output" path={ path }/>
+  }
+}
