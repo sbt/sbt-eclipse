@@ -20,6 +20,7 @@ package com.typesafe.sbteclipse
 
 import sbt.{ File, Plugin, Setting, SettingKey }
 import sbt.Keys.{ baseDirectory, commands }
+import scala.xml.Elem
 
 object EclipsePlugin extends Plugin {
 
@@ -31,8 +32,25 @@ object EclipsePlugin extends Plugin {
       //      target := ".target",
       skipParents := true,
       withSource := false,
-      commands <+= (commandName, executionEnvironment, skipParents, /*target,*/ withSource)(Eclipse.eclipseCommand)
+      classpathEntryCollector := eclipseDefaultClasspathEntryCollector,
+      commands <+= (
+        commandName,
+        executionEnvironment,
+        skipParents,
+        /*target,*/
+        withSource,
+        classpathEntryCollector
+      )(Eclipse.eclipseCommand)
     )
+  }
+
+  def eclipseDefaultClasspathEntryCollector: PartialFunction[ClasspathEntry, ClasspathEntry] = {
+    case ClasspathEntry.Lib(path, _) if path contains "scala-library.jar" =>
+      ClasspathEntry.Con("org.scala-ide.sdt.launching.SCALA_CONTAINER")
+    case ClasspathEntry.Lib(path, _) if path contains "scala-compiler.jar" =>
+      ClasspathEntry.Con("org.scala-ide.sdt.launching.SCALA_COMPILER_CONTAINER")
+    case entry =>
+      entry
   }
 
   object EclipseKeys {
@@ -63,6 +81,11 @@ object EclipsePlugin extends Plugin {
         prefix(WithSource),
         "Download and link sources for library dependencies?")
 
+    val classpathEntryCollector: SettingKey[PartialFunction[ClasspathEntry, ClasspathEntry]] =
+      SettingKey[PartialFunction[ClasspathEntry, ClasspathEntry]](
+        prefix("classpathEntryCollector"),
+        "Determines how classpath entries are filtered and transformed before written into XML.")
+
     private def prefix(key: String) = "eclipse-" + key
   }
 
@@ -81,5 +104,32 @@ object EclipsePlugin extends Plugin {
     val J2SE12 = Value("J2SE-1.2")
 
     val JRE11 = Value("JRE-1.1")
+  }
+
+  sealed trait ClasspathEntry {
+    def toXml: Elem
+  }
+
+  object ClasspathEntry {
+
+    case class Src(path: String, output: String) extends ClasspathEntry {
+      override def toXml = <classpathentry kind="src" path={ path } output={ output }/>
+    }
+
+    case class Lib(path: String, source: Option[String] = None) extends ClasspathEntry {
+      override def toXml = <classpathentry kind="lib" path={ path }/>
+    }
+
+    case class Project(name: String) extends ClasspathEntry {
+      override def toXml = <classpathentry kind="src" path={ "/" + name } exported="true" combineaccessrules="false"/>
+    }
+
+    case class Con(path: String) extends ClasspathEntry {
+      override def toXml = <classpathentry kind="con" path={ path }/>
+    }
+
+    case class Output(path: String) extends ClasspathEntry {
+      override def toXml = <classpathentry kind="output" path={ path }/>
+    }
   }
 }

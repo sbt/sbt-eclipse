@@ -9,7 +9,10 @@ object Build extends Build {
     new File("."),
     settings = Project.defaultSettings ++ Seq(
       unmanagedSourceDirectories in Compile <+= baseDirectory(new File(_, "src/main/scala")),
-      unmanagedSourceDirectories in Test <+= baseDirectory(new File(_, "src/test/scala"))
+      unmanagedSourceDirectories in Test <+= baseDirectory(new File(_, "src/test/scala")),
+      libraryDependencies ++= Seq(
+          "org.scala-lang" % "scala-compiler" % "2.9.1"
+      )
     ),
     aggregate = Seq(sub)
   )
