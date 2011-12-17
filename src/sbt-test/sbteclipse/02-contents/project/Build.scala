@@ -44,6 +44,7 @@ object Build extends Build {
       libraryDependencies ++= Seq(
         "biz.aQute" % "bndlib" % "1.50.0"
       ),
+      retrieveManaged := true,
       scalacOptions := Seq("-unchecked", "-deprecation")
     ),
     dependencies = Seq(suba, suba % "test->test")

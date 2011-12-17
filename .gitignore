@@ -1,5 +1,6 @@
 # SBT
 boot/
+lib_managed/
 target/
 .history
 

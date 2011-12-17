@@ -57,8 +57,8 @@ TaskKey[Unit]("verify-classpath-xml-subb") <<= baseDirectory map { dir =>
   if ((classpath \ "classpathentry") != (classpath \ "classpathentry").distinct)
     error("Expected .classpath of subb project not to contain duplicate entries: %s" format classpath)
   // lib entries without sources
-  if (!(classpath.child contains <classpathentry kind="lib" path={ home + "/.ivy2/cache/com.weiglewilczek.slf4s/slf4s_2.9.1/jars/slf4s_2.9.1-1.0.7.jar" } />))
-    error("""Expected .classpath of subb project to contain <classpathentry kind="lib" path={ home + "/.ivy2/cache/com.weiglewilczek.slf4s/slf4s_2.9.1/jars/slf4s_2.9.1-1.0.7.jar" } />: %s""" format classpath)
+  if (!(classpath.child contains <classpathentry kind="lib" path="lib_managed/jars/com.weiglewilczek.slf4s/slf4s_2.9.1/slf4s_2.9.1-1.0.7.jar" />))
+    error("""Expected .classpath of subb project to contain <classpathentry kind="lib" path="lib_managed/jars/com.weiglewilczek.slf4s/slf4s_2.9.1/slf4s_2.9.1-1.0.7.jar" />: %s""" format classpath)
   // project dependencies
   if (!(classpath.child contains <classpathentry kind="src" path="/suba" exported="true" combineaccessrules="false" />))
     error("""Expected .classpath of subb project to contain <classpathentry kind="src" path="/suba" exported="true" combineaccessrules="false" />: %s""" format classpath)

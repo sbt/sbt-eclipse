@@ -29,6 +29,7 @@ import sbt.{
   Incomplete,
   Project,
   ProjectRef,
+  Reference,
   Result,
   TaskKey,
   SettingKey,
@@ -50,12 +51,12 @@ package object sbteclipse {
 
   def setting[A](
     key: SettingKey[A],
-    ref: ProjectRef,
+    reference: Reference,
     configuration: Configuration = Configurations.Compile)(
       implicit state: State): ValidationNELS[A] = {
-    key in (ref, configuration) get structure.data match {
+    key in (reference, configuration) get structure.data match {
       case Some(a) => a.success
-      case None => "Missing setting '%s' for '%s'!".format(key.key, ref.project).failNel
+      case None => "Missing setting '%s' for '%s'!".format(key.key, reference).failNel
     }
   }
 

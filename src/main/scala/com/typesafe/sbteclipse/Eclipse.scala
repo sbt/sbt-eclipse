@@ -21,7 +21,7 @@ package com.typesafe.sbteclipse
 import EclipsePlugin.{ ClasspathEntry, EclipseExecutionEnvironment }
 import java.io.FileWriter
 import java.util.Properties
-import sbt.{ Command, Configurations, File, IO, Keys, Project, ProjectRef, ResolvedProject, State, richFile }
+import sbt.{ Command, Configurations, File, IO, Keys, Project, ProjectRef, ResolvedProject, State, ThisBuild, richFile }
 import sbt.CommandSupport.logger
 import scala.collection.JavaConverters
 import scala.xml.{ Elem, NodeSeq, PrettyPrinter }
@@ -76,6 +76,7 @@ private object Eclipse {
       project <- Project.getProject(ref, structure) if project.aggregate.isEmpty || !skipParents
     } yield {
       (name(ref) |@|
+        buildDirectory(ref) |@|
         baseDirectory(ref) |@|
         compileSrcDirectories(ref) |@|
         testSrcDirectories(ref) |@|
@@ -105,6 +106,7 @@ private object Eclipse {
     /*target: String,*/
     classpathEntryCollector: PartialFunction[ClasspathEntry, ClasspathEntry])(
       name: String,
+      buildDirectory: File,
       baseDirectory: File,
       compileSrcDirectories: (Seq[File], File),
       testSrcDirectories: (Seq[File], File),
@@ -118,6 +120,7 @@ private object Eclipse {
       projectXml(name),
       classpath(
         classpathEntryCollector,
+        buildDirectory,
         baseDirectory,
         compileSrcDirectories,
         testSrcDirectories,
@@ -142,6 +145,7 @@ private object Eclipse {
 
   def classpath(
     classpathEntryCollector: PartialFunction[ClasspathEntry, ClasspathEntry],
+    buildDirectory: File,
     baseDirectory: File,
     compileSrcDirectories: (Seq[File], File),
     testSrcDirectories: (Seq[File], File),
@@ -152,7 +156,7 @@ private object Eclipse {
       Seq(
         compileSrcDirectories._1 flatMap srcEntry(baseDirectory, compileSrcDirectories._2),
         testSrcDirectories._1 flatMap srcEntry(baseDirectory, testSrcDirectories._2),
-        externalDependencies map (file => ClasspathEntry.Lib(file.getAbsolutePath)),
+        externalDependencies map libEntry(buildDirectory, true),
         projectDependencies map ClasspathEntry.Project,
         Seq("org.eclipse.jdt.launching.JRE_CONTAINER") map ClasspathEntry.Con, // TODO Optionally use execution env!
         Seq(output(baseDirectory, compileSrcDirectories._2)) map ClasspathEntry.Output
@@ -169,14 +173,21 @@ private object Eclipse {
       None
     }
 
-  def relativize(baseDirectory: File, file: File) = IO.relativize(baseDirectory, file).get
-
-  def output(baseDirectory: File, classDirectory: File) = relativize(baseDirectory, classDirectory)
+  def libEntry(buildDirectory: File, retrieveManaged: Boolean)(file: File)(implicit state: State) =
+    ClasspathEntry.Lib(
+      if (retrieveManaged)
+        IO.relativize(buildDirectory, file) getOrElse file.getAbsolutePath
+      else
+        file.getAbsolutePath
+    )
 
   // Getting and transforming settings and task results
 
   def name(ref: ProjectRef)(implicit state: State) =
     setting(Keys.name, ref)
+
+  def buildDirectory(ref: ProjectRef)(implicit state: State) =
+    setting(Keys.baseDirectory, ThisBuild)
 
   def baseDirectory(ref: ProjectRef)(implicit state: State) =
     setting(Keys.baseDirectory, ref)
@@ -243,6 +254,10 @@ private object Eclipse {
 
   def srcDirsToOutput(sourceDirectories: Seq[File], resourceDirectories: Seq[File], output: File) =
     (sourceDirectories ++ resourceDirectories).distinct -> output
+
+  def relativize(baseDirectory: File, file: File) = IO.relativize(baseDirectory, file).get
+
+  def output(baseDirectory: File, classDirectory: File) = relativize(baseDirectory, classDirectory)
 }
 
 private object EclipseOpts {
