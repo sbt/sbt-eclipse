@@ -13,18 +13,14 @@ For the impatient
 
   addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse" % "2.0.0")
 
-- In sbt use the command *eclipse* to create Eclipse project files
+- In sbt use the command *eclipse* to create Eclipse project files:
 
 ::
 
   > eclipse
 
 
-- In Eclipse use the *Import Wizard to import *Existing Projects into Workspace*
-
-::
-
-  addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse" % "2.0.0")
+- In Eclipse use the *Import Wizard* to import *Existing Projects into Workspace*
 
 
 Mailing list
