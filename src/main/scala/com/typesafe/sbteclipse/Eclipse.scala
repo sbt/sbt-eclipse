@@ -32,6 +32,8 @@ private object Eclipse {
 
   val SettingFormat = """-?([^:]*):?(.*)""".r
 
+  val FileSep = System.getProperty("file.separator")
+
   def eclipseCommand(
     commandName: String,
     executionEnvironment: Option[EclipseExecutionEnvironment.Value],
@@ -156,7 +158,7 @@ private object Eclipse {
       Seq(
         compileSrcDirectories._1 flatMap srcEntry(baseDirectory, compileSrcDirectories._2),
         testSrcDirectories._1 flatMap srcEntry(baseDirectory, testSrcDirectories._2),
-        externalDependencies map libEntry(buildDirectory, true),
+        externalDependencies map libEntry(buildDirectory, baseDirectory),
         projectDependencies map ClasspathEntry.Project,
         Seq("org.eclipse.jdt.launching.JRE_CONTAINER") map ClasspathEntry.Con, // TODO Optionally use execution env!
         Seq(output(baseDirectory, compileSrcDirectories._2)) map ClasspathEntry.Output
@@ -173,13 +175,13 @@ private object Eclipse {
       None
     }
 
-  def libEntry(buildDirectory: File, retrieveManaged: Boolean)(file: File)(implicit state: State) =
-    ClasspathEntry.Lib(
-      if (retrieveManaged)
-        IO.relativize(buildDirectory, file) getOrElse file.getAbsolutePath
-      else
-        file.getAbsolutePath
-    )
+  def libEntry(buildDirectory: File, baseDirectory: File)(file: File)(implicit state: State) = {
+    val path =
+      (IO.relativize(buildDirectory, baseDirectory) |@| IO.relativize(buildDirectory, file))((buildToBase, buildToFile) =>
+        "%s/%s".format(buildToBase split FileSep map (_ => "..") mkString FileSep, buildToFile)
+      ) getOrElse file.getAbsolutePath
+    ClasspathEntry.Lib(path)
+  }
 
   // Getting and transforming settings and task results
 
