@@ -1,0 +1,17 @@
+This is the 2.0.0-M1 pre-release of [sbteclipse](https://github.com/typesafehub/sbteclipse/), an [sbt](https://github.com/harrah/xsbt/) plugin for creating [Eclipse](http://www.eclipse.org/) project definitions.
+
+sbteclipse 2.0.0 is a complete rewrite of the 1.x branch. 
+
+The main difference is the ability to configure sbteclipse via settings in addition to options now. For example you can define _skipParents_ as a setting now instead of applying it as an option every time you execute the command _eclipse_. 
+
+One other important change: sbteclipse 2.0.0 no longer uses different target directories. In 1.x the Eclipse project definition pointed to the _.target_ folder by default. While this tried to avoid issues with both sbt and Eclipse working on the same files at the same time, it seemed to be confusing for users and probably overcautious.
+
+These are the most important additional issues that were addressed:
+
+* [Issue #34](https://github.com/typesafehub/sbteclipse/issues/34): Use relative path for local libraries
+* [Issue #39](https://github.com/typesafehub/sbteclipse/issues/39): Add support for execution environments
+* [Issue #59](https://github.com/typesafehub/sbteclipse/issues/56): Add settings as an alternative to command options
+
+Please notice that this is a pre-release and not all features are fully implemented yet, e.g. the setting for the execution environment is not yet used.
+
+Please see the [Documentation](http://github.com/typesafehub/sbteclipse/wiki/) for information about installing and using sbteclipse.
