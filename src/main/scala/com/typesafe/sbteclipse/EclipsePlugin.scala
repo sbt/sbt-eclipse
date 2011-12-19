@@ -27,18 +27,16 @@ object EclipsePlugin extends Plugin {
   override def settings: Seq[Setting[_]] = {
     import EclipseKeys._
     Seq(
-      commandName := "eclipse",
       executionEnvironment := None,
-      //      target := ".target",
       skipParents := true,
       withSource := false,
+      commandName := "eclipse",
       classpathEntryCollector := eclipseDefaultClasspathEntryCollector,
       commands <+= (
-        commandName,
         executionEnvironment,
         skipParents,
-        /*target,*/
         withSource,
+        commandName,
         classpathEntryCollector
       )(Eclipse.eclipseCommand)
     )
@@ -56,11 +54,6 @@ object EclipsePlugin extends Plugin {
   object EclipseKeys {
     import EclipseOpts._
 
-    val commandName: SettingKey[String] =
-      SettingKey[String](
-        prefix("command-name"),
-        "The name of the command.")
-
     val executionEnvironment: SettingKey[Option[EclipseExecutionEnvironment.Value]] =
       SettingKey[Option[EclipseExecutionEnvironment.Value]](
         prefix(ExecutionEnvironment),
@@ -71,15 +64,15 @@ object EclipsePlugin extends Plugin {
         prefix(SkipParents),
         "Skip creating Eclipse files for parent project?")
 
-    //    val target: SettingKey[String] =
-    //      SettingKey[String](
-    //        prefix("target"),
-    //        "The target directory for Eclipse.")
-
     val withSource: SettingKey[Boolean] =
       SettingKey[Boolean](
         prefix(WithSource),
         "Download and link sources for library dependencies?")
+
+    val commandName: SettingKey[String] =
+      SettingKey[String](
+        prefix("command-name"),
+        "The name of the command.")
 
     val classpathEntryCollector: SettingKey[PartialFunction[ClasspathEntry, ClasspathEntry]] =
       SettingKey[PartialFunction[ClasspathEntry, ClasspathEntry]](

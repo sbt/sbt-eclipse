@@ -35,14 +35,13 @@ private object Eclipse {
   val FileSep = System.getProperty("file.separator")
 
   def eclipseCommand(
-    commandName: String,
     executionEnvironment: Option[EclipseExecutionEnvironment.Value],
     skipParents: Boolean,
-    /*target: String,*/
     withSource: Boolean,
+    commandName: String,
     classpathEntryCollector: PartialFunction[ClasspathEntry, ClasspathEntry]): Command =
     Command(commandName)(_ => parser)((state, args) =>
-      action(executionEnvironment, skipParents, /*target,*/ withSource, classpathEntryCollector, args.toMap)(state)
+      action(executionEnvironment, skipParents, withSource, classpathEntryCollector, args.toMap)(state)
     )
 
   def parser = {
@@ -53,7 +52,6 @@ private object Eclipse {
   def action(
     executionEnvironment: Option[EclipseExecutionEnvironment.Value],
     skipParents: Boolean,
-    /*target: String,*/
     withSource: Boolean,
     classpathEntryCollector: PartialFunction[ClasspathEntry, ClasspathEntry],
     args: Map[String, Boolean])(
@@ -65,12 +63,11 @@ private object Eclipse {
     val sp = args get SkipParents getOrElse skipParents
     val ws = args get WithSource getOrElse withSource
 
-    contentsForAllProjects(sp, /*target,*/ classpathEntryCollector).fold(onFailure, onSuccess)
+    contentsForAllProjects(sp, classpathEntryCollector).fold(onFailure, onSuccess)
   }
 
   def contentsForAllProjects(
     skipParents: Boolean,
-    /*target: String,*/
     classpathEntryCollector: PartialFunction[ClasspathEntry, ClasspathEntry])(
       implicit state: State) = {
     val contents = for {
@@ -84,7 +81,7 @@ private object Eclipse {
         testSrcDirectories(ref) |@|
         scalacOptions(ref) |@|
         externalDependencies(ref) |@|
-        projectDependencies(ref, project))(content( /*target,*/ classpathEntryCollector))
+        projectDependencies(ref, project))(content(classpathEntryCollector))
     }
     contents.sequence[ValidationNELS, Content]
   }
@@ -105,7 +102,6 @@ private object Eclipse {
   }
 
   def content(
-    /*target: String,*/
     classpathEntryCollector: PartialFunction[ClasspathEntry, ClasspathEntry])(
       name: String,
       buildDirectory: File,

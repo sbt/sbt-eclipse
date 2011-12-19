@@ -1,17 +1,17 @@
 sbteclipse
 ==========
 
-Plugin for `sbt`_ to create `Eclipse`_ project files. Please see the `Documentation`_ for information about installing and using sbteclipse. Information about mailing lists, contribution policy and license can be found below.
+Plugin for `sbt`_ to create `Eclipse`_ project definitions. Please see the `Documentation`_ for information about installing and using sbteclipse. Information about mailing lists, contribution policy and license can be found below.
 
 
 For the impatient
 -----------------
 
-- Add sbteclipse to your plugin definition, replacing the version number with whatever version you want to use:
+- Add sbteclipse to your plugin definition:
 
 ::
 
-  addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse" % "2.0.0")
+  addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse" % "2.0.0-M1")
 
 - In sbt use the command *eclipse* to create Eclipse project files:
 
