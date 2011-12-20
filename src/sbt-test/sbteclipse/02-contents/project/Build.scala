@@ -23,7 +23,7 @@ object Build extends Build {
     settings = Project.defaultSettings ++ Seq(
       EclipseKeys.executionEnvironment := Some(EclipseExecutionEnvironment.JavaSE16)
     ),
-    aggregate = Seq(suba, subb)
+    aggregate = Seq(suba, subb, subc)
   )
 
   lazy val suba = Project(
@@ -32,7 +32,8 @@ object Build extends Build {
     settings = Project.defaultSettings ++ Seq(
       libraryDependencies ++= Seq(
         "com.weiglewilczek.slf4s" %% "slf4s" % "1.0.7",
-        "biz.aQute" % "bndlib" % "1.50.0"
+        "biz.aQute" % "bndlib" % "1.50.0",
+        "org.specs2" %% "specs2" % "1.6.1" % "test"
       )
     )
   )
@@ -40,13 +41,21 @@ object Build extends Build {
   lazy val subb = Project(
     "subb",
     new File("sub/subb"),
-    settings = Project.defaultSettings ++ Seq(
+    configurations = Configurations.default :+ Configurations.IntegrationTest,
+    settings = Project.defaultSettings ++ Defaults.itSettings ++ Seq(
       libraryDependencies ++= Seq(
-        "biz.aQute" % "bndlib" % "1.50.0"
+        "biz.aQute" % "bndlib" % "1.50.0",
+        "junit" % "junit" % "4.7" % "it"
       ),
       retrieveManaged := true,
-      scalacOptions := Seq("-unchecked", "-deprecation")
+      scalacOptions := Seq("-unchecked", "-deprecation"),
+      EclipseKeys.configurations := Set(Configurations.Compile, Configurations.IntegrationTest)
     ),
-    dependencies = Seq(suba, suba % "test->test")
+    dependencies = Seq(suba, suba % "test->compile", subc % "test->test")
   )  
+
+  lazy val subc = Project(
+    "subc",
+    new File("sub/subc")
+  )
 }

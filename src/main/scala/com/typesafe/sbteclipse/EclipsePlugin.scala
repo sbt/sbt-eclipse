@@ -18,7 +18,7 @@
 
 package com.typesafe.sbteclipse
 
-import sbt.{ File, Plugin, Setting, SettingKey }
+import sbt.{ Configuration, Configurations, File, Plugin, Setting, SettingKey }
 import sbt.Keys.{ baseDirectory, commands }
 import scala.xml.Elem
 
@@ -30,14 +30,14 @@ object EclipsePlugin extends Plugin {
       executionEnvironment := None,
       skipParents := true,
       withSource := false,
-      commandName := "eclipse",
       classpathEntryCollector := eclipseDefaultClasspathEntryCollector,
+      commandName := "eclipse",
       commands <+= (
         executionEnvironment,
         skipParents,
         withSource,
-        commandName,
-        classpathEntryCollector
+        classpathEntryCollector,
+        commandName
       )(Eclipse.eclipseCommand)
     )
   }
@@ -69,15 +69,20 @@ object EclipsePlugin extends Plugin {
         prefix(WithSource),
         "Download and link sources for library dependencies?")
 
+    val classpathEntryCollector: SettingKey[PartialFunction[ClasspathEntry, ClasspathEntry]] =
+      SettingKey[PartialFunction[ClasspathEntry, ClasspathEntry]](
+        prefix("classpathEntryCollector"),
+        "Determines how classpath entries are filtered and transformed before written into XML.")
+
     val commandName: SettingKey[String] =
       SettingKey[String](
         prefix("command-name"),
         "The name of the command.")
 
-    val classpathEntryCollector: SettingKey[PartialFunction[ClasspathEntry, ClasspathEntry]] =
-      SettingKey[PartialFunction[ClasspathEntry, ClasspathEntry]](
-        prefix("classpathEntryCollector"),
-        "Determines how classpath entries are filtered and transformed before written into XML.")
+    val configurations: SettingKey[Set[Configuration]] =
+      SettingKey[Set[Configuration]](
+        prefix("configurations"),
+        "The configurations to take into account.")
 
     private def prefix(key: String) = "eclipse-" + key
   }

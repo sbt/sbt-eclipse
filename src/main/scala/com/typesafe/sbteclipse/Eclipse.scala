@@ -18,10 +18,10 @@
 
 package com.typesafe.sbteclipse
 
-import EclipsePlugin.{ ClasspathEntry, EclipseExecutionEnvironment }
+import EclipsePlugin.{ ClasspathEntry, EclipseExecutionEnvironment, EclipseKeys }
 import java.io.FileWriter
 import java.util.Properties
-import sbt.{ Command, Configurations, File, IO, Keys, Project, ProjectRef, ResolvedProject, State, ThisBuild, richFile }
+import sbt.{ Command, Configuration, Configurations, File, IO, Keys, Project, ProjectRef, ResolvedProject, State, ThisBuild, richFile }
 import sbt.CommandSupport.logger
 import scala.collection.JavaConverters
 import scala.xml.{ Elem, NodeSeq, PrettyPrinter }
@@ -38,8 +38,8 @@ private object Eclipse {
     executionEnvironment: Option[EclipseExecutionEnvironment.Value],
     skipParents: Boolean,
     withSource: Boolean,
-    commandName: String,
-    classpathEntryCollector: PartialFunction[ClasspathEntry, ClasspathEntry]): Command =
+    classpathEntryCollector: PartialFunction[ClasspathEntry, ClasspathEntry],
+    commandName: String): Command =
     Command(commandName)(_ => parser)((state, args) =>
       action(executionEnvironment, skipParents, withSource, classpathEntryCollector, args.toMap)(state)
     )
@@ -74,14 +74,15 @@ private object Eclipse {
       ref <- structure.allProjectRefs
       project <- Project.getProject(ref, structure) if project.aggregate.isEmpty || !skipParents
     } yield {
+      val cs = configurations(ref)
       (name(ref) |@|
         buildDirectory(ref) |@|
         baseDirectory(ref) |@|
-        compileSrcDirectories(ref) |@|
-        testSrcDirectories(ref) |@|
+        ((cs map srcDirectories(ref)).sequence[ValidationNELS, Seq[(File, File)]] map (_.flatten.distinct)) |@|
+        target(ref) |@|
         scalacOptions(ref) |@|
-        externalDependencies(ref) |@|
-        projectDependencies(ref, project))(content(classpathEntryCollector))
+        ((cs map externalDependencies(ref)).sequence[ValidationNELS, Seq[File]] map (_.flatten.distinct)) |@|
+        ((cs map projectDependencies(ref, project)).sequence[ValidationNELS, Seq[String]] map (_.flatten.distinct)))(content(classpathEntryCollector))
     }
     contents.sequence[ValidationNELS, Content]
   }
@@ -106,8 +107,8 @@ private object Eclipse {
       name: String,
       buildDirectory: File,
       baseDirectory: File,
-      compileSrcDirectories: (Seq[File], File),
-      testSrcDirectories: (Seq[File], File),
+      srcDirectories: Seq[(File, File)],
+      target: File,
       scalacOptions: Seq[(String, String)],
       externalDependencies: Seq[File],
       projectDependencies: Seq[String])(
@@ -120,8 +121,8 @@ private object Eclipse {
         classpathEntryCollector,
         buildDirectory,
         baseDirectory,
-        compileSrcDirectories,
-        testSrcDirectories,
+        srcDirectories,
+        target,
         externalDependencies,
         projectDependencies
       ),
@@ -145,24 +146,22 @@ private object Eclipse {
     classpathEntryCollector: PartialFunction[ClasspathEntry, ClasspathEntry],
     buildDirectory: File,
     baseDirectory: File,
-    compileSrcDirectories: (Seq[File], File),
-    testSrcDirectories: (Seq[File], File),
+    srcDirectories: Seq[(File, File)],
+    target: File,
     externalDependencies: Seq[File],
     projectDependencies: Seq[String])(
       implicit state: State) = {
-    val entries =
-      Seq(
-        compileSrcDirectories._1 flatMap srcEntry(baseDirectory, compileSrcDirectories._2),
-        testSrcDirectories._1 flatMap srcEntry(baseDirectory, testSrcDirectories._2),
-        externalDependencies map libEntry(buildDirectory, baseDirectory),
-        projectDependencies map ClasspathEntry.Project,
-        Seq("org.eclipse.jdt.launching.JRE_CONTAINER") map ClasspathEntry.Con, // TODO Optionally use execution env!
-        Seq(output(baseDirectory, compileSrcDirectories._2)) map ClasspathEntry.Output
-      ).flatten collect classpathEntryCollector map (_.toXml)
+    val entries = Seq(
+      (for ((dir, output) <- srcDirectories) yield srcEntry(baseDirectory, output)(dir)).flatten.distinct,
+      externalDependencies map libEntry(buildDirectory, baseDirectory),
+      projectDependencies map ClasspathEntry.Project,
+      Seq("org.eclipse.jdt.launching.JRE_CONTAINER") map ClasspathEntry.Con, // TODO Optionally use execution env!
+      Seq(output(baseDirectory, target)) map ClasspathEntry.Output
+    ).flatten collect classpathEntryCollector map (_.toXml)
     <classpath>{ entries }</classpath>
   }
 
-  def srcEntry(baseDirectory: File, classDirectory: File)(srcDirectory: File)(implicit state: State) =
+  def srcEntry(baseDirectory: File, classDirectory: File)(srcDirectory: File)(implicit state: State) = {
     if (srcDirectory.exists()) {
       logger(state).debug("Creating src entry for directory '%s'." format srcDirectory)
       Some(ClasspathEntry.Src(relativize(baseDirectory, srcDirectory), output(baseDirectory, classDirectory)))
@@ -170,6 +169,7 @@ private object Eclipse {
       logger(state).debug("Skipping src entry for not-existing directory '%s'." format srcDirectory)
       None
     }
+  }
 
   def libEntry(buildDirectory: File, baseDirectory: File)(file: File)(implicit state: State) = {
     val path =
@@ -182,26 +182,31 @@ private object Eclipse {
   // Getting and transforming settings and task results
 
   def name(ref: ProjectRef)(implicit state: State) =
-    setting(Keys.name, ref)
+    setting(Keys.name, ref, Configurations.Default)
 
   def buildDirectory(ref: ProjectRef)(implicit state: State) =
-    setting(Keys.baseDirectory, ThisBuild)
+    setting(Keys.baseDirectory, ThisBuild, Configurations.Default)
 
   def baseDirectory(ref: ProjectRef)(implicit state: State) =
-    setting(Keys.baseDirectory, ref)
+    setting(Keys.baseDirectory, ref, Configurations.Default)
 
-  def compileSrcDirectories(ref: ProjectRef)(implicit state: State) =
-    (setting(Keys.sourceDirectories, ref) |@|
-      setting(Keys.resourceDirectories, ref) |@|
-      setting(Keys.classDirectory, ref))(srcDirsToOutput)
+  def configurations(ref: ProjectRef)(implicit state: State) =
+    setting(EclipseKeys.configurations, ref, Configurations.Default).fold(
+      _ => Seq(Configurations.Compile, Configurations.Test),
+      _.toSeq
+    )
 
-  def testSrcDirectories(ref: ProjectRef)(implicit state: State) =
-    (setting(Keys.sourceDirectories, ref, Configurations.Test) |@|
-      setting(Keys.resourceDirectories, ref, Configurations.Test) |@|
-      setting(Keys.classDirectory, ref, Configurations.Test))(srcDirsToOutput)
+  def target(ref: ProjectRef)(implicit state: State) =
+    setting(Keys.target, ref, Configurations.Default)
+
+  def srcDirectories(ref: ProjectRef)(configuration: Configuration)(implicit state: State) = {
+    (setting(Keys.sourceDirectories, ref, configuration) |@|
+      setting(Keys.resourceDirectories, ref, configuration) |@|
+      setting(Keys.classDirectory, ref, configuration))(srcDirsToOutput)
+  }
 
   def scalacOptions(ref: ProjectRef)(implicit state: State) =
-    evaluateTask(Keys.scalacOptions, ref) map { options =>
+    evaluateTask(Keys.scalacOptions, ref, Configurations.Default) map { options =>
       def values(value: String) =
         value split "," map (_.trim) filterNot (_ contains "org.scala-lang.plugins/continuations")
       options collect {
@@ -215,12 +220,15 @@ private object Eclipse {
       }
     }
 
-  def externalDependencies(ref: ProjectRef)(implicit state: State) =
-    evaluateTask(Keys.externalDependencyClasspath, ref, Configurations.Test) map (_.files)
+  def externalDependencies(ref: ProjectRef)(configuration: Configuration)(implicit state: State) =
+    evaluateTask(Keys.externalDependencyClasspath, ref, configuration) map (_.files)
 
-  def projectDependencies(ref: ProjectRef, project: ResolvedProject)(implicit state: State) = {
-    val projectDependencies = project.dependencies map (dependency => setting(Keys.name, dependency.project))
-    projectDependencies.distinct.sequence
+  def projectDependencies(ref: ProjectRef, project: ResolvedProject)(configuration: Configuration)(implicit state: State) = {
+    val projectDependencies = project.dependencies collect {
+      case dependency if dependency.configuration map (_ == configuration) getOrElse true =>
+        setting(Keys.name, dependency.project)
+    }
+    projectDependencies.sequence
   }
 
   // Writing to disk
@@ -251,7 +259,7 @@ private object Eclipse {
   // Utilities
 
   def srcDirsToOutput(sourceDirectories: Seq[File], resourceDirectories: Seq[File], output: File) =
-    (sourceDirectories ++ resourceDirectories).distinct -> output
+    (sourceDirectories ++ resourceDirectories) map (_ -> output)
 
   def relativize(baseDirectory: File, file: File) = IO.relativize(baseDirectory, file).get
 
