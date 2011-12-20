@@ -74,15 +74,15 @@ private object Eclipse {
       ref <- structure.allProjectRefs
       project <- Project.getProject(ref, structure) if project.aggregate.isEmpty || !skipParents
     } yield {
-      val cs = configurations(ref)
+      val configs = configurations(ref)
       (name(ref) |@|
         buildDirectory(ref) |@|
         baseDirectory(ref) |@|
-        ((cs map srcDirectories(ref)).sequence[ValidationNELS, Seq[(File, File)]] map (_.flatten.distinct)) |@|
+        mapConfigs(configs, srcDirectories(ref)) |@|
         target(ref) |@|
         scalacOptions(ref) |@|
-        ((cs map externalDependencies(ref)).sequence[ValidationNELS, Seq[File]] map (_.flatten.distinct)) |@|
-        ((cs map projectDependencies(ref, project)).sequence[ValidationNELS, Seq[String]] map (_.flatten.distinct)))(content(classpathEntryCollector))
+        mapConfigs(configs, externalDependencies(ref)) |@|
+        mapConfigs(configs, projectDependencies(ref, project)))(content(classpathEntryCollector))
     }
     contents.sequence[ValidationNELS, Content]
   }
@@ -101,6 +101,9 @@ private object Eclipse {
     }
     state
   }
+
+  def mapConfigs[A](configurations: Seq[Configuration], f: Configuration => ValidationNELS[Seq[A]]) =
+    (configurations map f).sequence map (_.flatten.distinct)
 
   def content(
     classpathEntryCollector: PartialFunction[ClasspathEntry, ClasspathEntry])(
@@ -152,7 +155,7 @@ private object Eclipse {
     projectDependencies: Seq[String])(
       implicit state: State) = {
     val entries = Seq(
-      (for ((dir, output) <- srcDirectories) yield srcEntry(baseDirectory, output)(dir)).flatten.distinct,
+      (for ((dir, output) <- srcDirectories) yield srcEntry(baseDirectory, output)(dir)).flatten,
       externalDependencies map libEntry(buildDirectory, baseDirectory),
       projectDependencies map ClasspathEntry.Project,
       Seq("org.eclipse.jdt.launching.JRE_CONTAINER") map ClasspathEntry.Con, // TODO Optionally use execution env!
