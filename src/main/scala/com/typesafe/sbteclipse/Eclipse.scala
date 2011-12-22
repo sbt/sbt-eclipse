@@ -39,7 +39,7 @@ private object Eclipse {
     skipParents: Boolean,
     withSource: Boolean,
     classpathEntryCollector: PartialFunction[ClasspathEntry, ClasspathEntry],
-    commandName: String): Command =
+    commandName: String) =
     Command(commandName)(_ => parser)((state, args) =>
       action(executionEnvironment, skipParents, withSource, classpathEntryCollector, args.toMap)(state)
     )
@@ -185,13 +185,13 @@ private object Eclipse {
   // Getting and transforming settings and task results
 
   def name(ref: ProjectRef)(implicit state: State) =
-    setting(Keys.name, ref, Configurations.Default)
+    setting(Keys.name, ref)
 
   def buildDirectory(ref: ProjectRef)(implicit state: State) =
-    setting(Keys.baseDirectory, ThisBuild, Configurations.Default)
+    setting(Keys.baseDirectory, ThisBuild)
 
   def baseDirectory(ref: ProjectRef)(implicit state: State) =
-    setting(Keys.baseDirectory, ref, Configurations.Default)
+    setting(Keys.baseDirectory, ref)
 
   def configurations(ref: ProjectRef)(implicit state: State) =
     setting(EclipseKeys.configurations, ref, Configurations.Default).fold(
@@ -200,7 +200,7 @@ private object Eclipse {
     )
 
   def target(ref: ProjectRef)(implicit state: State) =
-    setting(Keys.target, ref, Configurations.Default)
+    setting(Keys.target, ref)
 
   def srcDirectories(ref: ProjectRef)(configuration: Configuration)(implicit state: State) = {
     (setting(Keys.sourceDirectories, ref, configuration) |@|
@@ -209,7 +209,7 @@ private object Eclipse {
   }
 
   def scalacOptions(ref: ProjectRef)(implicit state: State) =
-    evaluateTask(Keys.scalacOptions, ref, Configurations.Default) map { options =>
+    evaluateTask(Keys.scalacOptions, ref) map { options =>
       def values(value: String) =
         value split "," map (_.trim) filterNot (_ contains "org.scala-lang.plugins/continuations")
       options collect {
@@ -267,15 +267,6 @@ private object Eclipse {
   def relativize(baseDirectory: File, file: File) = IO.relativize(baseDirectory, file).get
 
   def output(baseDirectory: File, classDirectory: File) = relativize(baseDirectory, classDirectory)
-}
-
-private object EclipseOpts {
-
-  val ExecutionEnvironment = "execution-environment"
-
-  val SkipParents = "skip-parents"
-
-  val WithSource = "with-source"
 }
 
 private case class Content(

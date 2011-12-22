@@ -52,7 +52,7 @@ package object sbteclipse {
   def setting[A](
     key: SettingKey[A],
     reference: Reference,
-    configuration: Configuration = Configurations.Compile)(
+    configuration: Configuration = Configurations.Default)(
       implicit state: State): ValidationNELS[A] = {
     key in (reference, configuration) get structure.data match {
       case Some(a) => a.success
