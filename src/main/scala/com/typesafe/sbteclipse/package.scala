@@ -44,6 +44,8 @@ import scalaz.Scalaz._
 
 package object sbteclipse {
 
+  def id[A](a: A): A = a
+
   def boolOpt(key: String): Parser[(String, Boolean)] = {
     import sbt.complete.DefaultParsers._
     (Space ~> key ~ ("=" ~> ("true" | "false"))) map { case (k, v) => k -> v.toBoolean }

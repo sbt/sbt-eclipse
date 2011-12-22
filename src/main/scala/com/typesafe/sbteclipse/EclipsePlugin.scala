@@ -42,11 +42,11 @@ object EclipsePlugin extends Plugin {
     )
   }
 
-  def eclipseDefaultClasspathEntryCollector: PartialFunction[ClasspathEntry, ClasspathEntry] = {
-    case ClasspathEntry.Lib(path, _) if path contains "scala-library.jar" =>
-      ClasspathEntry.Con("org.scala-ide.sdt.launching.SCALA_CONTAINER")
-    case ClasspathEntry.Lib(path, _) if path contains "scala-compiler.jar" =>
-      ClasspathEntry.Con("org.scala-ide.sdt.launching.SCALA_COMPILER_CONTAINER")
+  def eclipseDefaultClasspathEntryCollector: PartialFunction[EclipseClasspathEntry, EclipseClasspathEntry] = {
+    case EclipseClasspathEntry.Lib(path, _) if path contains "scala-library.jar" =>
+      EclipseClasspathEntry.Con("org.scala-ide.sdt.launching.SCALA_CONTAINER")
+    case EclipseClasspathEntry.Lib(path, _) if path contains "scala-compiler.jar" =>
+      EclipseClasspathEntry.Con("org.scala-ide.sdt.launching.SCALA_COMPILER_CONTAINER")
     case entry =>
       entry
   }
@@ -69,8 +69,8 @@ object EclipsePlugin extends Plugin {
         prefix(WithSource),
         "Download and link sources for library dependencies?")
 
-    val classpathEntryCollector: SettingKey[PartialFunction[ClasspathEntry, ClasspathEntry]] =
-      SettingKey[PartialFunction[ClasspathEntry, ClasspathEntry]](
+    val classpathEntryCollector: SettingKey[PartialFunction[EclipseClasspathEntry, EclipseClasspathEntry]] =
+      SettingKey[PartialFunction[EclipseClasspathEntry, EclipseClasspathEntry]](
         prefix("classpathEntryCollector"),
         "Determines how classpath entries are filtered and transformed before written into XML.")
 
@@ -83,6 +83,12 @@ object EclipsePlugin extends Plugin {
       SettingKey[Set[Configuration]](
         prefix("configurations"),
         "The configurations to take into account.")
+
+    val createSrc: SettingKey[EclipseCreateSrc.ValueSet] =
+      SettingKey[EclipseCreateSrc.ValueSet](
+        prefix("create-src"),
+        "The source kinds to be included."
+      )
 
     private def prefix(key: String) = "eclipse-" + key
   }
@@ -104,30 +110,45 @@ object EclipsePlugin extends Plugin {
     val JRE11 = Value("JRE-1.1")
   }
 
-  sealed trait ClasspathEntry {
+  sealed trait EclipseClasspathEntry {
     def toXml: Elem
   }
 
-  object ClasspathEntry {
+  object EclipseClasspathEntry {
 
-    case class Src(path: String, output: String) extends ClasspathEntry {
+    case class Src(path: String, output: String) extends EclipseClasspathEntry {
       override def toXml = <classpathentry kind="src" path={ path } output={ output }/>
     }
 
-    case class Lib(path: String, source: Option[String] = None) extends ClasspathEntry {
+    case class Lib(path: String, source: Option[String] = None) extends EclipseClasspathEntry {
       override def toXml = <classpathentry kind="lib" path={ path }/>
     }
 
-    case class Project(name: String) extends ClasspathEntry {
+    case class Project(name: String) extends EclipseClasspathEntry {
       override def toXml = <classpathentry kind="src" path={ "/" + name } exported="true" combineaccessrules="false"/>
     }
 
-    case class Con(path: String) extends ClasspathEntry {
+    case class Con(path: String) extends EclipseClasspathEntry {
       override def toXml = <classpathentry kind="con" path={ path }/>
     }
 
-    case class Output(path: String) extends ClasspathEntry {
+    case class Output(path: String) extends EclipseClasspathEntry {
       override def toXml = <classpathentry kind="output" path={ path }/>
     }
+  }
+
+  object EclipseCreateSrc extends Enumeration {
+
+    val Unmanaged = Value
+
+    val Managed = Value
+
+    val Source = Value
+
+    val Resource = Value
+
+    val Default = ValueSet(Unmanaged, Source)
+
+    val All = ValueSet(Unmanaged, Managed, Source, Resource)
   }
 }

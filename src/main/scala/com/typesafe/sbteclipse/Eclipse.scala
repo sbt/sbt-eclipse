@@ -18,10 +18,10 @@
 
 package com.typesafe.sbteclipse
 
-import EclipsePlugin.{ ClasspathEntry, EclipseExecutionEnvironment, EclipseKeys }
+import EclipsePlugin.{ EclipseClasspathEntry, EclipseCreateSrc, EclipseExecutionEnvironment, EclipseKeys }
 import java.io.FileWriter
 import java.util.Properties
-import sbt.{ Command, Configuration, Configurations, File, IO, Keys, Project, ProjectRef, ResolvedProject, State, ThisBuild, richFile }
+import sbt.{ Command, Configuration, Configurations, File, IO, Keys, Project, ProjectRef, ResolvedProject, SettingKey, State, ThisBuild, richFile }
 import sbt.CommandSupport.logger
 import scala.collection.JavaConverters
 import scala.xml.{ Elem, NodeSeq, PrettyPrinter }
@@ -38,7 +38,7 @@ private object Eclipse {
     executionEnvironment: Option[EclipseExecutionEnvironment.Value],
     skipParents: Boolean,
     withSource: Boolean,
-    classpathEntryCollector: PartialFunction[ClasspathEntry, ClasspathEntry],
+    classpathEntryCollector: PartialFunction[EclipseClasspathEntry, EclipseClasspathEntry],
     commandName: String) =
     Command(commandName)(_ => parser)((state, args) =>
       action(executionEnvironment, skipParents, withSource, classpathEntryCollector, args.toMap)(state)
@@ -53,7 +53,7 @@ private object Eclipse {
     executionEnvironment: Option[EclipseExecutionEnvironment.Value],
     skipParents: Boolean,
     withSource: Boolean,
-    classpathEntryCollector: PartialFunction[ClasspathEntry, ClasspathEntry],
+    classpathEntryCollector: PartialFunction[EclipseClasspathEntry, EclipseClasspathEntry],
     args: Map[String, Boolean])(
       implicit state: State) = {
 
@@ -68,7 +68,7 @@ private object Eclipse {
 
   def contentsForAllProjects(
     skipParents: Boolean,
-    classpathEntryCollector: PartialFunction[ClasspathEntry, ClasspathEntry])(
+    classpathEntryCollector: PartialFunction[EclipseClasspathEntry, EclipseClasspathEntry])(
       implicit state: State) = {
     val contents = for {
       ref <- structure.allProjectRefs
@@ -78,7 +78,7 @@ private object Eclipse {
       (name(ref) |@|
         buildDirectory(ref) |@|
         baseDirectory(ref) |@|
-        mapConfigs(configs, srcDirectories(ref)) |@|
+        mapConfigs(configs, srcDirectories(ref, createSrc(ref))) |@|
         target(ref) |@|
         scalacOptions(ref) |@|
         mapConfigs(configs, externalDependencies(ref)) |@|
@@ -106,7 +106,7 @@ private object Eclipse {
     (configurations map f).sequence map (_.flatten.distinct)
 
   def content(
-    classpathEntryCollector: PartialFunction[ClasspathEntry, ClasspathEntry])(
+    classpathEntryCollector: PartialFunction[EclipseClasspathEntry, EclipseClasspathEntry])(
       name: String,
       buildDirectory: File,
       baseDirectory: File,
@@ -146,7 +146,7 @@ private object Eclipse {
     </projectDescription>
 
   def classpath(
-    classpathEntryCollector: PartialFunction[ClasspathEntry, ClasspathEntry],
+    classpathEntryCollector: PartialFunction[EclipseClasspathEntry, EclipseClasspathEntry],
     buildDirectory: File,
     baseDirectory: File,
     srcDirectories: Seq[(File, File)],
@@ -155,23 +155,19 @@ private object Eclipse {
     projectDependencies: Seq[String])(
       implicit state: State) = {
     val entries = Seq(
-      (for ((dir, output) <- srcDirectories) yield srcEntry(baseDirectory, output)(dir)).flatten,
+      for ((dir, output) <- srcDirectories) yield srcEntry(baseDirectory, output)(dir),
       externalDependencies map libEntry(buildDirectory, baseDirectory),
-      projectDependencies map ClasspathEntry.Project,
-      Seq("org.eclipse.jdt.launching.JRE_CONTAINER") map ClasspathEntry.Con, // TODO Optionally use execution env!
-      Seq(output(baseDirectory, target)) map ClasspathEntry.Output
+      projectDependencies map EclipseClasspathEntry.Project,
+      Seq("org.eclipse.jdt.launching.JRE_CONTAINER") map EclipseClasspathEntry.Con, // TODO Optionally use execution env!
+      Seq(output(baseDirectory, target)) map EclipseClasspathEntry.Output
     ).flatten collect classpathEntryCollector map (_.toXml)
     <classpath>{ entries }</classpath>
   }
 
   def srcEntry(baseDirectory: File, classDirectory: File)(srcDirectory: File)(implicit state: State) = {
-    if (srcDirectory.exists()) {
-      logger(state).debug("Creating src entry for directory '%s'." format srcDirectory)
-      Some(ClasspathEntry.Src(relativize(baseDirectory, srcDirectory), output(baseDirectory, classDirectory)))
-    } else {
-      logger(state).debug("Skipping src entry for not-existing directory '%s'." format srcDirectory)
-      None
-    }
+    if (!srcDirectory.exists()) srcDirectory.mkdirs() // TODO Defer to later, e.g. using scalaz IO!
+    logger(state).debug("Creating src entry for directory '%s'." format srcDirectory)
+    EclipseClasspathEntry.Src(relativize(baseDirectory, srcDirectory), output(baseDirectory, classDirectory))
   }
 
   def libEntry(buildDirectory: File, baseDirectory: File)(file: File)(implicit state: State) = {
@@ -179,7 +175,7 @@ private object Eclipse {
       (IO.relativize(buildDirectory, baseDirectory) |@| IO.relativize(buildDirectory, file))((buildToBase, buildToFile) =>
         "%s/%s".format(buildToBase split FileSep map (_ => "..") mkString FileSep, buildToFile)
       ) getOrElse file.getAbsolutePath
-    ClasspathEntry.Lib(path)
+    EclipseClasspathEntry.Lib(path)
   }
 
   // Getting and transforming settings and task results
@@ -194,18 +190,38 @@ private object Eclipse {
     setting(Keys.baseDirectory, ref)
 
   def configurations(ref: ProjectRef)(implicit state: State) =
-    setting(EclipseKeys.configurations, ref, Configurations.Default).fold(
+    setting(EclipseKeys.configurations, ref).fold(
       _ => Seq(Configurations.Compile, Configurations.Test),
       _.toSeq
+    )
+
+  def createSrc(ref: ProjectRef)(implicit state: State) =
+    setting(EclipseKeys.createSrc, ref).fold(
+      _ => EclipseCreateSrc.Default,
+      id
     )
 
   def target(ref: ProjectRef)(implicit state: State) =
     setting(Keys.target, ref)
 
-  def srcDirectories(ref: ProjectRef)(configuration: Configuration)(implicit state: State) = {
-    (setting(Keys.sourceDirectories, ref, configuration) |@|
-      setting(Keys.resourceDirectories, ref, configuration) |@|
-      setting(Keys.classDirectory, ref, configuration))(srcDirsToOutput)
+  def srcDirectories(
+    ref: ProjectRef,
+    createSrc: EclipseCreateSrc.ValueSet)(
+      configuration: Configuration)(
+        implicit state: State) = {
+    import EclipseCreateSrc._
+    val classDirectory = setting(Keys.classDirectory, ref, configuration)
+    def dirs(values: ValueSet, key: SettingKey[Seq[File]]) =
+      if (values subsetOf createSrc)
+        (setting(key, ref, configuration) <**> classDirectory)((sds, cd) => sds map (_ -> cd))
+      else
+        "".failNel
+    Seq(
+      dirs(ValueSet(Unmanaged, Source), Keys.unmanagedSourceDirectories),
+      dirs(ValueSet(Managed, Source), Keys.managedSourceDirectories),
+      dirs(ValueSet(Unmanaged, Resource), Keys.unmanagedResourceDirectories),
+      dirs(ValueSet(Managed, Resource), Keys.managedResourceDirectories)
+    ).reduceLeft(_ >>*<< _)
   }
 
   def scalacOptions(ref: ProjectRef)(implicit state: State) =
@@ -260,9 +276,6 @@ private object Eclipse {
   }
 
   // Utilities
-
-  def srcDirsToOutput(sourceDirectories: Seq[File], resourceDirectories: Seq[File], output: File) =
-    (sourceDirectories ++ resourceDirectories) map (_ -> output)
 
   def relativize(baseDirectory: File, file: File) = IO.relativize(baseDirectory, file).get
 

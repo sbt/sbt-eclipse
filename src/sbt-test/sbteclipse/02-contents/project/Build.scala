@@ -1,6 +1,6 @@
 import sbt._
 import sbt.Keys._
-import com.typesafe.sbteclipse.EclipsePlugin.{ EclipseKeys, EclipseExecutionEnvironment }
+import com.typesafe.sbteclipse.EclipsePlugin.{ EclipseCreateSrc, EclipseKeys, EclipseExecutionEnvironment }
 
 object Build extends Build {
 
@@ -34,7 +34,8 @@ object Build extends Build {
         "com.weiglewilczek.slf4s" %% "slf4s" % "1.0.7",
         "biz.aQute" % "bndlib" % "1.50.0",
         "org.specs2" %% "specs2" % "1.6.1" % "test"
-      )
+      ),
+      EclipseKeys.createSrc := EclipseCreateSrc.ValueSet(EclipseCreateSrc.Managed, EclipseCreateSrc.Resource)
     )
   )
 
