@@ -19,7 +19,7 @@
 package com.typesafe.sbteclipse
 
 import EclipsePlugin.{ EclipseClasspathEntry, EclipseCreateSrc, EclipseExecutionEnvironment, EclipseKeys }
-import java.io.FileWriter
+import java.io.{ FileWriter, Writer }
 import java.util.Properties
 import sbt.{ Command, Configuration, Configurations, File, IO, Keys, Project, ProjectRef, ResolvedProject, SettingKey, State, ThisBuild, richFile }
 import sbt.CommandSupport.logger
@@ -27,6 +27,7 @@ import scala.collection.JavaConverters
 import scala.xml.{ Elem, NodeSeq, PrettyPrinter }
 import scalaz.{ Failure, Success }
 import scalaz.Scalaz._
+import scalaz.effects._
 
 private object Eclipse {
 
@@ -63,14 +64,14 @@ private object Eclipse {
     val sp = args get SkipParents getOrElse skipParents
     val ws = args get WithSource getOrElse withSource
 
-    contentsForAllProjects(sp, classpathEntryCollector).fold(onFailure, onSuccess)
+    effects(sp, classpathEntryCollector).fold(onFailure, onSuccess)
   }
 
-  def contentsForAllProjects(
+  def effects(
     skipParents: Boolean,
     classpathEntryCollector: PartialFunction[EclipseClasspathEntry, EclipseClasspathEntry])(
       implicit state: State) = {
-    val contents = for {
+    val effects = for {
       ref <- structure.allProjectRefs
       project <- Project.getProject(ref, structure) if project.aggregate.isEmpty || !skipParents
     } yield {
@@ -82,9 +83,9 @@ private object Eclipse {
         target(ref) |@|
         scalacOptions(ref) |@|
         mapConfigs(configs, externalDependencies(ref)) |@|
-        mapConfigs(configs, projectDependencies(ref, project)))(content(classpathEntryCollector))
+        mapConfigs(configs, projectDependencies(ref, project)))(effect(classpathEntryCollector))
     }
-    contents.sequence[ValidationNELS, Content]
+    effects.sequence[ValidationNELS, IO[String]] map (_.sequence)
   }
 
   def onFailure(errors: NELS)(implicit state: State) = {
@@ -92,20 +93,19 @@ private object Eclipse {
     state.fail
   }
 
-  def onSuccess(contents: Seq[Content])(implicit state: State) = {
-    if (contents.isEmpty)
+  def onSuccess(effects: IO[Seq[String]])(implicit state: State) = {
+    val names = effects.unsafePerformIO
+    if (names.isEmpty)
       logger(state).warn("There was no project to create Eclipse project files for!")
-    else {
-      val names = contents map writeContent
+    else
       logger(state).info("Successfully created Eclipse project files for project(s): %s" format (names mkString ", "))
-    }
     state
   }
 
   def mapConfigs[A](configurations: Seq[Configuration], f: Configuration => ValidationNELS[Seq[A]]) =
     (configurations map f).sequence map (_.flatten.distinct)
 
-  def content(
+  def effect(
     classpathEntryCollector: PartialFunction[EclipseClasspathEntry, EclipseClasspathEntry])(
       name: String,
       buildDirectory: File,
@@ -115,12 +115,11 @@ private object Eclipse {
       scalacOptions: Seq[(String, String)],
       externalDependencies: Seq[File],
       projectDependencies: Seq[String])(
-        implicit state: State) =
-    Content(
-      name,
-      baseDirectory,
-      projectXml(name),
-      classpath(
+        implicit state: State) = {
+    for {
+      n <- io(name)
+      _ <- saveXml(baseDirectory / ".project", projectXml(name))
+      cp <- classpath(
         classpathEntryCollector,
         buildDirectory,
         baseDirectory,
@@ -128,8 +127,11 @@ private object Eclipse {
         target,
         externalDependencies,
         projectDependencies
-      ),
-      scalacOptions)
+      )
+      _ <- saveXml(baseDirectory / ".classpath", cp)
+      _ <- saveProperties(baseDirectory / ".settings" / "org.scala-ide.sdt.core.prefs", scalacOptions)
+    } yield n
+  }
 
   def projectXml(name: String) =
     <projectDescription>
@@ -154,21 +156,25 @@ private object Eclipse {
     externalDependencies: Seq[File],
     projectDependencies: Seq[String])(
       implicit state: State) = {
-    val entries = Seq(
-      for ((dir, output) <- srcDirectories) yield srcEntry(baseDirectory, output)(dir),
-      externalDependencies map libEntry(buildDirectory, baseDirectory),
-      projectDependencies map EclipseClasspathEntry.Project,
-      Seq("org.eclipse.jdt.launching.JRE_CONTAINER") map EclipseClasspathEntry.Con, // TODO Optionally use execution env!
-      Seq(output(baseDirectory, target)) map EclipseClasspathEntry.Output
-    ).flatten collect classpathEntryCollector map (_.toXml)
-    <classpath>{ entries }</classpath>
+    val srcEntriesIoSeq = for ((dir, output) <- srcDirectories) yield srcEntry(baseDirectory, output)(dir)
+    for (srcEntries <- srcEntriesIoSeq.sequence) yield {
+      val entries = Seq(
+        srcEntries,
+        externalDependencies map libEntry(buildDirectory, baseDirectory),
+        projectDependencies map EclipseClasspathEntry.Project,
+        Seq("org.eclipse.jdt.launching.JRE_CONTAINER") map EclipseClasspathEntry.Con, // TODO Optionally use execution env!
+        Seq(output(baseDirectory, target)) map EclipseClasspathEntry.Output
+      ).flatten collect classpathEntryCollector map (_.toXml)
+      <classpath>{ entries }</classpath>
+    }
   }
 
-  def srcEntry(baseDirectory: File, classDirectory: File)(srcDirectory: File)(implicit state: State) = {
-    if (!srcDirectory.exists()) srcDirectory.mkdirs() // TODO Defer to later, e.g. using scalaz IO!
-    logger(state).debug("Creating src entry for directory '%s'." format srcDirectory)
-    EclipseClasspathEntry.Src(relativize(baseDirectory, srcDirectory), output(baseDirectory, classDirectory))
-  }
+  def srcEntry(baseDirectory: File, classDirectory: File)(srcDirectory: File)(implicit state: State) =
+    io {
+      if (!srcDirectory.exists()) srcDirectory.mkdirs()
+      logger(state).debug("Creating src entry for directory '%s'." format srcDirectory)
+      EclipseClasspathEntry.Src(relativize(baseDirectory, srcDirectory), output(baseDirectory, classDirectory))
+    }
 
   def libEntry(buildDirectory: File, baseDirectory: File)(file: File)(implicit state: State) = {
     val path =
@@ -250,30 +256,29 @@ private object Eclipse {
     projectDependencies.sequence
   }
 
-  // Writing to disk
+  // IO
 
-  def writeContent(contents: Content): String = {
-    saveXml(contents.dir / ".project", contents.project)
-    saveXml(contents.dir / ".classpath", contents.classpath)
-    if (!contents.scalacOptions.isEmpty)
-      saveProperties(contents.dir / ".settings" / "org.scala-ide.sdt.core.prefs", contents.scalacOptions)
-    contents.name
-  }
+  def saveXml(file: File, xml: Elem) =
+    fileWriter(file).bracket(closeWriter)(writer => io(writer.write(new PrettyPrinter(999, 2) format xml)))
 
-  def saveXml(file: File, xml: Elem) = {
-    val out = new FileWriter(file)
-    try out.write(new PrettyPrinter(999, 2) format xml)
-    finally if (out != null) out.close()
-  }
+  def saveProperties(file: File, settings: Seq[(String, String)]) =
+    if (!settings.isEmpty) {
+      val properties = new Properties
+      for ((key, value) <- settings) properties.setProperty(key, value)
+      fileWriterMkdirs(file).bracket(closeWriter)(writer =>
+        io(properties.store(writer, "Generated by sbteclipse"))
+      )
+    } else
+      io(())
 
-  private def saveProperties(file: File, settings: Seq[(String, String)]): Unit = {
+  def fileWriter(file: File) = io(new FileWriter(file))
+
+  def fileWriterMkdirs(file: File) = io {
     file.getParentFile.mkdirs()
-    val out = new FileWriter(file)
-    val properties = new Properties
-    for ((key, value) <- settings) properties.setProperty(key, value)
-    try properties.store(out, "Generated by sbteclipse")
-    finally if (out != null) out.close()
+    new FileWriter(file)
   }
+
+  def closeWriter(writer: Writer) = io(writer.close())
 
   // Utilities
 
