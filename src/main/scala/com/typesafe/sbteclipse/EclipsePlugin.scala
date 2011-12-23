@@ -27,18 +27,8 @@ object EclipsePlugin extends Plugin {
   override def settings: Seq[Setting[_]] = {
     import EclipseKeys._
     Seq(
-      executionEnvironment := None,
-      skipParents := true,
-      withSource := false,
-      classpathEntryCollector := eclipseDefaultClasspathEntryCollector,
       commandName := "eclipse",
-      commands <+= (
-        executionEnvironment,
-        skipParents,
-        withSource,
-        classpathEntryCollector,
-        commandName
-      )(Eclipse.eclipseCommand)
+      commands <+= (commandName)(Eclipse.eclipseCommand)
     )
   }
 

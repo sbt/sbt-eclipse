@@ -1,5 +1,2 @@
 # Default settings
 > verify-command-name
-> verify-execution-environment
-> verify-skip-parents
-> verify-with-source
