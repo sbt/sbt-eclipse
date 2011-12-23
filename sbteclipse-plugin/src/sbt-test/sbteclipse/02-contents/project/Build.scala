@@ -1,6 +1,6 @@
 import sbt._
 import sbt.Keys._
-import com.typesafe.sbteclipse.EclipsePlugin.{ EclipseCreateSrc, EclipseKeys, EclipseExecutionEnvironment }
+import com.typesafe.sbteclipse.plugin.EclipsePlugin.{ EclipseCreateSrc, EclipseKeys, EclipseExecutionEnvironment }
 
 object Build extends Build {
 

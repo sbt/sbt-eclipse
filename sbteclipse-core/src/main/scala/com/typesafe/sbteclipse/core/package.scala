@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package com.typesafe
+package com.typesafe.sbteclipse
 
 import java.util.Properties
 import sbt.{
@@ -42,7 +42,7 @@ import sbt.complete.Parser
 import scalaz.{ NonEmptyList, Validation }
 import scalaz.Scalaz._
 
-package object sbteclipse {
+package object core {
 
   def id[A](a: A): A = a
 

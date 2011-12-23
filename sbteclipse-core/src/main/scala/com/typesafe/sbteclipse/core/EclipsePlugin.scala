@@ -16,15 +16,17 @@
  * limitations under the License.
  */
 
-package com.typesafe.sbteclipse
+package com.typesafe.sbteclipse.core
 
 import sbt.{ Configuration, Configurations, File, Plugin, Setting, SettingKey }
 import sbt.Keys.{ baseDirectory, commands }
 import scala.xml.Elem
 
-object EclipsePlugin extends Plugin {
+object EclipsePlugin extends EclipsePlugin
 
-  override def settings: Seq[Setting[_]] = {
+trait EclipsePlugin {
+
+  def eclipseSettings: Seq[Setting[_]] = {
     import EclipseKeys._
     Seq(
       commandName := "eclipse",
