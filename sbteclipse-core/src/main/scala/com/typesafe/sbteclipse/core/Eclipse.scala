@@ -91,7 +91,7 @@ private object Eclipse {
     } yield {
       val configs = configurations(ref)
       (name(ref) |@|
-        buildDirectory(ref) |@|
+        buildDirectory |@|
         baseDirectory(ref) |@|
         mapConfigs(configs, srcDirectories(ref, createSrc(ref))) |@|
         scalacOptions(ref) |@|
@@ -192,11 +192,15 @@ private object Eclipse {
     }
 
   def libEntry(buildDirectory: File, baseDirectory: File)(lib: Lib)(implicit state: State) = {
-    def path(file: File) =
-      (IO.relativize(buildDirectory, baseDirectory) |@| IO.relativize(buildDirectory, file))(
-        (buildToBase, buildToFile) =>
-          "%s/%s".format(buildToBase split FileSep map (_ => "..") mkString FileSep, buildToFile)
-      ) getOrElse file.getAbsolutePath
+    def path(file: File) = {
+      val relativizedBase =
+        if (buildDirectory == baseDirectory) Some(".") else IO.relativize(buildDirectory, baseDirectory)
+      val relativizedFile = IO.relativize(buildDirectory, file)
+      val relativized = (relativizedBase |@| relativizedFile)((base, file) =>
+        "%s/%s".format(base split FileSep map (part => if (part != ".") ".." else part) mkString FileSep, file)
+      )
+      relativized getOrElse file.getAbsolutePath
+    }
     EclipseClasspathEntry.Lib(path(lib.binary), lib.source map path)
   }
 
@@ -205,7 +209,7 @@ private object Eclipse {
   def name(ref: Reference)(implicit state: State) =
     setting(Keys.name in ref)
 
-  def buildDirectory(ref: Reference)(implicit state: State) =
+  def buildDirectory(implicit state: State) =
     setting(Keys.baseDirectory in ThisBuild)
 
   def baseDirectory(ref: Reference)(implicit state: State) =

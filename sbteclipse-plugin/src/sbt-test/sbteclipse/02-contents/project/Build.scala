@@ -11,8 +11,10 @@ object Build extends Build {
       unmanagedSourceDirectories in Compile <+= baseDirectory(new File(_, "src/main/scala")),
       unmanagedSourceDirectories in Test <+= baseDirectory(new File(_, "src/test/scala")),
       libraryDependencies ++= Seq(
-        "org.scala-lang" % "scala-compiler" % "2.9.1"
-      )
+        "org.scala-lang" % "scala-compiler" % "2.9.1",
+        "biz.aQute" % "bndlib" % "1.50.0"
+      ),
+      retrieveManaged := true
     ),
     aggregate = Seq(sub)
   )

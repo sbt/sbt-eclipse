@@ -41,6 +41,9 @@ TaskKey[Unit]("verify-classpath-xml-root") <<= baseDirectory map { dir =>
     error("""Not expected .classpath of root project to contain <classpathentry kind="..." path="...resource_managed/main" output="..." /> """)
   if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "target/scala-2.9.1/resource_managed/test") 
     error("""Not expected .classpath of root project to contain <classpathentry kind="..." path="...resource_managed/test" output="..." /> """)
+  // lib entries without sources
+  if (!(classpath.child contains <classpathentry kind="lib" path="./lib_managed/jars/biz.aQute/bndlib/bndlib-1.50.0.jar" />))
+    error("""Expected .classpath of subb project to contain <classpathentry kind="lib" path="./lib_managed/jars/biz.aQute/bndlib/bndlib-1.50.0.jar" />: %s""" format classpath)
   // other entries
   if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "scala-library.jar")
     error("""Not expected .classpath of root project to contain <classpathentry path="...scala-library.jar" ... /> """)
