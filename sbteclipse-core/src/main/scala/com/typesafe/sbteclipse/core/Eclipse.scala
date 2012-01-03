@@ -193,16 +193,16 @@ private object Eclipse {
   // Getting and transforming mandatory settings and task results
 
   def name(ref: Reference)(implicit state: State) =
-    setting(Keys.name, ref)
+    setting(Keys.name in ref)
 
   def buildDirectory(ref: Reference)(implicit state: State) =
-    setting(Keys.baseDirectory, ThisBuild)
+    setting(Keys.baseDirectory in ThisBuild)
 
   def baseDirectory(ref: Reference)(implicit state: State) =
-    setting(Keys.baseDirectory, ref)
+    setting(Keys.baseDirectory in ref)
 
   def target(ref: Reference)(implicit state: State) =
-    setting(Keys.target, ref)
+    setting(Keys.target in ref)
 
   def srcDirectories(
     ref: Reference,
@@ -210,10 +210,10 @@ private object Eclipse {
       configuration: Configuration)(
         implicit state: State) = {
     import EclipseCreateSrc._
-    val classDirectory = setting(Keys.classDirectory, ref, configuration)
+    val classDirectory = setting(Keys.classDirectory in (ref, configuration))
     def dirs(values: ValueSet, key: SettingKey[Seq[File]]) =
       if (values subsetOf createSrc)
-        (setting(key, ref, configuration) <**> classDirectory)((sds, cd) => sds map (_ -> cd))
+        (setting(key in (ref, configuration)) <**> classDirectory)((sds, cd) => sds map (_ -> cd))
       else
         "".failNel
     Seq(
@@ -240,12 +240,12 @@ private object Eclipse {
     }
 
   def externalDependencies(ref: ProjectRef)(configuration: Configuration)(implicit state: State) =
-    evaluateTask(Keys.externalDependencyClasspath, ref, configuration) map (_.files)
+    evaluateTask(Keys.externalDependencyClasspath in configuration, ref) map (_.files)
 
   def projectDependencies(ref: Reference, project: ResolvedProject)(configuration: Configuration)(implicit state: State) = {
     val projectDependencies = project.dependencies collect {
       case dependency if dependency.configuration map (_ == configuration) getOrElse true =>
-        setting(Keys.name, dependency.project)
+        setting(Keys.name in dependency.project)
     }
     projectDependencies.sequence
   }
@@ -253,19 +253,19 @@ private object Eclipse {
   // Getting and transforming optional settings and task results
 
   def skipParents(ref: Reference)(implicit state: State) =
-    setting(EclipseKeys.skipParents, ref).fold(_ => true, id)
+    setting(EclipseKeys.skipParents in ref).fold(_ => true, id)
 
   def classpathEntryCollector(ref: Reference)(implicit state: State) =
-    setting(EclipseKeys.classpathEntryCollector, ref).fold(_ => eclipseDefaultClasspathEntryCollector, id)
+    setting(EclipseKeys.classpathEntryCollector in ref).fold(_ => eclipseDefaultClasspathEntryCollector, id)
 
   def configurations(ref: Reference)(implicit state: State) =
-    setting(EclipseKeys.configurations, ref).fold(
+    setting(EclipseKeys.configurations in ref).fold(
       _ => Seq(Configurations.Compile, Configurations.Test),
       _.toSeq
     )
 
   def createSrc(ref: Reference)(implicit state: State) =
-    setting(EclipseKeys.createSrc, ref).fold(_ => EclipseCreateSrc.Default, id)
+    setting(EclipseKeys.createSrc in ref).fold(_ => EclipseCreateSrc.Default, id)
 
   // IO
 

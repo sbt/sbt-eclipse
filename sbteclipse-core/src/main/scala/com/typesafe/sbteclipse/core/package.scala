@@ -51,26 +51,17 @@ package object core {
     (Space ~> key ~ ("=" ~> ("true" | "false"))) map { case (k, v) => k -> v.toBoolean }
   }
 
-  def setting[A](
-    key: SettingKey[A],
-    reference: Reference,
-    configuration: Configuration = Configurations.Default)(
-      implicit state: State): ValidationNELS[A] = {
-    key in (reference, configuration) get structure.data match {
+  def setting[A](key: SettingKey[A])(implicit state: State): ValidationNELS[A] =
+    key get structure.data match {
       case Some(a) => a.success
-      case None => "Missing setting '%s' for '%s'!".format(key.key, reference).failNel
+      case None => "Undefined setting '%s'!".format(key.key).failNel
     }
-  }
 
-  def evaluateTask[A](
-    key: TaskKey[A],
-    ref: ProjectRef,
-    configuration: Configuration = Configurations.Compile)(
-      implicit state: State): ValidationNELS[A] =
-    EvaluateTask(structure, key in configuration, state, ref, EvaluateConfig(false)) match {
+  def evaluateTask[A](key: TaskKey[A], ref: ProjectRef)(implicit state: State): ValidationNELS[A] =
+    EvaluateTask(structure, key, state, ref, EvaluateConfig(false)) match {
       case Some((_, Value(a))) => a.success
       case Some((_, Inc(inc))) => "Error evaluating task '%s': %s".format(key.key, Incomplete.show(inc.tpe)).failNel
-      case None => "Missing task '%s' for '%s'!".format(key.key, ref.project).failNel
+      case None => "Undefined task '%s' for '%s'!".format(key.key, ref.project).failNel
     }
 
   def extracted(implicit state: State): Extracted =
