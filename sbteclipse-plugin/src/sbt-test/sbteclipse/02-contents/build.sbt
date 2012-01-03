@@ -56,6 +56,16 @@ TaskKey[Unit]("verify-classpath-xml-root") <<= baseDirectory map { dir =>
     error("""Expected .classpath of root project to contain <classpathentry kind="output" path="bin"/> """)
 }
 
+TaskKey[Unit]("verify-classpath-xml-sub") <<= baseDirectory map { dir =>
+  val home = System.getProperty("user.home")
+  val classpath = XML.loadFile(dir / "sub" / ".classpath")
+  if ((classpath \ "classpathentry") != (classpath \ "classpathentry").distinct)
+    error("Expected .classpath of sub project not to contain duplicate entries: %s" format classpath)
+  // lib entries with sources
+  if (!(classpath.child contains <classpathentry kind="lib" path="../lib_managed/jars/biz.aQute/bndlib/bndlib-1.50.0.jar" sourcepath="../lib_managed/srcs/biz.aQute/bndlib/bndlib-1.50.0-sources.jar" />))
+    error("""Expected .classpath of subb project to contain <classpathentry kind="lib" path="../lib_managed/jars/biz.aQute/bndlib/bndlib-1.50.0.jar" sourcepath="../lib_managed/srcs/biz.aQute/bndlib/bndlib-1.50.0-sources.jar" />: %s""" format classpath)
+}
+
 TaskKey[Unit]("verify-classpath-xml-suba") <<= baseDirectory map { dir =>
   val home = System.getProperty("user.home")
   val classpath = XML.loadFile(dir / "sub" / "suba" / ".classpath")
@@ -88,13 +98,13 @@ TaskKey[Unit]("verify-classpath-xml-suba") <<= baseDirectory map { dir =>
     error("""Not expected .classpath of suba project to contain <classpathentry kind="..." path="src/it/java" output="..." />: %s """ format classpath)
   if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "src/it/resources") 
     error("""Not expected .classpath of suba project to contain <classpathentry kind="..." path="src/it/resources" output="..." />: %s """ format classpath)
-  // lib entries without sources
-  if (!(classpath.child contains <classpathentry kind="lib" path={ home + "/.ivy2/cache/com.weiglewilczek.slf4s/slf4s_2.9.1/jars/slf4s_2.9.1-1.0.7.jar" } />))
-    error("""Expected .classpath of suba project to contain <classpathentry kind="lib" path={ home + "/.ivy2/cache/com.weiglewilczek.slf4s/slf4s_2.9.1/jars/slf4s_2.9.1-1.0.7.jar" } />: %s""" format classpath)
-  if (!(classpath.child contains <classpathentry kind="lib" path={ home + "/.ivy2/cache/biz.aQute/bndlib/jars/bndlib-1.50.0.jar" } />))
-    error("""Expected .classpath of suba project to contain <classpathentry kind="lib" path={ home + "/.ivy2/cache/biz.aQute/bndlib/jars/bndlib-1.50.0.jar" } />: %s""" format classpath)
-  if (!(classpath.child contains <classpathentry kind="lib" path={ home + "/.ivy2/cache/org.specs2/specs2_2.9.1/jars/specs2_2.9.1-1.6.1.jar" } />))
-    error("""Expected .classpath of suba project to contain <classpathentry kind="lib" path={ home + "/.ivy2/cache/org.specs2/specs2_2.9.1/jars/specs2_2.9.1-1.6.1.jar" } />: %s""" format classpath)
+  // lib entries with sources
+  if (!(classpath.child contains <classpathentry kind="lib" path={ home + "/.ivy2/cache/com.weiglewilczek.slf4s/slf4s_2.9.1/jars/slf4s_2.9.1-1.0.7.jar" } sourcepath={ home + "/.ivy2/cache/com.weiglewilczek.slf4s/slf4s_2.9.1/srcs/slf4s_2.9.1-1.0.7-sources.jar" } />))
+    error("""Expected .classpath of suba project to contain <classpathentry kind="lib" path={ home + "/.ivy2/cache/com.weiglewilczek.slf4s/slf4s_2.9.1/jars/slf4s_2.9.1-1.0.7.jar" } sourcepath={ home + "/.ivy2/cache/com.weiglewilczek.slf4s/slf4s_2.9.1/srcs/slf4s_2.9.1-1.0.7-sources.jar" } />: %s""" format classpath)
+  if (!(classpath.child contains <classpathentry kind="lib" path={ home + "/.ivy2/cache/biz.aQute/bndlib/jars/bndlib-1.50.0.jar" } sourcepath={ home + "/.ivy2/cache/biz.aQute/bndlib/srcs/bndlib-1.50.0-sources.jar" } />))
+    error("""Expected .classpath of suba project to contain <classpathentry kind="lib" path={ home + "/.ivy2/cache/biz.aQute/bndlib/jars/bndlib-1.50.0.jar" } sourcepath={ home + "/.ivy2/cache/biz.aQute/bndlib/srcs/bndlib-1.50.0-sources.jar" } />: %s""" format classpath)
+  if (!(classpath.child contains <classpathentry kind="lib" path={ home + "/.ivy2/cache/org.specs2/specs2_2.9.1/jars/specs2_2.9.1-1.6.1.jar" } sourcepath={ home + "/.ivy2/cache/org.specs2/specs2_2.9.1/srcs/specs2_2.9.1-1.6.1-sources.jar" } />))
+    error("""Expected .classpath of suba project to contain <classpathentry kind="lib" path={ home + "/.ivy2/cache/org.specs2/specs2_2.9.1/jars/specs2_2.9.1-1.6.1.jar" } sourcepath={ home + "/.ivy2/cache/org.specs2/specs2_2.9.1/srcs/specs2_2.9.1-1.6.1-sources.jar" } />: %s""" format classpath)
 }
 
 TaskKey[Unit]("verify-classpath-xml-subb") <<= baseDirectory map { dir =>

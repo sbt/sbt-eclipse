@@ -11,7 +11,7 @@ object Build extends Build {
       unmanagedSourceDirectories in Compile <+= baseDirectory(new File(_, "src/main/scala")),
       unmanagedSourceDirectories in Test <+= baseDirectory(new File(_, "src/test/scala")),
       libraryDependencies ++= Seq(
-          "org.scala-lang" % "scala-compiler" % "2.9.1"
+        "org.scala-lang" % "scala-compiler" % "2.9.1"
       )
     ),
     aggregate = Seq(sub)
@@ -21,7 +21,12 @@ object Build extends Build {
     "sub",
     new File("sub"),
     settings = Project.defaultSettings ++ Seq(
-      EclipseKeys.executionEnvironment := Some(EclipseExecutionEnvironment.JavaSE16)
+      libraryDependencies ++= Seq(
+        "biz.aQute" % "bndlib" % "1.50.0"
+      ),
+      retrieveManaged := true,
+      EclipseKeys.executionEnvironment := Some(EclipseExecutionEnvironment.JavaSE16),
+      EclipseKeys.withSource := true
     ),
     aggregate = Seq(suba, subb, subc)
   )
@@ -35,7 +40,8 @@ object Build extends Build {
         "biz.aQute" % "bndlib" % "1.50.0",
         "org.specs2" %% "specs2" % "1.6.1" % "test"
       ),
-      EclipseKeys.createSrc := EclipseCreateSrc.ValueSet(EclipseCreateSrc.Managed, EclipseCreateSrc.Resource)
+      EclipseKeys.createSrc := EclipseCreateSrc.ValueSet(EclipseCreateSrc.Managed, EclipseCreateSrc.Resource),
+      EclipseKeys.withSource := true
     )
   )
 
@@ -53,7 +59,7 @@ object Build extends Build {
       EclipseKeys.configurations := Set(Configurations.Compile, Configurations.IntegrationTest)
     ),
     dependencies = Seq(suba, suba % "test->compile", subc % "test->test")
-  )  
+  )
 
   lazy val subc = Project(
     "subc",

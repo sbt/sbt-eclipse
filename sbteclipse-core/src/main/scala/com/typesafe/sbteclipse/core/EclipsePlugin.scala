@@ -20,7 +20,7 @@ package com.typesafe.sbteclipse.core
 
 import sbt.{ Configuration, Configurations, File, Plugin, Setting, SettingKey, TaskKey }
 import sbt.Keys.{ baseDirectory, commands }
-import scala.xml.Elem
+import scala.xml.{ Attribute, Elem, Null, Text }
 
 object EclipsePlugin extends EclipsePlugin
 
@@ -118,8 +118,11 @@ trait EclipsePlugin {
       override def toXml = <classpathentry kind="src" path={ path } output={ output }/>
     }
 
-    case class Lib(path: String, source: Option[String] = None) extends EclipseClasspathEntry {
-      override def toXml = <classpathentry kind="lib" path={ path }/>
+    case class Lib(path: String, sourcePath: Option[String] = None) extends EclipseClasspathEntry {
+      override def toXml =
+        sourcePath.foldLeft(<classpathentry kind="lib" path={ path }/>)((xml, sp) =>
+          xml % Attribute("sourcepath", Text(sp), Null)
+        )
     }
 
     case class Project(name: String) extends EclipseClasspathEntry {
