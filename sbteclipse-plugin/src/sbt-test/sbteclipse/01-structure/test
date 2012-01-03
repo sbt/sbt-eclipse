@@ -2,19 +2,23 @@
 $ exec find . -path "*.classpath*" -delete
 $ exec find . -path "*.project*" -delete
 $ exec find . -path "*/.settings" -delete
+$ exec find . -path "*/touch-pre-task" -delete
 > eclipse
 $ absent .classpath
 $ absent .project
 $ absent .settings
+$ absent touch-pre-task
 $ absent sub/.classpath
 $ absent sub/.project
 $ absent sub/.settings
+$ absent sub/touch-pre-task
 $ exists sub/suba/.classpath
 $ exists sub/suba/.project
 $ absent sub/suba/.settings
 $ exists sub/subb/.classpath
 $ exists sub/subb/.project
 $ exists sub/subb/.settings/org.scala-ide.sdt.core.prefs
+$ exists sub/subb/touch-pre-task
 
 # skip-parents=false
 $ exec find . -path "*.classpath*" -delete
@@ -24,12 +28,15 @@ $ exec find . -path "*/.settings" -delete
 $ exists .classpath
 $ exists .project
 $ absent .settings
+$ absent touch-pre-task
 $ exists sub/.classpath
 $ exists sub/.project
 $ absent sub/.settings
+$ absent sub/touch-pre-task
 $ exists sub/suba/.classpath
 $ exists sub/suba/.project
 $ absent sub/suba/.settings
 $ exists sub/subb/.classpath
 $ exists sub/subb/.project
 $ exists sub/subb/.settings/org.scala-ide.sdt.core.prefs
+$ exists sub/subb/touch-pre-task

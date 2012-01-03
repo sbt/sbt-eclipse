@@ -40,6 +40,7 @@ import sbt.{
   ResolvedProject,
   SettingKey,
   State,
+  TaskKey,
   ThisBuild,
   richFile
 }
@@ -92,7 +93,9 @@ private object Eclipse {
         mapConfigs(configs, srcDirectories(ref, createSrc(ref))) |@|
         scalacOptions(ref) |@|
         mapConfigs(configs, externalDependencies(ref)) |@|
-        mapConfigs(configs, projectDependencies(ref, project)))(effect(classpathEntryCollector))
+        mapConfigs(configs, projectDependencies(ref, project)))(
+          effect(classpathEntryCollector, preTasks(ref))
+        )
     }
     effects.sequence[ValidationNELS, IO[String]] map (_.sequence)
   }
@@ -115,7 +118,8 @@ private object Eclipse {
     (configurations map f).sequence map (_.flatten.distinct)
 
   def effect(
-    classpathEntryCollector: PartialFunction[EclipseClasspathEntry, EclipseClasspathEntry])(
+    classpathEntryCollector: PartialFunction[EclipseClasspathEntry, EclipseClasspathEntry],
+    preTasks: Seq[(TaskKey[_], ProjectRef)])(
       name: String,
       buildDirectory: File,
       baseDirectory: File,
@@ -125,6 +129,7 @@ private object Eclipse {
       projectDependencies: Seq[String])(
         implicit state: State) = {
     for {
+      _ <- executePreTasks(preTasks)
       n <- io(name)
       _ <- saveXml(baseDirectory / ".project", projectXml(name))
       cp <- classpath(
@@ -139,6 +144,9 @@ private object Eclipse {
       _ <- saveProperties(baseDirectory / ".settings" / "org.scala-ide.sdt.core.prefs", scalacOptions)
     } yield n
   }
+
+  def executePreTasks(preTasks: Seq[(TaskKey[_], ProjectRef)])(implicit state: State) =
+    io(for ((preTask, ref) <- preTasks) evaluateTask(preTask, ref)(state))
 
   def projectXml(name: String) =
     <projectDescription>
@@ -178,7 +186,6 @@ private object Eclipse {
   def srcEntry(baseDirectory: File, classDirectory: File)(srcDirectory: File)(implicit state: State) =
     io {
       if (!srcDirectory.exists()) srcDirectory.mkdirs()
-      logger(state).debug("Creating src entry for directory '%s'." format srcDirectory)
       EclipseClasspathEntry.Src(relativize(baseDirectory, srcDirectory), output(baseDirectory, classDirectory))
     }
 
@@ -251,6 +258,9 @@ private object Eclipse {
   }
 
   // Getting and transforming optional settings and task results
+
+  def preTasks(ref: ProjectRef)(implicit state: State) =
+    setting(EclipseKeys.preTasks in ref).fold(_ => Seq.empty, _.zipAll(Seq.empty, null, ref))
 
   def skipParents(ref: Reference)(implicit state: State) =
     setting(EclipseKeys.skipParents in ref).fold(_ => true, id)

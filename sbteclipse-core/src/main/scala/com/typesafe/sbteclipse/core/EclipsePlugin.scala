@@ -18,7 +18,7 @@
 
 package com.typesafe.sbteclipse.core
 
-import sbt.{ Configuration, Configurations, File, Plugin, Setting, SettingKey }
+import sbt.{ Configuration, Configurations, File, Plugin, Setting, SettingKey, TaskKey }
 import sbt.Keys.{ baseDirectory, commands }
 import scala.xml.Elem
 
@@ -80,6 +80,12 @@ trait EclipsePlugin {
       SettingKey[EclipseCreateSrc.ValueSet](
         prefix("create-src"),
         "The source kinds to be included."
+      )
+
+    val preTasks: SettingKey[Seq[TaskKey[_]]] =
+      SettingKey[Seq[TaskKey[_]]](
+        prefix("pre-tasks"),
+        "The tasks to be evaluated prior to creating the Eclipse project definition."
       )
 
     private def prefix(key: String) = "eclipse-" + key
