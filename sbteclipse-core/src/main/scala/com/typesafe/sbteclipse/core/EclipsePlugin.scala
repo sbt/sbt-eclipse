@@ -34,6 +34,9 @@ trait EclipsePlugin {
     )
   }
 
+  def eclipseIdentityClasspathEntryTransformer: (Seq[EclipseClasspathEntry], State) => Seq[EclipseClasspathEntry] =
+    (entries, _) => entries
+
   def eclipseDefaultClasspathEntryTransformer: (Seq[EclipseClasspathEntry], State) => Seq[EclipseClasspathEntry] =
     (entries, _) => entries collect {
       case EclipseClasspathEntry.Lib(path, _) if path contains "scala-library.jar" =>
