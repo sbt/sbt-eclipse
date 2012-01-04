@@ -23,7 +23,7 @@ import EclipsePlugin.{
   EclipseCreateSrc,
   EclipseExecutionEnvironment,
   EclipseKeys,
-  eclipseDefaultClasspathEntryCollector
+  eclipseDefaultClasspathEntryTransformer
 }
 import java.io.{ FileWriter, Writer }
 import java.util.Properties
@@ -75,15 +75,13 @@ private object Eclipse {
     //    val ee = args get ExecutionEnvironment getOrElse executionEnvironment
     effects(
       args get SkipParents getOrElse skipParents(ThisBuild),
-      args get WithSource,
-      classpathEntryCollector(ThisBuild)
+      args get WithSource
     ).fold(onFailure, onSuccess)
   }
 
   def effects(
     skipParents: Boolean,
-    withSourceArg: Option[Boolean],
-    classpathEntryCollector: PartialFunction[EclipseClasspathEntry, EclipseClasspathEntry])(
+    withSourceArg: Option[Boolean])(
       implicit state: State) = {
     val effects = for {
       ref <- structure.allProjectRefs
@@ -97,7 +95,7 @@ private object Eclipse {
         scalacOptions(ref) |@|
         mapConfigs(configs, externalDependencies(ref, withSourceArg getOrElse withSource(ref))) |@|
         mapConfigs(configs, projectDependencies(ref, project))
-      )(effect(classpathEntryCollector, preTasks(ref)))
+      )(effect(classpathEntryTransformer(ref), preTasks(ref)))
     }
     effects.sequence[ValidationNELS, IO[String]] map (_.sequence)
   }
@@ -120,7 +118,7 @@ private object Eclipse {
     (configurations map f).sequence map (_.flatten.distinct)
 
   def effect(
-    classpathEntryCollector: PartialFunction[EclipseClasspathEntry, EclipseClasspathEntry],
+    classpathEntryTransformer: (Seq[EclipseClasspathEntry], State) => Seq[EclipseClasspathEntry],
     preTasks: Seq[(TaskKey[_], ProjectRef)])(
       name: String,
       buildDirectory: File,
@@ -135,7 +133,7 @@ private object Eclipse {
       n <- io(name)
       _ <- saveXml(baseDirectory / ".project", projectXml(name))
       cp <- classpath(
-        classpathEntryCollector,
+        classpathEntryTransformer,
         buildDirectory,
         baseDirectory,
         srcDirectories,
@@ -165,7 +163,7 @@ private object Eclipse {
     </projectDescription>
 
   def classpath(
-    classpathEntryCollector: PartialFunction[EclipseClasspathEntry, EclipseClasspathEntry],
+    classpathEntryTransformer: (Seq[EclipseClasspathEntry], State) => Seq[EclipseClasspathEntry],
     buildDirectory: File,
     baseDirectory: File,
     srcDirectories: Seq[(File, File)],
@@ -174,14 +172,12 @@ private object Eclipse {
       implicit state: State) = {
     val srcEntriesIoSeq = for ((dir, output) <- srcDirectories) yield srcEntry(baseDirectory, output)(dir)
     for (srcEntries <- srcEntriesIoSeq.sequence) yield {
-      val entries = Seq(
-        srcEntries,
-        externalDependencies map libEntry(buildDirectory, baseDirectory),
-        projectDependencies map EclipseClasspathEntry.Project,
-        Seq("org.eclipse.jdt.launching.JRE_CONTAINER") map EclipseClasspathEntry.Con, // TODO Optionally use execution env!
-        Seq("bin") map EclipseClasspathEntry.Output
-      ).flatten collect classpathEntryCollector map (_.toXml)
-      <classpath>{ entries }</classpath>
+      val entries = srcEntries ++
+        (externalDependencies map libEntry(buildDirectory, baseDirectory)) ++
+        (projectDependencies map EclipseClasspathEntry.Project) ++
+        (Seq("org.eclipse.jdt.launching.JRE_CONTAINER") map EclipseClasspathEntry.Con) ++
+        (Seq("bin") map EclipseClasspathEntry.Output)
+      <classpath>{ classpathEntryTransformer(entries, state) map (_.toXml) }</classpath>
     }
   }
 
@@ -306,8 +302,8 @@ private object Eclipse {
   def withSource(ref: Reference)(implicit state: State) =
     setting(EclipseKeys.withSource in ref).fold(_ => false, id)
 
-  def classpathEntryCollector(ref: Reference)(implicit state: State) =
-    setting(EclipseKeys.classpathEntryCollector in ref).fold(_ => eclipseDefaultClasspathEntryCollector, id)
+  def classpathEntryTransformer(ref: Reference)(implicit state: State) =
+    setting(EclipseKeys.classpathEntryTransformer in ref).fold(_ => eclipseDefaultClasspathEntryTransformer, id)
 
   def configurations(ref: Reference)(implicit state: State) =
     setting(EclipseKeys.configurations in ref).fold(

@@ -18,7 +18,7 @@
 
 package com.typesafe.sbteclipse.core
 
-import sbt.{ Configuration, Configurations, File, Plugin, Setting, SettingKey, TaskKey }
+import sbt.{ Configuration, Configurations, File, Plugin, Setting, SettingKey, State, TaskKey }
 import sbt.Keys.{ baseDirectory, commands }
 import scala.xml.{ Attribute, Elem, Null, Text }
 
@@ -34,14 +34,15 @@ trait EclipsePlugin {
     )
   }
 
-  def eclipseDefaultClasspathEntryCollector: PartialFunction[EclipseClasspathEntry, EclipseClasspathEntry] = {
-    case EclipseClasspathEntry.Lib(path, _) if path contains "scala-library.jar" =>
-      EclipseClasspathEntry.Con("org.scala-ide.sdt.launching.SCALA_CONTAINER")
-    case EclipseClasspathEntry.Lib(path, _) if path contains "scala-compiler.jar" =>
-      EclipseClasspathEntry.Con("org.scala-ide.sdt.launching.SCALA_COMPILER_CONTAINER")
-    case entry =>
-      entry
-  }
+  def eclipseDefaultClasspathEntryTransformer: (Seq[EclipseClasspathEntry], State) => Seq[EclipseClasspathEntry] =
+    (entries, _) => entries collect {
+      case EclipseClasspathEntry.Lib(path, _) if path contains "scala-library.jar" =>
+        EclipseClasspathEntry.Con("org.scala-ide.sdt.launching.SCALA_CONTAINER")
+      case EclipseClasspathEntry.Lib(path, _) if path contains "scala-compiler.jar" =>
+        EclipseClasspathEntry.Con("org.scala-ide.sdt.launching.SCALA_COMPILER_CONTAINER")
+      case entry =>
+        entry
+    }
 
   object EclipseKeys {
     import EclipseOpts._
@@ -61,10 +62,10 @@ trait EclipsePlugin {
         prefix(WithSource),
         "Download and link sources for library dependencies?")
 
-    val classpathEntryCollector: SettingKey[PartialFunction[EclipseClasspathEntry, EclipseClasspathEntry]] =
-      SettingKey[PartialFunction[EclipseClasspathEntry, EclipseClasspathEntry]](
+    val classpathEntryTransformer: SettingKey[(Seq[EclipseClasspathEntry], State) => Seq[EclipseClasspathEntry]] =
+      SettingKey[(Seq[EclipseClasspathEntry], State) => Seq[EclipseClasspathEntry]](
         prefix("classpathEntryCollector"),
-        "Determines how classpath entries are filtered and transformed before written into XML.")
+        "Determines how classpath entries are transformed before written into XML.")
 
     val commandName: SettingKey[String] =
       SettingKey[String](
