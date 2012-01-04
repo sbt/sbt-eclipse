@@ -43,5 +43,5 @@ This code is open source software licensed under the `Apache 2.0 License`_. Feel
 .. _`sbt`: http://github.com/harrah/xsbt/
 .. _`Eclipse`: http://www.eclipse.org/
 .. _`Documentation`: http://github.com/typesafehub/sbteclipse/wiki/
-.. _`sbt mailing list`: mailto:simple-build-tool@googlegroups.com
+.. _`sbt mailing list`: http://groups.google.com/group/simple-build-tool
 .. _`Apache 2.0 License`: http://www.apache.org/licenses/LICENSE-2.0.html
