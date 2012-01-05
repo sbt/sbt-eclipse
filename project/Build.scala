@@ -31,7 +31,8 @@ object Build extends Build {
     file("."),
     aggregate = Seq(sbteclipseCore, sbteclipsePlugin),
     settings = commonSettings ++ Seq(
-      publishArtifact := false
+      publishArtifact := false,
+      aggregate in Posterous := false
     )
   )
 
