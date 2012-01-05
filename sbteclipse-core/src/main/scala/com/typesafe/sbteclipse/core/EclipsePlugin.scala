@@ -18,7 +18,18 @@
 
 package com.typesafe.sbteclipse.core
 
-import sbt.{ Configuration, Configurations, File, Plugin, Setting, SettingKey, State, TaskKey }
+import sbt.{
+  Configuration,
+  Configurations,
+  File,
+  Plugin,
+  ProjectRef,
+  ResolvedProject,
+  Setting,
+  SettingKey,
+  State,
+  TaskKey
+}
 import sbt.Keys.{ baseDirectory, commands }
 import scala.xml.{ Attribute, Elem, Null, Text }
 
@@ -33,19 +44,6 @@ trait EclipsePlugin {
       commands <+= (commandName)(Eclipse.eclipseCommand)
     )
   }
-
-  def eclipseIdentityClasspathEntryTransformer: (Seq[EclipseClasspathEntry], State) => Seq[EclipseClasspathEntry] =
-    (entries, _) => entries
-
-  def eclipseDefaultClasspathEntryTransformer: (Seq[EclipseClasspathEntry], State) => Seq[EclipseClasspathEntry] =
-    (entries, _) => entries collect {
-      case EclipseClasspathEntry.Lib(path, _) if path contains "scala-library.jar" =>
-        EclipseClasspathEntry.Con("org.scala-ide.sdt.launching.SCALA_CONTAINER")
-      case EclipseClasspathEntry.Lib(path, _) if path contains "scala-compiler.jar" =>
-        EclipseClasspathEntry.Con("org.scala-ide.sdt.launching.SCALA_COMPILER_CONTAINER")
-      case entry =>
-        entry
-    }
 
   object EclipseKeys {
     import EclipseOpts._
@@ -65,10 +63,10 @@ trait EclipsePlugin {
         prefix(WithSource),
         "Download and link sources for library dependencies?")
 
-    val classpathEntryTransformer: SettingKey[(Seq[EclipseClasspathEntry], State) => Seq[EclipseClasspathEntry]] =
-      SettingKey[(Seq[EclipseClasspathEntry], State) => Seq[EclipseClasspathEntry]](
-        prefix("classpathEntryCollector"),
-        "Determines how classpath entries are transformed before written into XML.")
+    val classpathEntryTransformerFactory: SettingKey[EclipseClasspathEntryTransformerFactory] =
+      SettingKey[EclipseClasspathEntryTransformerFactory](
+        prefix("classpathEntryTransformerFactory"),
+        "Creates a transformer for classpath entries.")
 
     val commandName: SettingKey[String] =
       SettingKey[String](
@@ -155,5 +153,35 @@ trait EclipsePlugin {
     val Default = ValueSet(Unmanaged, Source)
 
     val All = ValueSet(Unmanaged, Managed, Source, Resource)
+  }
+
+  trait EclipseClasspathEntryTransformerFactory {
+    def createTransformer(ref: ProjectRef, state: State): ValidationNELS[Seq[EclipseClasspathEntry] => Seq[EclipseClasspathEntry]]
+  }
+
+  object EclipseClasspathEntryTransformerFactory {
+
+    object Identity extends EclipseClasspathEntryTransformerFactory {
+      import scalaz.Scalaz._
+      override def createTransformer(ref: ProjectRef, state: State): ValidationNELS[Seq[EclipseClasspathEntry] => Seq[EclipseClasspathEntry]] =
+        ((entries: Seq[EclipseClasspathEntry]) => entries).success
+    }
+
+    object Default extends EclipseClasspathEntryTransformerFactory {
+      import scalaz.Scalaz._
+      override def createTransformer(ref: ProjectRef, state: State): ValidationNELS[Seq[EclipseClasspathEntry] => Seq[EclipseClasspathEntry]] = {
+        val transformer =
+          (entries: Seq[EclipseClasspathEntry]) => entries collect {
+            case EclipseClasspathEntry.Lib(path, _) if path contains "scala-library.jar" =>
+              EclipseClasspathEntry.Con("org.scala-ide.sdt.launching.SCALA_CONTAINER")
+            case EclipseClasspathEntry.Lib(path, _) if path contains "scala-compiler.jar" =>
+              EclipseClasspathEntry.Con("org.scala-ide.sdt.launching.SCALA_COMPILER_CONTAINER")
+            case entry =>
+              entry
+          }
+        transformer.success
+      }
+    }
+
   }
 }

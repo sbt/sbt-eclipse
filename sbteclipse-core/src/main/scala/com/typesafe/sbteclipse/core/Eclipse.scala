@@ -20,10 +20,10 @@ package com.typesafe.sbteclipse.core
 
 import EclipsePlugin.{
   EclipseClasspathEntry,
+  EclipseClasspathEntryTransformerFactory,
   EclipseCreateSrc,
   EclipseExecutionEnvironment,
-  EclipseKeys,
-  eclipseDefaultClasspathEntryTransformer
+  EclipseKeys
 }
 import java.io.{ FileWriter, Writer }
 import java.util.Properties
@@ -88,14 +88,15 @@ private object Eclipse {
       project <- Project.getProject(ref, structure) if project.aggregate.isEmpty || !skipParents
     } yield {
       val configs = configurations(ref)
-      (name(ref) |@|
+      (classpathEntryTransformerFactory(ref).createTransformer(ref, state) |@|
+        name(ref) |@|
         buildDirectory |@|
         baseDirectory(ref) |@|
         mapConfigs(configs, srcDirectories(ref, createSrc(ref))) |@|
         scalacOptions(ref) |@|
         mapConfigs(configs, externalDependencies(ref, withSourceArg getOrElse withSource(ref))) |@|
         mapConfigs(configs, projectDependencies(ref, project))
-      )(effect(classpathEntryTransformer(ref), preTasks(ref)))
+      )(effect(preTasks(ref)))
     }
     effects.sequence[ValidationNELS, IO[String]] map (_.sequence)
   }
@@ -118,8 +119,8 @@ private object Eclipse {
     (configurations map f).sequence map (_.flatten.distinct)
 
   def effect(
-    classpathEntryTransformer: (Seq[EclipseClasspathEntry], State) => Seq[EclipseClasspathEntry],
     preTasks: Seq[(TaskKey[_], ProjectRef)])(
+      classpathEntryTransformer: Seq[EclipseClasspathEntry] => Seq[EclipseClasspathEntry],
       name: String,
       buildDirectory: File,
       baseDirectory: File,
@@ -163,7 +164,7 @@ private object Eclipse {
     </projectDescription>
 
   def classpath(
-    classpathEntryTransformer: (Seq[EclipseClasspathEntry], State) => Seq[EclipseClasspathEntry],
+    classpathEntryTransformer: Seq[EclipseClasspathEntry] => Seq[EclipseClasspathEntry],
     buildDirectory: File,
     baseDirectory: File,
     srcDirectories: Seq[(File, File)],
@@ -177,7 +178,7 @@ private object Eclipse {
         (projectDependencies map EclipseClasspathEntry.Project) ++
         (Seq("org.eclipse.jdt.launching.JRE_CONTAINER") map EclipseClasspathEntry.Con) ++
         (Seq("bin") map EclipseClasspathEntry.Output)
-      <classpath>{ classpathEntryTransformer(entries, state) map (_.toXml) }</classpath>
+      <classpath>{ classpathEntryTransformer(entries) map (_.toXml) }</classpath>
     }
   }
 
@@ -302,8 +303,8 @@ private object Eclipse {
   def withSource(ref: Reference)(implicit state: State) =
     setting(EclipseKeys.withSource in ref).fold(_ => false, id)
 
-  def classpathEntryTransformer(ref: Reference)(implicit state: State) =
-    setting(EclipseKeys.classpathEntryTransformer in ref).fold(_ => eclipseDefaultClasspathEntryTransformer, id)
+  def classpathEntryTransformerFactory(ref: Reference)(implicit state: State) =
+    setting(EclipseKeys.classpathEntryTransformerFactory in ref).fold(_ => EclipseClasspathEntryTransformerFactory.Default, id)
 
   def configurations(ref: Reference)(implicit state: State) =
     setting(EclipseKeys.configurations in ref).fold(
