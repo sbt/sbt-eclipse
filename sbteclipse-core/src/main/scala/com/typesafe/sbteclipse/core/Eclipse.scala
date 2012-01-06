@@ -61,6 +61,8 @@ private object Eclipse {
 
   val FileSep = System.getProperty("file.separator")
 
+  val FileSepPattern = FileSep.replaceAll("""\\""", """\\\\""")
+
   def eclipseCommand(commandName: String) =
     Command(commandName)(_ => parser)((state, args) => action(args.toMap)(state))
 
@@ -194,7 +196,7 @@ private object Eclipse {
         if (buildDirectory == baseDirectory) Some(".") else IO.relativize(buildDirectory, baseDirectory)
       val relativizedFile = IO.relativize(buildDirectory, file)
       val relativized = (relativizedBase |@| relativizedFile)((base, file) =>
-        "%s/%s".format(base split FileSep map (part => if (part != ".") ".." else part) mkString FileSep, file)
+        "%s/%s".format(base split FileSepPattern map (part => if (part != ".") ".." else part) mkString FileSep, file)
       )
       relativized getOrElse file.getAbsolutePath
     }
