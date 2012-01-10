@@ -31,6 +31,7 @@ import sbt.{
   TaskKey
 }
 import sbt.Keys.{ baseDirectory, commands }
+import scala.util.control.Exception
 import scala.xml.{ Attribute, Elem, Null, Text }
 
 object EclipsePlugin extends EclipsePlugin
@@ -108,6 +109,8 @@ trait EclipsePlugin {
     val J2SE12 = Value("J2SE-1.2")
 
     val JRE11 = Value("JRE-1.1")
+
+    val valueSeq: Seq[Value] = JavaSE17 :: JavaSE16 :: J2SE15 :: J2SE14 :: J2SE13 :: J2SE12 :: JRE11 :: Nil
   }
 
   sealed trait EclipseClasspathEntry {

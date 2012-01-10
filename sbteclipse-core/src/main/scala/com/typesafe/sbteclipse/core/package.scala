@@ -51,6 +51,11 @@ package object core {
     (Space ~> key ~ ("=" ~> ("true" | "false"))) map { case (k, v) => k -> v.toBoolean }
   }
 
+  //  def stringOpt(key: String): Parser[(String, String)] = {
+  //    import sbt.complete.DefaultParsers._
+  //    (Space ~> key ~ ("=" ~> charClass(_ => true).+)) map { case (k, v) => k -> v.mkString }
+  //  }
+
   def setting[A](key: SettingKey[A])(implicit state: State): ValidationNELS[A] =
     key get structure.data match {
       case Some(a) => a.success

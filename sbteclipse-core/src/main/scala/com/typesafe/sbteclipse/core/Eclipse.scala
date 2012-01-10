@@ -49,6 +49,7 @@ import sbt.{
   richFile
 }
 import sbt.CommandSupport.logger
+import sbt.complete.Parser
 import scala.collection.JavaConverters
 import scala.xml.{ Elem, NodeSeq, PrettyPrinter }
 import scalaz.{ Failure, Success }
@@ -63,25 +64,39 @@ private object Eclipse {
 
   val FileSepPattern = FileSep.replaceAll("""\\""", """\\\\""")
 
+  val JreContainer = "org.eclipse.jdt.launching.JRE_CONTAINER"
+
+  val StandardVmType = "org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType"
+
   def eclipseCommand(commandName: String) =
     Command(commandName)(_ => parser)((state, args) => action(args.toMap)(state))
 
   def parser = {
     import EclipseOpts._
-    (boolOpt(ExecutionEnvironment) | boolOpt(SkipParents) | boolOpt(WithSource)).*
+    (executionEnvironmentOpt | boolOpt(SkipParents) | boolOpt(WithSource)).*
   }
 
-  def action(args: Map[String, Boolean])(implicit state: State) = {
+  def executionEnvironmentOpt: Parser[(String, EclipseExecutionEnvironment.Value)] = {
+    import EclipseExecutionEnvironment._
+    import EclipseOpts._
+    import sbt.complete.DefaultParsers._
+    val (head :: tail) = valueSeq map (_.toString)
+    val executionEnvironments = tail.foldLeft(head: Parser[String])(_ | _)
+    (Space ~> ExecutionEnvironment ~ ("=" ~> executionEnvironments)) map { case (k, v) => k -> withName(v) }
+  }
+
+  def action(args: Map[String, Any])(implicit state: State) = {
     logger(state).info("About to create Eclipse project files for your project(s).")
     import EclipseOpts._
-    //    val ee = args get ExecutionEnvironment getOrElse executionEnvironment
     effects(
-      args get SkipParents getOrElse skipParents(ThisBuild),
-      args get WithSource
+      (args get ExecutionEnvironment).asInstanceOf[Option[EclipseExecutionEnvironment.Value]],
+      (args get SkipParents).asInstanceOf[Option[Boolean]] getOrElse skipParents(ThisBuild),
+      (args get WithSource).asInstanceOf[Option[Boolean]] // TODO Move to project level!
     ).fold(onFailure, onSuccess)
   }
 
   def effects(
+    executionEnvironmentArg: Option[EclipseExecutionEnvironment.Value],
     skipParents: Boolean,
     withSourceArg: Option[Boolean])(
       implicit state: State) = {
@@ -98,7 +113,7 @@ private object Eclipse {
         scalacOptions(ref) |@|
         mapConfigs(configs, externalDependencies(ref, withSourceArg getOrElse withSource(ref))) |@|
         mapConfigs(configs, projectDependencies(ref, project))
-      )(effect(preTasks(ref)))
+      )(effect(jreContainer(executionEnvironmentArg orElse executionEnvironment(ref)), preTasks(ref)))
     }
     effects.sequence[ValidationNELS, IO[String]] map (_.sequence)
   }
@@ -121,6 +136,7 @@ private object Eclipse {
     (configurations map f).sequence map (_.flatten.distinct)
 
   def effect(
+    jreContainer: String,
     preTasks: Seq[(TaskKey[_], ProjectRef)])(
       classpathEntryTransformer: Seq[EclipseClasspathEntry] => Seq[EclipseClasspathEntry],
       name: String,
@@ -141,7 +157,8 @@ private object Eclipse {
         baseDirectory,
         srcDirectories,
         externalDependencies,
-        projectDependencies
+        projectDependencies,
+        jreContainer
       )
       _ <- saveXml(baseDirectory / ".classpath", cp)
       _ <- saveProperties(baseDirectory / ".settings" / "org.scala-ide.sdt.core.prefs", scalacOptions)
@@ -171,14 +188,15 @@ private object Eclipse {
     baseDirectory: File,
     srcDirectories: Seq[(File, File)],
     externalDependencies: Seq[Lib],
-    projectDependencies: Seq[String])(
+    projectDependencies: Seq[String],
+    jreContainer: String)(
       implicit state: State) = {
     val srcEntriesIoSeq = for ((dir, output) <- srcDirectories) yield srcEntry(baseDirectory, output)(dir)
     for (srcEntries <- srcEntriesIoSeq.sequence) yield {
       val entries = srcEntries ++
         (externalDependencies map libEntry(buildDirectory, baseDirectory)) ++
         (projectDependencies map EclipseClasspathEntry.Project) ++
-        (Seq("org.eclipse.jdt.launching.JRE_CONTAINER") map EclipseClasspathEntry.Con) ++
+        (Seq(jreContainer) map EclipseClasspathEntry.Con) ++
         (Seq("bin") map EclipseClasspathEntry.Output)
       <classpath>{ classpathEntryTransformer(entries) map (_.toXml) }</classpath>
     }
@@ -202,6 +220,12 @@ private object Eclipse {
     }
     EclipseClasspathEntry.Lib(path(lib.binary), lib.source map path)
   }
+
+  def jreContainer(executionEnvironment: Option[EclipseExecutionEnvironment.Value]) =
+    executionEnvironment match {
+      case Some(ee) => "%s/%s/%s".format(JreContainer, StandardVmType, ee)
+      case None => JreContainer
+    }
 
   // Getting and transforming mandatory settings and task results
 
@@ -298,6 +322,9 @@ private object Eclipse {
   }
 
   // Getting and transforming optional settings and task results
+
+  def executionEnvironment(ref: Reference)(implicit state: State) =
+    setting(EclipseKeys.executionEnvironment in ref).fold(_ => None, id)
 
   def skipParents(ref: Reference)(implicit state: State) =
     setting(EclipseKeys.skipParents in ref).fold(_ => true, id)

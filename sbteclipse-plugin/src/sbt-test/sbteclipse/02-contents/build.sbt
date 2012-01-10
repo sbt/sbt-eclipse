@@ -67,6 +67,9 @@ TaskKey[Unit]("verify-classpath-xml-sub") <<= baseDirectory map { dir =>
   // lib entries with sources
   if (!(classpath.child contains <classpathentry kind="lib" path="../lib_managed/jars/biz.aQute/bndlib/bndlib-1.50.0.jar" sourcepath="../lib_managed/srcs/biz.aQute/bndlib/bndlib-1.50.0-sources.jar" />))
     error("""Expected .classpath of subb project to contain <classpathentry kind="lib" path="../lib_managed/jars/biz.aQute/bndlib/bndlib-1.50.0.jar" sourcepath="../lib_managed/srcs/biz.aQute/bndlib/bndlib-1.50.0-sources.jar" />: %s""" format classpath)
+  // other entries
+  if (!(classpath.child contains <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>))
+    error("""Expected .classpath of root project to contain <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>: %s""" format classpath)
 }
 
 TaskKey[Unit]("verify-classpath-xml-suba") <<= baseDirectory map { dir =>
