@@ -58,7 +58,7 @@ import scalaz.effects._
 
 private object Eclipse {
 
-  val SettingFormat = """-?([^: ]*)[: ]?(.*)""".r
+  val SettingFormat = """-?([^:]*):?(.*)""".r
 
   val FileSep = System.getProperty("file.separator")
 
