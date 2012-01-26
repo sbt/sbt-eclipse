@@ -147,7 +147,9 @@ TaskKey[Unit]("verify-settings") <<= baseDirectory map { dir =>
   val expected = Map(
     "scala.compiler.useProjectSettings" -> "true", 
     "unchecked" -> "true", 
-    "deprecation" -> "true"
+    "deprecation" -> "true",
+    "Xplugin" -> "foo",
+    "Xelide-below" -> "0"
   ) 
   if (settings != expected) error("Expected settings to be '%s', but was '%s'!".format(expected, settings))
 }
