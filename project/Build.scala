@@ -41,7 +41,7 @@ object Build extends Build {
     file("sbteclipse-core"),
     settings = commonSettings ++ Seq(
       sbtPlugin := true,
-      libraryDependencies ++= Seq("org.scalaz" %% "scalaz-core" % "6.0.3")
+      libraryDependencies ++= Seq("org.scalaz" %% "scalaz-core" % "6.0.4")
     )
   )
 
