@@ -24,7 +24,9 @@ object Build extends Build {
     new File("sub"),
     settings = Project.defaultSettings ++ Seq(
       libraryDependencies ++= Seq(
-        "biz.aQute" % "bndlib" % "1.50.0"
+        "biz.aQute" % "bndlib" % "1.50.0",
+        "javax.servlet" % "servlet-api" % "2.5",
+        "javax.servlet" % "servlet-api" % "2.5" % "provided"
       ),
       retrieveManaged := true,
       EclipseKeys.executionEnvironment := Some(EclipseExecutionEnvironment.JavaSE16),

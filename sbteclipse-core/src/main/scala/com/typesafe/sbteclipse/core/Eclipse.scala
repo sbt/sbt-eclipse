@@ -211,7 +211,7 @@ private object Eclipse {
   def libEntry(buildDirectory: File, baseDirectory: File)(lib: Lib)(implicit state: State) = {
     def path(file: File) = {
       val relativizedBase =
-        if (buildDirectory == baseDirectory) Some(".") else IO.relativize(buildDirectory, baseDirectory)
+        if (buildDirectory === baseDirectory) Some(".") else IO.relativize(buildDirectory, baseDirectory)
       val relativizedFile = IO.relativize(buildDirectory, file)
       val relativized = (relativizedBase |@| relativizedFile)((base, file) =>
         "%s/%s".format(base split FileSepPattern map (part => if (part != ".") ".." else part) mkString FileSep, file)
@@ -280,19 +280,6 @@ private object Eclipse {
         }
       }
     )
-  /*
-      def values(value: String) =
-        value split "," map (_.trim) filterNot (_ contains "org.scala-lang.plugins/continuations")
-      options collect {
-        case SettingFormat(key, value) if key == "Xplugin" && !values(value).isEmpty =>
-          key -> (values(value) mkString ",")
-        case SettingFormat(key, value) if key != "Xplugin" =>
-          key -> (if (!value.isEmpty) value else "true")
-      } match {
-        case Nil => Nil
-        case os => ("scala.compiler.useProjectSettings" -> "true") +: os
-      }
-      */
 
   def externalDependencies(
     ref: ProjectRef,
@@ -309,22 +296,25 @@ private object Eclipse {
           } yield moduleReport.module -> file
         moduleToFile.toMap
       }
-    def lib(files: Seq[Attributed[File]], binaries: Map[ModuleID, File], sources: Map[ModuleID, File]) = {
+    def libs(files: Seq[Attributed[File]], binaries: Map[ModuleID, File], sources: Map[ModuleID, File]) = {
       val binaryFilesToSourceFiles =
         for {
           (moduleId, binaryFile) <- binaries
           sourceFile <- sources get moduleId
         } yield binaryFile -> sourceFile
-      files.files map { file => Lib(file, binaryFilesToSourceFiles get file) }
+      val libs = files.files map { file => Lib(file)(binaryFilesToSourceFiles get file) }
+      libs
     }
-    val libs = evaluateTask(Keys.externalDependencyClasspath in configuration, ref)
+    val externalDependencyClasspath = evaluateTask(Keys.externalDependencyClasspath in configuration, ref)
     val binaryModuleToFile = moduleToFile(Keys.update)
     val sourceModuleToFile =
       if (withSource)
-        moduleToFile(Keys.updateClassifiers, (artifact, _) => artifact.classifier == Some("sources"))
+        moduleToFile(Keys.updateClassifiers, (artifact, _) => artifact.classifier === Some("sources"))
       else
         Map[ModuleID, File]().success
-    (libs |@| binaryModuleToFile |@| sourceModuleToFile)(lib)
+    val externalDependencies = (externalDependencyClasspath |@| binaryModuleToFile |@| sourceModuleToFile)(libs)
+    logger(state).debug("External dependencies for configuration '%s' and withSource '%s': %s".format(configuration, withSource, externalDependencies))
+    externalDependencies
   }
 
   def projectDependencies(
@@ -333,10 +323,12 @@ private object Eclipse {
       configuration: Configuration)(
         implicit state: State) = {
     val projectDependencies = project.dependencies collect {
-      case dependency if dependency.configuration map (_ == configuration) getOrElse true =>
+      case dependency if dependency.configuration map (_ == configuration) getOrElse true => // TODO Use === instead of ==!
         setting(Keys.name in dependency.project)
     }
-    projectDependencies.sequence
+    val projectDependenciesSeq = projectDependencies.sequence
+    logger(state).debug("Project dependencies for configuration '%s': %s".format(configuration, projectDependenciesSeq))
+    projectDependenciesSeq
   }
 
   // Getting and transforming optional settings and task results
@@ -403,4 +395,4 @@ private case class Content(
   classpath: Elem,
   scalacOptions: Seq[(String, String)])
 
-private case class Lib(binary: File, source: Option[File])
+private case class Lib(binary: File)(val source: Option[File])

@@ -25,6 +25,7 @@ import sbt.{
   Extracted,
   EvaluateConfig,
   EvaluateTask,
+  File,
   Inc,
   Incomplete,
   Project,
@@ -39,10 +40,14 @@ import sbt.{
 }
 import sbt.Load.BuildStructure
 import sbt.complete.Parser
-import scalaz.{ NonEmptyList, Validation }
+import scalaz.{ Equal, NonEmptyList, Validation }
 import scalaz.Scalaz._
 
 package object core {
+
+  implicit val fileEqual = new Equal[File] {
+    def equal(file1: File, file2: File): Boolean = file1 == file2
+  }
 
   def id[A](a: A): A = a
 
