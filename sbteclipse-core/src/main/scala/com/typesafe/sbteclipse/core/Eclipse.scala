@@ -30,6 +30,8 @@ import java.util.Properties
 import sbt.{
   Attributed,
   Artifact,
+  ClasspathDep,
+  Classpaths,
   Command,
   Configuration,
   Configurations,
@@ -318,17 +320,29 @@ private object Eclipse {
   }
 
   def projectDependencies(
-    ref: Reference,
+    ref: ProjectRef,
     project: ResolvedProject)(
       configuration: Configuration)(
         implicit state: State) = {
     val projectDependencies = project.dependencies collect {
-      case dependency if dependency.configuration map (_ == configuration) getOrElse true => // TODO Use === instead of ==!
+      case dependency if isInConfiguration(configuration, ref, dependency) =>
         setting(Keys.name in dependency.project)
     }
     val projectDependenciesSeq = projectDependencies.sequence
     logger(state).debug("Project dependencies for configuration '%s': %s".format(configuration, projectDependenciesSeq))
     projectDependenciesSeq
+  }
+
+  def isInConfiguration(configuration: Configuration, ref: ProjectRef, dependency: ClasspathDep[ProjectRef])(
+    implicit state: State) = {
+    val map =
+      Classpaths.mapped(
+        dependency.configuration,
+        Configurations.names(Classpaths.getConfigurations(ref, structure.data)),
+        Configurations.names(Classpaths.getConfigurations(dependency.project, structure.data)),
+        "compile", "*->compile"
+      )
+    !map(configuration.name).isEmpty
   }
 
   // Getting and transforming optional settings and task results
