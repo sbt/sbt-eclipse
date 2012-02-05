@@ -11,7 +11,7 @@ For the impatient
 
 ::
 
-  addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "2.0.0-M3")
+  addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "2.0.0-RC1")
 
 - In sbt use the command *eclipse* to create Eclipse project files:
 
