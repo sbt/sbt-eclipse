@@ -7,6 +7,8 @@ Plugin for `sbt`_ to create `Eclipse`_ project definitions. Please see the `Docu
 For the impatient
 -----------------
 
+- sbteclipse requires sbt 0.11.2!
+
 - Add sbteclipse to your plugin definition:
 
 ::
