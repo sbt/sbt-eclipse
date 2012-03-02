@@ -110,7 +110,7 @@ private object Eclipse {
         name(ref) |@|
         buildDirectory |@|
         baseDirectory(ref) |@|
-        mapConfigs(configs, srcDirectories(ref, createSrc(ref))) |@|
+        mapConfigs(configs, srcDirectories(ref, createSrc(ref), eclipseOutput(ref))) |@|
         scalacOptions(ref) |@|
         mapConfigs(configs, externalDependencies(ref, withSourceArg getOrElse withSource(ref))) |@|
         mapConfigs(configs, projectDependencies(ref, project))
@@ -201,7 +201,7 @@ private object Eclipse {
     projectDependencies: Seq[String],
     jreContainer: String)(
       implicit state: State) = {
-    val srcEntriesIoSeq = for ((dir, output) <- srcDirectories) yield srcEntry(baseDirectory, output)(dir)
+    val srcEntriesIoSeq = for ((dir, output) <- srcDirectories) yield srcEntry(baseDirectory, dir, output)
     for (srcEntries <- srcEntriesIoSeq.sequence) yield {
       val entries = srcEntries ++
         (externalDependencies map libEntry(buildDirectory, baseDirectory, relativizeLibs)) ++
@@ -212,10 +212,13 @@ private object Eclipse {
     }
   }
 
-  def srcEntry(baseDirectory: File, classDirectory: File)(srcDirectory: File)(implicit state: State) =
+  def srcEntry(baseDirectory: File, srcDirectory: File, classDirectory: File)(implicit state: State) =
     io {
       if (!srcDirectory.exists()) srcDirectory.mkdirs()
-      EclipseClasspathEntry.Src(relativize(baseDirectory, srcDirectory), output(baseDirectory, classDirectory))
+      EclipseClasspathEntry.Src(
+        relativize(baseDirectory, srcDirectory),
+        relativize(baseDirectory, classDirectory)
+      )
     }
 
   def libEntry(
@@ -262,11 +265,15 @@ private object Eclipse {
 
   def srcDirectories(
     ref: Reference,
-    createSrc: EclipseCreateSrc.ValueSet)(
+    createSrc: EclipseCreateSrc.ValueSet,
+    eclipseOutput: Option[String])(
       configuration: Configuration)(
         implicit state: State) = {
     import EclipseCreateSrc._
-    val classDirectory = setting(Keys.classDirectory in (ref, configuration))
+    val classDirectory = eclipseOutput match {
+      case Some(name) => baseDirectory(ref) map (new File(_, name))
+      case None => setting(Keys.classDirectory in (ref, configuration))
+    }
     def dirs(values: ValueSet, key: SettingKey[Seq[File]]) =
       if (values subsetOf createSrc)
         (setting(key in (ref, configuration)) <**> classDirectory)((sds, cd) => sds map (_ -> cd))
@@ -385,6 +392,9 @@ private object Eclipse {
   def createSrc(ref: Reference)(implicit state: State) =
     setting(EclipseKeys.createSrc in ref).fold(_ => EclipseCreateSrc.Default, id)
 
+  def eclipseOutput(ref: ProjectRef)(implicit state: State) =
+    setting(EclipseKeys.eclipseOutput in ref).fold(_ => None, id)
+
   def preTasks(ref: ProjectRef)(implicit state: State) =
     setting(EclipseKeys.preTasks in ref).fold(_ => Seq.empty, _.zipAll(Seq.empty, null, ref))
 
@@ -418,8 +428,6 @@ private object Eclipse {
   // Utilities
 
   def relativize(baseDirectory: File, file: File) = IO.relativize(baseDirectory, file).get
-
-  def output(baseDirectory: File, classDirectory: File) = relativize(baseDirectory, classDirectory)
 }
 
 private case class Content(

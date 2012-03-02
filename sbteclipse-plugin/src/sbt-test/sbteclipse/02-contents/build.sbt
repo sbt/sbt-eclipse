@@ -141,6 +141,10 @@ TaskKey[Unit]("verify-classpath-xml-subb") <<= baseDirectory map { dir =>
 TaskKey[Unit]("verify-classpath-xml-subc") <<= baseDirectory map { dir =>
   val classpath = XML.loadFile(dir / "sub" / "subc" / ".classpath")
   if ((classpath \ "classpathentry") != (classpath \ "classpathentry").distinct)
+    error("Expected .classpath of subc project not to contain duplicate entries: %s" format classpath)
+  // src entries
+  if (!(classpath.child contains <classpathentry kind="src" path="src/main/scala" output=".target" />))
+    error("""Expected .classpath of subc project to contain <classpathentry kind="src" path="src/main/scala" output=".target" /> """)
   // lib entries with absolute paths
   if (!(classpath.child contains <classpathentry kind="lib" path={ "%s/lib_managed/jars/biz.aQute/bndlib/bndlib-1.50.0.jar".format(dir.getCanonicalPath) } />))
     error("""Expected .classpath of subc project to contain <classpathentry kind="lib" path="%s/lib_managed/jars/biz.aQute/bndlib/bndlib-1.50.0.jar" />: %s""".format(dir.getCanonicalPath, classpath))

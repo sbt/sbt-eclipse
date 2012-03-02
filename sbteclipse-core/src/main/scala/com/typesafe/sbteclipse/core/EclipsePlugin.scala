@@ -85,6 +85,11 @@ trait EclipsePlugin {
         "The source kinds to be included."
       )
 
+    val eclipseOutput: SettingKey[Option[String]] =
+      SettingKey[Option[String]](
+        prefix("eclipse-output"),
+        "The optional output for Eclipse.")
+
     val preTasks: SettingKey[Seq[TaskKey[_]]] =
       SettingKey[Seq[TaskKey[_]]](
         prefix("pre-tasks"),

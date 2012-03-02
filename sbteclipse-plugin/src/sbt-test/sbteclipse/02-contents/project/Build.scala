@@ -73,7 +73,8 @@ object Build extends Build {
         "biz.aQute" % "bndlib" % "1.50.0"
       ),
       retrieveManaged := true,
-      EclipseKeys.relativizeLibs := false
+      EclipseKeys.relativizeLibs := false,
+      EclipseKeys.eclipseOutput := Some(".target")
     )
   )
 }
