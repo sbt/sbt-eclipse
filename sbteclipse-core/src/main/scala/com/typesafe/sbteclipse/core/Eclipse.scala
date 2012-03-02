@@ -50,7 +50,6 @@ import sbt.{
   UpdateReport,
   richFile
 }
-import sbt.CommandSupport.logger
 import sbt.complete.Parser
 import scala.collection.JavaConverters
 import scala.xml.{ Elem, NodeSeq, PrettyPrinter }
@@ -88,7 +87,7 @@ private object Eclipse {
   }
 
   def action(args: Map[String, Any])(implicit state: State) = {
-    logger(state).info("About to create Eclipse project files for your project(s).")
+    state.log.info("About to create Eclipse project files for your project(s).")
     import EclipseOpts._
     effects(
       (args get ExecutionEnvironment).asInstanceOf[Option[EclipseExecutionEnvironment.Value]],
@@ -127,16 +126,16 @@ private object Eclipse {
   }
 
   def onFailure(errors: NELS)(implicit state: State) = {
-    logger(state).error("Could not create Eclipse project files: %s" format (errors.list mkString ", "))
+    state.log.error("Could not create Eclipse project files: %s" format (errors.list mkString ", "))
     state.fail
   }
 
   def onSuccess(effects: IO[Seq[String]])(implicit state: State) = {
     val names = effects.unsafePerformIO
     if (names.isEmpty)
-      logger(state).warn("There was no project to create Eclipse project files for!")
+      state.log.warn("There was no project to create Eclipse project files for!")
     else
-      logger(state).info("Successfully created Eclipse project files for project(s): %s" format (names mkString ", "))
+      state.log.info("Successfully created Eclipse project files for project(s): %s" format (names mkString ", "))
     state
   }
 
@@ -333,7 +332,7 @@ private object Eclipse {
       else
         Map[ModuleID, File]().success
     val externalDependencies = (externalDependencyClasspath |@| binaryModuleToFile |@| sourceModuleToFile)(libs)
-    logger(state).debug("External dependencies for configuration '%s' and withSource '%s': %s".format(configuration, withSource, externalDependencies))
+    state.log.debug("External dependencies for configuration '%s' and withSource '%s': %s".format(configuration, withSource, externalDependencies))
     externalDependencies
   }
 
@@ -347,7 +346,7 @@ private object Eclipse {
         setting(Keys.name in dependency.project)
     }
     val projectDependenciesSeq = projectDependencies.sequence
-    logger(state).debug("Project dependencies for configuration '%s': %s".format(configuration, projectDependenciesSeq))
+    state.log.debug("Project dependencies for configuration '%s': %s".format(configuration, projectDependenciesSeq))
     projectDependenciesSeq
   }
 
