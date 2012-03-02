@@ -107,7 +107,7 @@ private object Eclipse {
       project <- Project.getProject(ref, structure) if project.aggregate.isEmpty || !skipParents
     } yield {
       val configs = configurations(ref)
-      (classpathEntryTransformerFactory(ref).createTransformer(ref, state) |@|
+      val applic = classpathEntryTransformerFactory(ref).createTransformer(ref, state) |@|
         name(ref) |@|
         buildDirectory |@|
         baseDirectory(ref) |@|
@@ -115,7 +115,13 @@ private object Eclipse {
         scalacOptions(ref) |@|
         mapConfigs(configs, externalDependencies(ref, withSourceArg getOrElse withSource(ref))) |@|
         mapConfigs(configs, projectDependencies(ref, project))
-      )(effect(jreContainer(executionEnvironmentArg orElse executionEnvironment(ref)), preTasks(ref)))
+      applic(
+        effect(
+          jreContainer(executionEnvironmentArg orElse executionEnvironment(ref)),
+          preTasks(ref),
+          relativizeLibs(ref)
+        )
+      )
     }
     effects.sequence[ValidationNELS, IO[String]] map (_.sequence)
   }
@@ -139,7 +145,8 @@ private object Eclipse {
 
   def effect(
     jreContainer: String,
-    preTasks: Seq[(TaskKey[_], ProjectRef)])(
+    preTasks: Seq[(TaskKey[_], ProjectRef)],
+    relativizeLibs: Boolean)(
       classpathEntryTransformer: Seq[EclipseClasspathEntry] => Seq[EclipseClasspathEntry],
       name: String,
       buildDirectory: File,
@@ -157,6 +164,7 @@ private object Eclipse {
         classpathEntryTransformer,
         buildDirectory,
         baseDirectory,
+        relativizeLibs,
         srcDirectories,
         externalDependencies,
         projectDependencies,
@@ -188,6 +196,7 @@ private object Eclipse {
     classpathEntryTransformer: Seq[EclipseClasspathEntry] => Seq[EclipseClasspathEntry],
     buildDirectory: File,
     baseDirectory: File,
+    relativizeLibs: Boolean,
     srcDirectories: Seq[(File, File)],
     externalDependencies: Seq[Lib],
     projectDependencies: Seq[String],
@@ -196,7 +205,7 @@ private object Eclipse {
     val srcEntriesIoSeq = for ((dir, output) <- srcDirectories) yield srcEntry(baseDirectory, output)(dir)
     for (srcEntries <- srcEntriesIoSeq.sequence) yield {
       val entries = srcEntries ++
-        (externalDependencies map libEntry(buildDirectory, baseDirectory)) ++
+        (externalDependencies map libEntry(buildDirectory, baseDirectory, relativizeLibs)) ++
         (projectDependencies map EclipseClasspathEntry.Project) ++
         (Seq(jreContainer) map EclipseClasspathEntry.Con) ++
         (Seq("bin") map EclipseClasspathEntry.Output)
@@ -210,15 +219,24 @@ private object Eclipse {
       EclipseClasspathEntry.Src(relativize(baseDirectory, srcDirectory), output(baseDirectory, classDirectory))
     }
 
-  def libEntry(buildDirectory: File, baseDirectory: File)(lib: Lib)(implicit state: State) = {
+  def libEntry(
+    buildDirectory: File,
+    baseDirectory: File,
+    relativizeLibs: Boolean)(
+      lib: Lib)(
+        implicit state: State) = {
     def path(file: File) = {
       val relativizedBase =
         if (buildDirectory === baseDirectory) Some(".") else IO.relativize(buildDirectory, baseDirectory)
       val relativizedFile = IO.relativize(buildDirectory, file)
       val relativized = (relativizedBase |@| relativizedFile)((base, file) =>
-        "%s/%s".format(base split FileSepPattern map (part => if (part != ".") ".." else part) mkString FileSep, file)
+        "%s%s%s".format(
+          base split FileSepPattern map (part => if (part != ".") ".." else part) mkString FileSep,
+          FileSep,
+          file
+        )
       )
-      relativized getOrElse file.getAbsolutePath
+      if (relativizeLibs) relativized getOrElse file.getAbsolutePath else file.getAbsolutePath
     }
     EclipseClasspathEntry.Lib(path(lib.binary), lib.source map path)
   }
@@ -370,6 +388,9 @@ private object Eclipse {
 
   def preTasks(ref: ProjectRef)(implicit state: State) =
     setting(EclipseKeys.preTasks in ref).fold(_ => Seq.empty, _.zipAll(Seq.empty, null, ref))
+
+  def relativizeLibs(ref: ProjectRef)(implicit state: State) =
+    setting(EclipseKeys.relativizeLibs in ref).fold(_ => true, id)
 
   // IO
 

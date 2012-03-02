@@ -138,6 +138,14 @@ TaskKey[Unit]("verify-classpath-xml-subb") <<= baseDirectory map { dir =>
     error("""Not expected .classpath of subb project to contain <classpathentry kind="..." path="...subc..." output="..." /> """)
 }
 
+TaskKey[Unit]("verify-classpath-xml-subc") <<= baseDirectory map { dir =>
+  val classpath = XML.loadFile(dir / "sub" / "subc" / ".classpath")
+  if ((classpath \ "classpathentry") != (classpath \ "classpathentry").distinct)
+  // lib entries with absolute paths
+  if (!(classpath.child contains <classpathentry kind="lib" path={ "%s/lib_managed/jars/biz.aQute/bndlib/bndlib-1.50.0.jar".format(dir.getCanonicalPath) } />))
+    error("""Expected .classpath of subc project to contain <classpathentry kind="lib" path="%s/lib_managed/jars/biz.aQute/bndlib/bndlib-1.50.0.jar" />: %s""".format(dir.getCanonicalPath, classpath))
+}
+
 TaskKey[Unit]("verify-settings") <<= baseDirectory map { dir =>
   val settings = {
     val p = new Properties 

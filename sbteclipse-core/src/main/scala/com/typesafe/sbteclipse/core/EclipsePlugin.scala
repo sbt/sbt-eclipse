@@ -91,6 +91,11 @@ trait EclipsePlugin {
         "The tasks to be evaluated prior to creating the Eclipse project definition."
       )
 
+    val relativizeLibs: SettingKey[Boolean] =
+      SettingKey[Boolean](
+        prefix("relativize-libs"),
+        "Relativize the paths to the libraries?")
+
     private def prefix(key: String) = "eclipse-" + key
   }
 

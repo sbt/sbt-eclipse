@@ -67,6 +67,13 @@ object Build extends Build {
 
   lazy val subc = Project(
     "subc",
-    new File("sub/subc")
+    new File("sub/subc"),
+    settings = Project.defaultSettings ++ Seq(
+      libraryDependencies ++= Seq(
+        "biz.aQute" % "bndlib" % "1.50.0"
+      ),
+      retrieveManaged := true,
+      EclipseKeys.relativizeLibs := false
+    )
   )
 }
