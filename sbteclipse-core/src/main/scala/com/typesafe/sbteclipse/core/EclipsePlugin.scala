@@ -141,7 +141,8 @@ trait EclipsePlugin {
     }
 
     case class Project(name: String) extends EclipseClasspathEntry {
-      override def toXml = <classpathentry kind="src" path={ "/" + name } exported="true" combineaccessrules="false"/>
+      override def toXml =
+        <classpathentry kind="src" path={ "/" + name } exported="true" combineaccessrules="false"/>
     }
 
     case class Con(path: String) extends EclipseClasspathEntry {
@@ -169,20 +170,26 @@ trait EclipsePlugin {
   }
 
   trait EclipseClasspathEntryTransformerFactory {
-    def createTransformer(ref: ProjectRef, state: State): ValidationNELS[Seq[EclipseClasspathEntry] => Seq[EclipseClasspathEntry]]
+    def createTransformer(
+      ref: ProjectRef,
+      state: State): Validation[Seq[EclipseClasspathEntry] => Seq[EclipseClasspathEntry]]
   }
 
   object EclipseClasspathEntryTransformerFactory {
 
     object Identity extends EclipseClasspathEntryTransformerFactory {
       import scalaz.Scalaz._
-      override def createTransformer(ref: ProjectRef, state: State): ValidationNELS[Seq[EclipseClasspathEntry] => Seq[EclipseClasspathEntry]] =
+      override def createTransformer(
+        ref: ProjectRef,
+        state: State): Validation[Seq[EclipseClasspathEntry] => Seq[EclipseClasspathEntry]] =
         ((entries: Seq[EclipseClasspathEntry]) => entries).success
     }
 
     object Default extends EclipseClasspathEntryTransformerFactory {
       import scalaz.Scalaz._
-      override def createTransformer(ref: ProjectRef, state: State): ValidationNELS[Seq[EclipseClasspathEntry] => Seq[EclipseClasspathEntry]] = {
+      override def createTransformer(
+        ref: ProjectRef,
+        state: State): Validation[Seq[EclipseClasspathEntry] => Seq[EclipseClasspathEntry]] = {
         val transformer =
           (entries: Seq[EclipseClasspathEntry]) => entries collect {
             case EclipseClasspathEntry.Lib(path, _) if path contains "scala-library.jar" =>
@@ -195,6 +202,5 @@ trait EclipsePlugin {
         transformer.success
       }
     }
-
   }
 }
