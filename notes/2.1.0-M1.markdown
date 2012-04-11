@@ -1,0 +1,9 @@
+This is the 2.0.0-M1 pre-release of [sbteclipse](https://github.com/typesafehub/sbteclipse/), an [sbt](https://github.com/harrah/xsbt/) plugin for creating [Eclipse](http://www.eclipse.org/) project definitions.
+
+These are the most important changes between sbteclipse 2.1.0 and 2.0.x:
+
+* [Issue #79](https://github.com/typesafehub/sbteclipse/issues/79): Add setting to always use absolute paths for library dependencies
+* [Issue #80](https://github.com/typesafehub/sbteclipse/issues/80): Add setting for different target directories
+* [Issue #52](https://github.com/typesafehub/sbteclipse/issues/52): Customization of generated files
+
+Please see the [Documentation](http://github.com/typesafehub/sbteclipse/wiki/) for information about installing and using sbteclipse.
