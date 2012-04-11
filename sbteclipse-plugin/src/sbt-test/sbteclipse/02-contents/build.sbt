@@ -140,6 +140,7 @@ TaskKey[Unit]("verify-classpath-xml-subb") <<= baseDirectory map { dir =>
 
 TaskKey[Unit]("verify-classpath-xml-subc") <<= baseDirectory map { dir =>
   val classpath = XML.loadFile(dir / "sub" / "subc" / ".classpath")
+  val project = XML.loadFile(dir / "sub" / "subc" / ".project")
   if ((classpath \ "classpathentry") != (classpath \ "classpathentry").distinct)
     error("Expected .classpath of subc project not to contain duplicate entries: %s" format classpath)
   // src entries
@@ -148,6 +149,13 @@ TaskKey[Unit]("verify-classpath-xml-subc") <<= baseDirectory map { dir =>
   // lib entries with absolute paths
   if (!(classpath.child contains <classpathentry kind="lib" path={ "%s/lib_managed/jars/biz.aQute/bndlib/bndlib-1.50.0.jar".format(dir.getCanonicalPath) } />))
     error("""Expected .classpath of subc project to contain <classpathentry kind="lib" path="%s/lib_managed/jars/biz.aQute/bndlib/bndlib-1.50.0.jar" />: %s""".format(dir.getCanonicalPath, classpath))
+  // classpath transformer
+  if (!(classpath.child contains <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/>))
+    error("""Expected .classpath of root project to contain <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/> """)
+  if (!(classpath.child contains <foo bar="baz"/>))
+    error("""Expected .classpath of subc project to contain <foo bar="baz"/>!""")
+  if (!(project.child contains <foo bar="baz"/>))
+    error("""Expected .project of subc project to contain <foo bar="baz"/>!""")
 }
 
 TaskKey[Unit]("verify-settings") <<= baseDirectory map { dir =>

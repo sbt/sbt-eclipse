@@ -20,7 +20,9 @@ package com.typesafe.sbteclipse.core
 
 import EclipsePlugin.{
   EclipseClasspathEntry,
+  EclipseTransformerFactory,
   EclipseClasspathEntryTransformerFactory,
+  EclipseRewriteRuleTransformerFactory,
   EclipseCreateSrc,
   EclipseExecutionEnvironment,
   EclipseKeys
@@ -51,7 +53,8 @@ import sbt.{
   richFile
 }
 import sbt.complete.Parser
-import scala.xml.{ Elem, PrettyPrinter }
+import scala.xml.{ Node, PrettyPrinter }
+import scala.xml.transform.{ RewriteRule, RuleTransformer }
 import scalaz.{ Failure, NonEmptyList, Success }
 import scalaz.Scalaz._
 import scalaz.effects._
@@ -107,6 +110,8 @@ private object Eclipse {
     } yield {
       val configs = configurations(ref, state)
       val applic = classpathEntryTransformerFactory(ref, state).createTransformer(ref, state) |@|
+        (classpathTransformerFactories(ref, state) map (_.createTransformer(ref, state))).sequence[Validation, RewriteRule] |@|
+        (projectTransformerFactories(ref, state) map (_.createTransformer(ref, state))).sequence[Validation, RewriteRule] |@|
         name(ref, state) |@|
         buildDirectory(state) |@|
         baseDirectory(ref, state) |@|
@@ -151,6 +156,8 @@ private object Eclipse {
     relativizeLibs: Boolean,
     state: State)(
       classpathEntryTransformer: Seq[EclipseClasspathEntry] => Seq[EclipseClasspathEntry],
+      classpathTransformers: Seq[RewriteRule],
+      projectTransformers: Seq[RewriteRule],
       name: String,
       buildDirectory: File,
       baseDirectory: File,
@@ -161,7 +168,7 @@ private object Eclipse {
     for {
       _ <- executePreTasks(preTasks, state)
       n <- io(name)
-      _ <- saveXml(baseDirectory / ".project", projectXml(name))
+      _ <- saveXml(baseDirectory / ".project", new RuleTransformer(projectTransformers: _*)(projectXml(name)))
       cp <- classpath(
         classpathEntryTransformer,
         buildDirectory,
@@ -173,7 +180,7 @@ private object Eclipse {
         jreContainer,
         state
       )
-      _ <- saveXml(baseDirectory / ".classpath", cp)
+      _ <- saveXml(baseDirectory / ".classpath", new RuleTransformer(classpathTransformers: _*)(cp))
       _ <- saveProperties(baseDirectory / ".settings" / "org.scala-ide.sdt.core.prefs", scalacOptions)
     } yield n
   }
@@ -181,7 +188,7 @@ private object Eclipse {
   def executePreTasks(preTasks: Seq[(TaskKey[_], ProjectRef)], state: State): IO[Unit] =
     io(for ((preTask, ref) <- preTasks) evaluateTask(preTask, ref, state))
 
-  def projectXml(name: String): Elem =
+  def projectXml(name: String): Node =
     <projectDescription>
       <name>{ name }</name>
       <buildSpec>
@@ -204,7 +211,7 @@ private object Eclipse {
     externalDependencies: Seq[Lib],
     projectDependencies: Seq[String],
     jreContainer: String,
-    state: State): IO[Elem] = {
+    state: State): IO[Node] = {
     val srcEntriesIoSeq =
       for ((dir, output) <- srcDirectories) yield srcEntry(baseDirectory, dir, output, state)
     for (srcEntries <- srcEntriesIoSeq.sequence) yield {
@@ -398,9 +405,22 @@ private object Eclipse {
   def withSource(ref: Reference, state: State): Boolean =
     setting(EclipseKeys.withSource in ref, state).fold(_ => false, id)
 
-  def classpathEntryTransformerFactory(ref: Reference, state: State): EclipseClasspathEntryTransformerFactory =
-    setting(EclipseKeys.classpathEntryTransformerFactory in ref, state).fold(_ =>
-      EclipseClasspathEntryTransformerFactory.Default, id
+  def classpathEntryTransformerFactory(ref: Reference, state: State): EclipseTransformerFactory[Seq[EclipseClasspathEntry] => Seq[EclipseClasspathEntry]] =
+    setting(EclipseKeys.classpathEntryTransformerFactory in ref, state).fold(
+      _ => EclipseClasspathEntryTransformerFactory.Identity,
+      id
+    )
+
+  def classpathTransformerFactories(ref: Reference, state: State): Seq[EclipseTransformerFactory[RewriteRule]] =
+    setting(EclipseKeys.classpathTransformerFactories in ref, state).fold(
+      _ => Seq(EclipseRewriteRuleTransformerFactory.ClasspathDefault),
+      EclipseRewriteRuleTransformerFactory.ClasspathDefault +: _
+    )
+
+  def projectTransformerFactories(ref: Reference, state: State): Seq[EclipseTransformerFactory[RewriteRule]] =
+    setting(EclipseKeys.projectTransformerFactories in ref, state).fold(
+      _ => Seq(EclipseRewriteRuleTransformerFactory.Identity),
+      id
     )
 
   def configurations(ref: Reference, state: State): Seq[Configuration] =
@@ -423,7 +443,7 @@ private object Eclipse {
 
   // IO
 
-  def saveXml(file: File, xml: Elem): IO[Unit] =
+  def saveXml(file: File, xml: Node): IO[Unit] =
     fileWriter(file).bracket(closeWriter)(writer => io(writer.write(new PrettyPrinter(999, 2) format xml)))
 
   def saveProperties(file: File, settings: Seq[(String, String)]): IO[Unit] =
@@ -457,8 +477,8 @@ private object Eclipse {
 private case class Content(
   name: String,
   dir: File,
-  project: Elem,
-  classpath: Elem,
+  project: Node,
+  classpath: Node,
   scalacOptions: Seq[(String, String)])
 
 private case class Lib(binary: File)(val source: Option[File])

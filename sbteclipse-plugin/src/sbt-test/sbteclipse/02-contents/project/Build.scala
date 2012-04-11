@@ -1,6 +1,6 @@
 import sbt._
 import sbt.Keys._
-import com.typesafe.sbteclipse.plugin.EclipsePlugin.{ EclipseCreateSrc, EclipseKeys, EclipseExecutionEnvironment }
+import com.typesafe.sbteclipse.plugin.EclipsePlugin._
 
 object Build extends Build {
 
@@ -65,16 +65,50 @@ object Build extends Build {
     dependencies = Seq(suba, suba % "test->compile", subc % "test->test")
   )
 
-  lazy val subc = Project(
-    "subc",
-    new File("sub/subc"),
-    settings = Project.defaultSettings ++ Seq(
-      libraryDependencies ++= Seq(
-        "biz.aQute" % "bndlib" % "1.50.0"
-      ),
-      retrieveManaged := true,
-      EclipseKeys.relativizeLibs := false,
-      EclipseKeys.eclipseOutput := Some(".target")
+  lazy val subc = {
+	import com.typesafe.sbteclipse.core.Validation
+	import scala.xml._
+	import scala.xml.transform.RewriteRule
+	import scalaz.Scalaz._
+    Project(
+      "subc",
+      new File("sub/subc"),
+      settings = Project.defaultSettings ++ Seq(
+        libraryDependencies ++= Seq(
+          "biz.aQute" % "bndlib" % "1.50.0"
+        ),
+        retrieveManaged := true,
+        EclipseKeys.relativizeLibs := false,
+        EclipseKeys.eclipseOutput := Some(".target"),
+        EclipseKeys.classpathTransformerFactories := Seq(new EclipseTransformerFactory[RewriteRule] {
+          override def createTransformer(ref: ProjectRef, state: State): Validation[RewriteRule] = {
+            val rule = new RewriteRule {
+              override def transform(node: Node): Seq[Node] = node match {
+                case elem if (elem.label == "classpath") =>
+                  val newChild = elem.child ++ Elem(elem.prefix, "foo", Attribute("bar", Text("baz"), Null), elem.scope)
+                  Elem(elem.prefix, "classpath", elem.attributes, elem.scope, newChild: _*)
+                case other =>
+                  other
+              }
+            }
+            rule.success
+          }
+        }),
+        EclipseKeys.projectTransformerFactories := Seq(new EclipseTransformerFactory[RewriteRule] {
+          override def createTransformer(ref: ProjectRef, state: State): Validation[RewriteRule] = {
+            val rule = new RewriteRule {
+              override def transform(node: Node): Seq[Node] = node match {
+                case elem if (elem.label == "projectDescription") =>
+                  val newChild = elem.child ++ Elem(elem.prefix, "foo", Attribute("bar", Text("baz"), Null), elem.scope)
+                  Elem(elem.prefix, "projectDescription", elem.attributes, elem.scope, newChild: _*)
+                case other =>
+                  other
+              }
+            }
+            rule.success
+          }
+        })
+      )
     )
-  )
+  }
 }

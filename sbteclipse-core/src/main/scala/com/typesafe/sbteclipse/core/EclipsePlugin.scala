@@ -32,7 +32,8 @@ import sbt.{
 }
 import sbt.Keys.{ baseDirectory, commands }
 import scala.util.control.Exception
-import scala.xml.{ Attribute, Elem, Null, Text }
+import scala.xml.{ Attribute, Elem, MetaData, Node, Null, Text }
+import scala.xml.transform.RewriteRule
 
 object EclipsePlugin extends EclipsePlugin
 
@@ -49,57 +50,66 @@ trait EclipsePlugin {
   object EclipseKeys {
     import EclipseOpts._
 
-    val executionEnvironment: SettingKey[Option[EclipseExecutionEnvironment.Value]] =
-      SettingKey[Option[EclipseExecutionEnvironment.Value]](
-        prefix(ExecutionEnvironment),
-        "The optional Eclipse execution environment.")
+    val executionEnvironment: SettingKey[Option[EclipseExecutionEnvironment.Value]] = SettingKey(
+      prefix(ExecutionEnvironment),
+      "The optional Eclipse execution environment."
+    )
 
-    val skipParents: SettingKey[Boolean] =
-      SettingKey[Boolean](
-        prefix(SkipParents),
-        "Skip creating Eclipse files for parent project?")
+    val skipParents: SettingKey[Boolean] = SettingKey(
+      prefix(SkipParents),
+      "Skip creating Eclipse files for parent project?"
+    )
 
-    val withSource: SettingKey[Boolean] =
-      SettingKey[Boolean](
-        prefix(WithSource),
-        "Download and link sources for library dependencies?")
+    val withSource: SettingKey[Boolean] = SettingKey(
+      prefix(WithSource),
+      "Download and link sources for library dependencies?"
+    )
 
-    val classpathEntryTransformerFactory: SettingKey[EclipseClasspathEntryTransformerFactory] =
-      SettingKey[EclipseClasspathEntryTransformerFactory](
-        prefix("classpathEntryTransformerFactory"),
-        "Creates a transformer for classpath entries.")
+    @deprecated("Use classpathTransformerFactories instead!", "2.1.0")
+    val classpathEntryTransformerFactory: SettingKey[EclipseTransformerFactory[Seq[EclipseClasspathEntry] => Seq[EclipseClasspathEntry]]] = SettingKey(
+      prefix("classpathEntryTransformerFactory"),
+      "Creates a transformer for classpath entries."
+    )
 
-    val commandName: SettingKey[String] =
-      SettingKey[String](
-        prefix("command-name"),
-        "The name of the command.")
+    val classpathTransformerFactories: SettingKey[Seq[EclipseTransformerFactory[RewriteRule]]] = SettingKey(
+      prefix("classpathTransformerFactory"),
+      "Factories for a rewrite rule for the .classpath file."
+    )
 
-    val configurations: SettingKey[Set[Configuration]] =
-      SettingKey[Set[Configuration]](
-        prefix("configurations"),
-        "The configurations to take into account.")
+    val projectTransformerFactories: SettingKey[Seq[EclipseTransformerFactory[RewriteRule]]] = SettingKey(
+      prefix("projectTransformerFactory"),
+      "Factories for a rewrite rule for the .project file."
+    )
 
-    val createSrc: SettingKey[EclipseCreateSrc.ValueSet] =
-      SettingKey[EclipseCreateSrc.ValueSet](
-        prefix("create-src"),
-        "The source kinds to be included."
-      )
+    val commandName: SettingKey[String] = SettingKey(
+      prefix("command-name"),
+      "The name of the command."
+    )
 
-    val eclipseOutput: SettingKey[Option[String]] =
-      SettingKey[Option[String]](
-        prefix("eclipse-output"),
-        "The optional output for Eclipse.")
+    val configurations: SettingKey[Set[Configuration]] = SettingKey(
+      prefix("configurations"),
+      "The configurations to take into account."
+    )
 
-    val preTasks: SettingKey[Seq[TaskKey[_]]] =
-      SettingKey[Seq[TaskKey[_]]](
-        prefix("pre-tasks"),
-        "The tasks to be evaluated prior to creating the Eclipse project definition."
-      )
+    val createSrc: SettingKey[EclipseCreateSrc.ValueSet] = SettingKey(
+      prefix("create-src"),
+      "The source kinds to be included."
+    )
 
-    val relativizeLibs: SettingKey[Boolean] =
-      SettingKey[Boolean](
-        prefix("relativize-libs"),
-        "Relativize the paths to the libraries?")
+    val eclipseOutput: SettingKey[Option[String]] = SettingKey(
+      prefix("eclipse-output"),
+      "The optional output for Eclipse."
+    )
+
+    val preTasks: SettingKey[Seq[TaskKey[_]]] = SettingKey(
+      prefix("pre-tasks"),
+      "The tasks to be evaluated prior to creating the Eclipse project definition."
+    )
+
+    val relativizeLibs: SettingKey[Boolean] = SettingKey(
+      prefix("relativize-libs"),
+      "Relativize the paths to the libraries?"
+    )
 
     private def prefix(key: String) = "eclipse-" + key
   }
@@ -124,7 +134,7 @@ trait EclipsePlugin {
   }
 
   sealed trait EclipseClasspathEntry {
-    def toXml: Elem
+    def toXml: Node
   }
 
   object EclipseClasspathEntry {
@@ -169,38 +179,68 @@ trait EclipsePlugin {
     val All = ValueSet(Unmanaged, Managed, Source, Resource)
   }
 
-  trait EclipseClasspathEntryTransformerFactory {
-    def createTransformer(
-      ref: ProjectRef,
-      state: State): Validation[Seq[EclipseClasspathEntry] => Seq[EclipseClasspathEntry]]
+  trait EclipseTransformerFactory[A] {
+    def createTransformer(ref: ProjectRef, state: State): Validation[A]
   }
 
   object EclipseClasspathEntryTransformerFactory {
 
-    object Identity extends EclipseClasspathEntryTransformerFactory {
-      import scalaz.Scalaz._
-      override def createTransformer(
-        ref: ProjectRef,
-        state: State): Validation[Seq[EclipseClasspathEntry] => Seq[EclipseClasspathEntry]] =
-        ((entries: Seq[EclipseClasspathEntry]) => entries).success
-    }
-
-    object Default extends EclipseClasspathEntryTransformerFactory {
+    object Identity extends EclipseTransformerFactory[Seq[EclipseClasspathEntry] => Seq[EclipseClasspathEntry]] {
       import scalaz.Scalaz._
       override def createTransformer(
         ref: ProjectRef,
         state: State): Validation[Seq[EclipseClasspathEntry] => Seq[EclipseClasspathEntry]] = {
-        val transformer =
-          (entries: Seq[EclipseClasspathEntry]) => entries collect {
-            case EclipseClasspathEntry.Lib(path, _) if path contains "scala-library.jar" =>
-              EclipseClasspathEntry.Con("org.scala-ide.sdt.launching.SCALA_CONTAINER")
-            case EclipseClasspathEntry.Lib(path, _) if path contains "scala-compiler.jar" =>
-              EclipseClasspathEntry.Con("org.scala-ide.sdt.launching.SCALA_COMPILER_CONTAINER")
-            case entry =>
-              entry
-          }
+        val transformer = (entries: Seq[EclipseClasspathEntry]) => entries
         transformer.success
       }
+    }
+  }
+
+  object EclipseRewriteRuleTransformerFactory {
+
+    object IdentityRewriteRule extends RewriteRule {
+      override def transform(node: Node): Node = node
+    }
+
+    object ClasspathDefaultRule extends RewriteRule {
+
+      private val CpEntry = "classpathentry"
+
+      private val ScalaContainer = "org.scala-ide.sdt.launching.SCALA_CONTAINER"
+
+      private val ScalaCompilerContainer = "org.scala-ide.sdt.launching.SCALA_COMPILER_CONTAINER"
+
+      override def transform(node: Node): Seq[Node] = node match {
+        case Elem(pf, CpEntry, attrs, scope, child @ _*) if isScalaLibrary(attrs) =>
+          Elem(pf, CpEntry, container(ScalaContainer), scope, child: _*)
+        case Elem(pf, CpEntry, attrs, scope, child @ _*) if isScalaCompiler(attrs) =>
+          Elem(pf, CpEntry, container(ScalaCompilerContainer), scope, child: _*)
+        case other =>
+          other
+      }
+
+      private def container(name: String) =
+        Attribute("kind", Text("con"), Attribute("path", Text(name), Null))
+
+      private def isScalaLibrary(metaData: MetaData) =
+        metaData("kind") == Text("lib") &&
+          (Option(metaData("path").text) map (_ contains "scala-library.jar") getOrElse false)
+
+      private def isScalaCompiler(metaData: MetaData) =
+        metaData("kind") == Text("lib") &&
+          (Option(metaData("path").text) map (_ contains "scala-compiler.jar") getOrElse false)
+    }
+
+    object Identity extends EclipseTransformerFactory[RewriteRule] {
+      import scalaz.Scalaz._
+      override def createTransformer(ref: ProjectRef, state: State): Validation[RewriteRule] =
+        IdentityRewriteRule.success
+    }
+
+    object ClasspathDefault extends EclipseTransformerFactory[RewriteRule] {
+      import scalaz.Scalaz._
+      override def createTransformer(ref: ProjectRef, state: State): Validation[RewriteRule] =
+        ClasspathDefaultRule.success
     }
   }
 }
