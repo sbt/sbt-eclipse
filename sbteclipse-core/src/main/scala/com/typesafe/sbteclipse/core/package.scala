@@ -45,6 +45,10 @@ import scalaz.Scalaz._
 
 package object core {
 
+  val NewLine = System.getProperty("line.separator")
+
+  val FileSep = System.getProperty("file.separator")
+
   implicit val fileEqual = new Equal[File] {
     def equal(file1: File, file2: File): Boolean = file1 == file2
   }

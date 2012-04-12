@@ -63,8 +63,6 @@ private object Eclipse {
 
   val SettingFormat = """-([^:]*):?(.*)""".r
 
-  val FileSep = System.getProperty("file.separator")
-
   val FileSepPattern = FileSep.replaceAll("""\\""", """\\\\""")
 
   val JreContainer = "org.eclipse.jdt.launching.JRE_CONTAINER"
@@ -132,7 +130,9 @@ private object Eclipse {
   }
 
   def onFailure(state: State)(errors: NonEmptyList[String]): State = {
-    state.log.error("Could not create Eclipse project files: %s" format (errors.list mkString ", "))
+    state.log.error(
+      "Could not create Eclipse project files:%s%s".format(NewLine, errors.list mkString NewLine)
+    )
     state.fail
   }
 
@@ -141,7 +141,12 @@ private object Eclipse {
     if (names.isEmpty)
       state.log.warn("There was no project to create Eclipse project files for!")
     else
-      state.log.info("Successfully created Eclipse project files for project(s): %s" format (names mkString ", "))
+      state.log.info(
+        "Successfully created Eclipse project files for project(s):%s%s".format(
+          NewLine,
+          names mkString NewLine
+        )
+      )
     state
   }
 
