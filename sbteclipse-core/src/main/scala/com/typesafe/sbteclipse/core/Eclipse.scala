@@ -313,19 +313,16 @@ private object Eclipse {
 
   def scalacOptions(ref: ProjectRef, state: State): Validation[Seq[(String, String)]] =
     evaluateTask(Keys.scalacOptions, ref, state) map (options =>
-      if (options.isEmpty) Nil
+      if (options.isEmpty)
+        Nil
       else {
-        def pluginValues(value: String) =
-          value split "," map (_.trim) filterNot (_ contains "org.scala-lang.plugins/continuations")
         options.zipAll(options.tail, "-", "-") collect {
-          case (SettingFormat("Xplugin", value), _) if !pluginValues(value).isEmpty =>
-            "Xplugin" -> (pluginValues(value) mkString ",")
           case (SettingFormat(key, value), next) if next startsWith "-" =>
             key -> (if (!value.isEmpty) value else "true")
           case (SettingFormat(key, _), next) =>
             key -> next
         } match {
-          case Nil => Nil
+          case Seq() => Seq()
           case options => ("scala.compiler.useProjectSettings" -> "true") +: options
         }
       }

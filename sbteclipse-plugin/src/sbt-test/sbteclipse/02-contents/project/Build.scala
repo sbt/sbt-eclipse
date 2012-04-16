@@ -59,7 +59,7 @@ object Build extends Build {
         "junit" % "junit" % "4.7" % "it"
       ),
       retrieveManaged := true,
-      scalacOptions := Seq("-unchecked", "-deprecation", "-Xelide-below", "0", "-Xplugin:foo,org.scala-lang.plugins/continuations"),
+      scalacOptions := Seq("-unchecked", "-deprecation", "-Xelide-below", "0"),
       EclipseKeys.configurations := Set(Configurations.Compile, Configurations.IntegrationTest)
     ),
     dependencies = Seq(suba, suba % "test->compile", subc % "test->test")
