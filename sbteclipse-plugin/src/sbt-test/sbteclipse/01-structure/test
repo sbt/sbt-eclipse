@@ -19,6 +19,10 @@ $ exists sub/subb/.classpath
 $ exists sub/subb/.project
 $ exists sub/subb/.settings/org.scala-ide.sdt.core.prefs
 $ exists sub/subb/touch-pre-task
+$ absent sub/subc/.classpath
+$ absent sub/subc/.project
+$ absent sub/subc/.settings
+$ absent sub/subc/touch-pre-task
 
 # skip-parents=false
 $ exec find . -path "*.classpath*" -delete
@@ -40,3 +44,7 @@ $ exists sub/subb/.classpath
 $ exists sub/subb/.project
 $ exists sub/subb/.settings/org.scala-ide.sdt.core.prefs
 $ exists sub/subb/touch-pre-task
+$ absent sub/subc/.classpath
+$ absent sub/subc/.project
+$ absent sub/subc/.settings
+$ absent sub/subc/touch-pre-task

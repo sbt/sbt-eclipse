@@ -104,7 +104,7 @@ private object Eclipse {
     state: State): Validation[IO[Seq[String]]] = {
     val effects = for {
       ref <- structure(state).allProjectRefs
-      project <- Project.getProject(ref, structure(state)) if project.aggregate.isEmpty || !skipParents
+      project <- Project.getProject(ref, structure(state)) if !skip(ref, project, skipParents, state)
     } yield {
       val configs = configurations(ref, state)
       val applic = classpathEntryTransformerFactory(ref, state).createTransformer(ref, state) |@|
@@ -149,6 +149,9 @@ private object Eclipse {
       )
     state
   }
+
+  def skip(ref: ProjectRef, project: ResolvedProject, skipParents: Boolean, state: State): Boolean =
+    skip(ref, state) || (skipParents && !project.aggregate.isEmpty)
 
   def mapConfigurations[A](
     configurations: Seq[Configuration],
@@ -445,6 +448,9 @@ private object Eclipse {
 
   def relativizeLibs(ref: ProjectRef, state: State): Boolean =
     setting(EclipseKeys.relativizeLibs in ref, state).fold(_ => true, id)
+
+  def skip(ref: ProjectRef, state: State): Boolean =
+    setting(EclipseKeys.skipProject in ref, state).fold(_ => false, id)
 
   // IO
 

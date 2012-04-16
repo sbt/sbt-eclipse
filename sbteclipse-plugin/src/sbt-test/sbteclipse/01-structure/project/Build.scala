@@ -40,4 +40,12 @@ object Build extends Build {
     ),
     dependencies = Seq(suba, suba % "test->test")
   )  
+
+  lazy val subc = Project(
+    "subc",
+    new File("sub/subc"),
+    settings = Project.defaultSettings ++ Seq(
+      EclipseKeys.skipProject := true
+    )
+  )
 }

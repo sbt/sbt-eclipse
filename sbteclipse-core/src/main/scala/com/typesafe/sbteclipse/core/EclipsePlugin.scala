@@ -111,6 +111,11 @@ trait EclipsePlugin {
       "Relativize the paths to the libraries?"
     )
 
+    val skipProject: SettingKey[Boolean] = SettingKey(
+      prefix("skipProject"),
+      "Skip creating Eclipse files for a given project?"
+    )
+
     private def prefix(key: String) = "eclipse-" + key
   }
 
