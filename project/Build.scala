@@ -40,7 +40,6 @@ object Build extends Build {
     "sbteclipse-core",
     file("sbteclipse-core"),
     settings = commonSettings ++ Seq(
-      sbtPlugin := true,
       libraryDependencies ++= Seq("org.scalaz" %% "scalaz-core" % "6.0.3")
     )
   )
@@ -49,9 +48,7 @@ object Build extends Build {
     "sbteclipse-plugin",
     file("sbteclipse-plugin"),
     dependencies = Seq(sbteclipseCore),
-    settings = commonSettings ++ Seq(
-      sbtPlugin := true
-    )
+    settings = commonSettings
   )
 
   def commonSettings = Defaults.defaultSettings ++
@@ -62,7 +59,10 @@ object Build extends Build {
       publishTo <<= (version)(version =>
         Some(if (version endsWith "SNAPSHOT") Classpaths.typesafeSnapshots else Classpaths.typesafeResolver)
       ),
-      publishMavenStyle := false
+      sbtPlugin := true,
+      publishMavenStyle := false,
+      publishArtifact in (Compile, packageDoc) := false,
+      publishArtifact in (Compile, packageSrc) := false
     ) ++
     posterousSettings ++ Seq(
       (email in Posterous) <<= PropertiesKeys.properties(_ get "posterous.email"),
