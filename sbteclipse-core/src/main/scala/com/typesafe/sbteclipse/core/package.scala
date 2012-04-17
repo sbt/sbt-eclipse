@@ -67,7 +67,7 @@ package object core {
     }
 
   def evaluateTask[A](key: TaskKey[A], ref: ProjectRef, state: State): Validation[A] =
-    EvaluateTask(structure(state), key, state, ref, EvaluateConfig(false)) match {
+    EvaluateTask(structure(state), key, state, ref, EvaluateTask defaultConfig state) match {
       case Some((_, Value(a))) => a.success
       case Some((_, Inc(inc))) => "Error evaluating task '%s': %s".format(key.key, Incomplete.show(inc.tpe)).failNel
       case None => "Undefined task '%s' for '%s'!".format(key.key, ref.project).failNel

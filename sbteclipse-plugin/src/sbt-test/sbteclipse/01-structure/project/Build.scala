@@ -21,7 +21,7 @@ object Build extends Build {
     new File("sub/suba"),
     settings = Project.defaultSettings ++ Seq(
       libraryDependencies ++= Seq(
-        "com.weiglewilczek.slf4s" %% "slf4s" % "1.0.7"
+        "ch.qos.logback" % "logback-classic" % "1.0.1"
       )
     )
   )
@@ -31,7 +31,7 @@ object Build extends Build {
     new File("sub/subb"),
     settings = Project.defaultSettings ++ Seq(
       libraryDependencies ++= Seq(
-        "com.weiglewilczek.slf4s" %% "slf4s" % "1.0.7" % "test",
+        "ch.qos.logback" % "logback-classic" % "1.0.1" % "test",
         "biz.aQute" % "bndlib" % "1.50.0"
       ),
       scalacOptions := Seq("-unchecked", "-deprecation"),

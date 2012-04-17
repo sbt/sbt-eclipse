@@ -1,3 +1,4 @@
-object SubB extends com.weiglewilczek.slf4s.Logging {
+object SubB {
+  val logger = org.slf4j.LoggerFactory.getLogger("suba")
   def subB = SubA.subA + " and subB" 
 }
