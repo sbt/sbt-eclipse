@@ -195,7 +195,7 @@ trait EclipsePlugin {
 
     val Scala = Value
 
-    val Default = ValueSet(Java)
+    val Default = ValueSet(Scala, Java)
   }
 
   trait EclipseTransformerFactory[A] {
