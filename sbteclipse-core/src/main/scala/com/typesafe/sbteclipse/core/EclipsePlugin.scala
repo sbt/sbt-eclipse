@@ -96,6 +96,11 @@ trait EclipsePlugin {
       "The source kinds to be included."
     )
 
+    val projectNature: SettingKey[EclipseProjectNature.ValueSet] = SettingKey(
+      prefix("project-nature"),
+      "The kind of project to build."
+    )
+
     val eclipseOutput: SettingKey[Option[String]] = SettingKey(
       prefix("eclipse-output"),
       "The optional output for Eclipse."
@@ -182,6 +187,15 @@ trait EclipsePlugin {
     val Default = ValueSet(Unmanaged, Source)
 
     val All = ValueSet(Unmanaged, Managed, Source, Resource)
+  }
+
+  object EclipseProjectNature extends Enumeration {
+
+    val Java = Value
+
+    val Scala = Value
+
+    val Default = ValueSet(Java)
   }
 
   trait EclipseTransformerFactory[A] {

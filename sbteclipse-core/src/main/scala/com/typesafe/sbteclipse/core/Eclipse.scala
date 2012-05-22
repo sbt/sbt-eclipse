@@ -24,6 +24,7 @@ import EclipsePlugin.{
   EclipseClasspathEntryTransformerFactory,
   EclipseRewriteRuleTransformerFactory,
   EclipseCreateSrc,
+  EclipseProjectNature,
   EclipseExecutionEnvironment,
   EclipseKeys
 }
@@ -114,6 +115,7 @@ private object Eclipse {
         buildDirectory(state) |@|
         baseDirectory(ref, state) |@|
         mapConfigurations(configs, srcDirectories(ref, createSrc(ref, state), eclipseOutput(ref, state), state)) |@|
+        projectNature(ref, state) |@|
         scalacOptions(ref, state) |@|
         mapConfigurations(configs, externalDependencies(ref, withSourceArg getOrElse withSource(ref, state), state)) |@|
         mapConfigurations(configs, projectDependencies(ref, project, state))
@@ -170,13 +172,14 @@ private object Eclipse {
       buildDirectory: File,
       baseDirectory: File,
       srcDirectories: Seq[(File, File)],
+      projectNature: (String, List[String]),
       scalacOptions: Seq[(String, String)],
       externalDependencies: Seq[Lib],
       projectDependencies: Seq[String]): IO[String] = {
     for {
       _ <- executePreTasks(preTasks, state)
       n <- io(name)
-      _ <- saveXml(baseDirectory / ".project", new RuleTransformer(projectTransformers: _*)(projectXml(name)))
+      _ <- saveXml(baseDirectory / ".project", new RuleTransformer(projectTransformers: _*)(projectXml(name, projectNature)))
       cp <- classpath(
         classpathEntryTransformer,
         buildDirectory,
@@ -196,17 +199,16 @@ private object Eclipse {
   def executePreTasks(preTasks: Seq[(TaskKey[_], ProjectRef)], state: State): IO[Unit] =
     io(for ((preTask, ref) <- preTasks) evaluateTask(preTask, ref, state))
 
-  def projectXml(name: String): Node =
+  def projectXml(name: String, projectNature: (String, List[String])): Node =
     <projectDescription>
       <name>{ name }</name>
       <buildSpec>
         <buildCommand>
-          <name>org.scala-ide.sdt.core.scalabuilder</name>
+          <name>{ projectNature._1 }</name>
         </buildCommand>
       </buildSpec>
       <natures>
-        <nature>org.scala-ide.sdt.core.scalanature</nature>
-        <nature>org.eclipse.jdt.core.javanature</nature>
+        { projectNature._2.map(n => <nature>{ n }</nature>).toSeq }
       </natures>
     </projectDescription>
 
@@ -436,6 +438,13 @@ private object Eclipse {
 
   def createSrc(ref: Reference, state: State): EclipseCreateSrc.ValueSet =
     setting(EclipseKeys.createSrc in ref, state).fold(_ => EclipseCreateSrc.Default, id)
+
+  def projectNature(ref: Reference, state: State): Validation[(String, List[String])] = {
+    import EclipseProjectNature._
+    val pns: ValueSet = setting(EclipseKeys.projectNature in ref, state).fold(_ => Default, id)
+    if (ValueSet(Scala) subsetOf pns) success("org.scala-ide.sdt.core.scalabuilder", "org.scala-ide.sdt.core.scalanature" :: "org.eclipse.jdt.core.javanature" :: Nil)
+    else success("org.eclipse.jdt.core.javabuilder", "org.eclipse.jdt.core.javanature" :: Nil)
+  }
 
   def eclipseOutput(ref: ProjectRef, state: State): Option[String] =
     setting(EclipseKeys.eclipseOutput in ref, state).fold(_ => None, id)
