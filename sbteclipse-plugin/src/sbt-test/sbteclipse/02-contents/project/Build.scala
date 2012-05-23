@@ -16,7 +16,7 @@ object Build extends Build {
       ),
       retrieveManaged := true
     ),
-    aggregate = Seq(sub)
+    aggregate = Seq(sub, javaProject)
   )
 
   lazy val sub: Project = Project(
@@ -111,4 +111,13 @@ object Build extends Build {
       )
     )
   }
-}
+
+  lazy val javaProject = Project(
+    "java",
+    new File("java"),
+    settings = Project.defaultSettings ++ Seq(
+      EclipseKeys.projectNature := EclipseProjectNature.ValueSet(EclipseProjectNature.Java)
+    )
+  )
+
+ }
