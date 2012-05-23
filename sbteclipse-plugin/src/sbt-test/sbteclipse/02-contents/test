@@ -3,6 +3,7 @@
 $ mkdir target/scala-2.9.1/src_managed/main
 > eclipse skip-parents=false
 > verify-project-xml
+> verify-project-xml-java
 > verify-classpath-xml-root
 > verify-classpath-xml-sub
 > verify-classpath-xml-suba
