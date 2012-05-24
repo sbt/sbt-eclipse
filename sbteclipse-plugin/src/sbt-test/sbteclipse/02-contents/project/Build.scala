@@ -32,7 +32,7 @@ object Build extends Build {
       EclipseKeys.executionEnvironment := Some(EclipseExecutionEnvironment.JavaSE16),
       EclipseKeys.withSource := true
     ),
-    aggregate = Seq(suba, subb, subc)
+    aggregate = Seq(suba, subb, subc, subd, sube)
   )
 
   lazy val suba = Project(
@@ -111,4 +111,21 @@ object Build extends Build {
       )
     )
   }
+
+  lazy val subd = Project(
+    id = "subd-id",
+    base = new File("sub/subd"),
+    settings = Project.defaultSettings ++ Seq(
+      name := "subd",
+      EclipseKeys.useProjectId := true
+    )
+  )
+
+  lazy val sube = Project(
+    id = "sube-id",
+    base = new File("sub/sube"),
+    settings = Project.defaultSettings ++ Seq(
+      name := "sube"
+    )
+  )
 }
