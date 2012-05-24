@@ -96,6 +96,11 @@ trait EclipsePlugin {
       "The source kinds to be included."
     )
 
+    val projectFlavor: SettingKey[EclipseProjectFlavor.Value] = SettingKey(
+      prefix("project-flavor"),
+      "The flavor of project (Scala or Java) to build."
+    )
+
     val eclipseOutput: SettingKey[Option[String]] = SettingKey(
       prefix("eclipse-output"),
       "The optional output for Eclipse."
@@ -182,6 +187,13 @@ trait EclipsePlugin {
     val Default = ValueSet(Unmanaged, Source)
 
     val All = ValueSet(Unmanaged, Managed, Source, Resource)
+  }
+
+  object EclipseProjectFlavor extends Enumeration {
+
+    val Scala = Value
+
+    val Java = Value
   }
 
   trait EclipseTransformerFactory[A] {
