@@ -24,6 +24,7 @@ import EclipsePlugin.{
   EclipseClasspathEntryTransformerFactory,
   EclipseRewriteRuleTransformerFactory,
   EclipseCreateSrc,
+  EclipseProjectFlavor,
   EclipseExecutionEnvironment,
   EclipseKeys
 }
@@ -68,6 +69,14 @@ private object Eclipse {
   val JreContainer = "org.eclipse.jdt.launching.JRE_CONTAINER"
 
   val StandardVmType = "org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType"
+
+  val ScalaBuilder = "org.scala-ide.sdt.core.scalabuilder"
+
+  val ScalaNature = "org.scala-ide.sdt.core.scalanature"
+
+  val JavaBuilder = "org.eclipse.jdt.core.javabuilder"
+
+  val JavaNature = "org.eclipse.jdt.core.javanature"
 
   def eclipseCommand(commandName: String): Command =
     Command(commandName)(_ => parser)((state, args) => action(args.toMap, state))
@@ -122,6 +131,7 @@ private object Eclipse {
           jreContainer(executionEnvironmentArg orElse executionEnvironment(ref, state)),
           preTasks(ref, state),
           relativizeLibs(ref, state),
+          builderAndNatures(projectFlavor(ref, state)),
           state
         )
       )
@@ -162,6 +172,7 @@ private object Eclipse {
     jreContainer: String,
     preTasks: Seq[(TaskKey[_], ProjectRef)],
     relativizeLibs: Boolean,
+    builderAndNatures: (String, Seq[String]),
     state: State)(
       classpathEntryTransformer: Seq[EclipseClasspathEntry] => Seq[EclipseClasspathEntry],
       classpathTransformers: Seq[RewriteRule],
@@ -176,7 +187,7 @@ private object Eclipse {
     for {
       _ <- executePreTasks(preTasks, state)
       n <- io(name)
-      _ <- saveXml(baseDirectory / ".project", new RuleTransformer(projectTransformers: _*)(projectXml(name)))
+      _ <- saveXml(baseDirectory / ".project", new RuleTransformer(projectTransformers: _*)(projectXml(name, builderAndNatures)))
       cp <- classpath(
         classpathEntryTransformer,
         buildDirectory,
@@ -196,17 +207,16 @@ private object Eclipse {
   def executePreTasks(preTasks: Seq[(TaskKey[_], ProjectRef)], state: State): IO[Unit] =
     io(for ((preTask, ref) <- preTasks) evaluateTask(preTask, ref, state))
 
-  def projectXml(name: String): Node =
+  def projectXml(name: String, builderAndNatures: (String, Seq[String])): Node =
     <projectDescription>
       <name>{ name }</name>
       <buildSpec>
         <buildCommand>
-          <name>org.scala-ide.sdt.core.scalabuilder</name>
+          <name>{ builderAndNatures._1 }</name>
         </buildCommand>
       </buildSpec>
       <natures>
-        <nature>org.scala-ide.sdt.core.scalanature</nature>
-        <nature>org.eclipse.jdt.core.javanature</nature>
+        { builderAndNatures._2.map(n => <nature>{ n }</nature>) }
       </natures>
     </projectDescription>
 
@@ -272,6 +282,12 @@ private object Eclipse {
       case Some(ee) => "%s/%s/%s".format(JreContainer, StandardVmType, ee)
       case None => JreContainer
     }
+
+  def builderAndNatures(projectFlavor: EclipseProjectFlavor.Value) =
+    if (projectFlavor == EclipseProjectFlavor.Scala)
+      ScalaBuilder -> Seq(ScalaNature, JavaNature)
+    else
+      JavaBuilder -> Seq(JavaNature)
 
   // Getting and transforming mandatory settings and task results
 
@@ -436,6 +452,9 @@ private object Eclipse {
 
   def createSrc(ref: Reference, state: State): EclipseCreateSrc.ValueSet =
     setting(EclipseKeys.createSrc in ref, state).fold(_ => EclipseCreateSrc.Default, id)
+
+  def projectFlavor(ref: Reference, state: State) =
+    setting(EclipseKeys.projectFlavor in ref, state).fold(_ => EclipseProjectFlavor.Scala, id)
 
   def eclipseOutput(ref: ProjectRef, state: State): Option[String] =
     setting(EclipseKeys.eclipseOutput in ref, state).fold(_ => None, id)
