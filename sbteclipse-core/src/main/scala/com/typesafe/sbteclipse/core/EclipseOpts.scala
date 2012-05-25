@@ -25,4 +25,6 @@ private object EclipseOpts {
   val SkipParents = "skip-parents"
 
   val WithSource = "with-source"
+
+  val UseProjectId = "use-project-id"
 }

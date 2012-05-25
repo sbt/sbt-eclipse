@@ -33,6 +33,20 @@ TaskKey[Unit]("verify-project-xml-java") <<= baseDirectory map { dir =>
   verify("natures", "org.eclipse.jdt.core.javanature", (projectDescription \ "natures" \ "nature").text)
 }
 
+TaskKey[Unit]("verify-project-xml-subd") <<= baseDirectory map { dir =>
+  val projectDescription = XML.loadFile(dir / "sub" / "subd" / ".project")
+  val name = (projectDescription \ "name").text
+  if (name != "subd-id")
+    error("Expected .project to contain name '%s', but was '%s'!".format("subd-id", name))
+}
+
+TaskKey[Unit]("verify-project-xml-sube") <<= baseDirectory map { dir =>
+  val projectDescription = XML.loadFile(dir / "sub" / "sube" / ".project")
+  val name = (projectDescription \ "name").text
+  if (name != "sube")
+    error("Expected .project to contain name '%s', but was '%s'!".format("sube", name))
+}
+
 TaskKey[Unit]("verify-classpath-xml-root") <<= baseDirectory map { dir =>
   val classpath = XML.loadFile(dir / ".classpath")
   if ((classpath \ "classpathentry") != (classpath \ "classpathentry").distinct)
