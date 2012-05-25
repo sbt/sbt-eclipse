@@ -292,7 +292,10 @@ private object Eclipse {
   // Getting and transforming mandatory settings and task results
 
   def name(ref: Reference, state: State): Validation[String] =
-    setting(Keys.name in ref, state)
+    if (setting(EclipseKeys.useProjectId in ref, state).fold(_ => false, id))
+      setting(Keys.thisProject in ref, state) map (_.id)
+    else
+      setting(Keys.name in ref, state)
 
   def buildDirectory(state: State): Validation[File] =
     setting(Keys.baseDirectory in ThisBuild, state)
