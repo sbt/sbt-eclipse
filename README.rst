@@ -11,11 +11,18 @@ For the impatient
 
 - Add sbteclipse to your plugin definition::
 
-  addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "2.1.0-RC1")
+    addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "2.1.0-RC1")
+
+- For sbt 0.12.0-Beta2 you need::
+
+    addSbtPlugin(
+      "com.typesafe.sbteclipse" % "sbteclipse-plugin" % "2.1.0-RC1",
+      sbtVersion = "0.12.0-Beta2"
+    )
 
 - In sbt use the command *eclipse* to create Eclipse project files::
 
-  > eclipse
+    > eclipse
 
 - In Eclipse use the *Import Wizard* to import *Existing Projects into Workspace*
 
