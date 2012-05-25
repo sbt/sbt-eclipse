@@ -1,17 +1,9 @@
 
-resolvers ++= Seq(
-  "gseitz@github" at "http://gseitz.github.com/maven/",
-  Resolver.url("heikoseeberger", new URL("http://hseeberger.github.com/releases"))(Resolver.ivyStylePatterns)
-)
+// Waiting for a 0.5 release, capable of sbt-0.11.3 and sbt-0.12.x and published to OSS
+//addSbtPlugin("com.github.gseitz" % "sbt-release" % "0.4")
 
-addSbtPlugin("com.github.gseitz" % "sbt-release" % "0.4")
-
-addSbtPlugin("com.typesafe.sbtscalariform" % "sbtscalariform" % "0.3.1")
-
-addSbtPlugin("name.heikoseeberger.sbtproperties" % "sbtproperties" % "1.0.1")
-
-addSbtPlugin("net.databinder" % "posterous-sbt" % "0.3.2")
+addSbtPlugin("com.typesafe.sbtscalariform" % "sbtscalariform" % "0.4.0")
 
 libraryDependencies <+= (sbtVersion)(sbtVersion =>
-  "org.scala-tools.sbt" %% "scripted-plugin" % sbtVersion
+  "org.scala-sbt" %% "scripted-plugin" % sbtVersion
 )
