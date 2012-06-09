@@ -30,6 +30,8 @@ object Build extends Build {
   )
 
   def commonSettings = Defaults.defaultSettings ++
+    scalariformSettings ++
+    scriptedSettings ++
     Seq(
       organization := "com.typesafe.sbteclipse",
       // version is defined in version.sbt in order to support sbt-release
@@ -38,11 +40,10 @@ object Build extends Build {
       sbtPlugin := true,
       publishMavenStyle := false,
       publishArtifact in (Compile, packageDoc) := false,
-      publishArtifact in (Compile, packageSrc) := false
-    ) ++
-    scalariformSettings ++
-    scriptedSettings /*++
-    Release.releaseSettings ++ Seq(
+      publishArtifact in (Compile, packageSrc) := false,
+      scriptedLaunchOpts += "-Xmx1024m"
+    )
+    /*Release.releaseSettings ++ Seq(
       ReleaseKeys.releaseProcess <<= thisProjectRef { ref =>
         import ReleaseStateTransformations._
         Seq[ReleasePart](
