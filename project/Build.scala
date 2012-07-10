@@ -2,6 +2,7 @@ import com.typesafe.sbtscalariform.ScalariformPlugin._
 import sbt._
 import sbt.Keys._
 import sbt.ScriptedPlugin._
+import sbtrelease.ReleasePlugin._
 
 object Build extends Build {
 
@@ -32,6 +33,7 @@ object Build extends Build {
   def commonSettings = Defaults.defaultSettings ++
     scalariformSettings ++
     scriptedSettings ++
+    releaseSettings ++
     Seq(
       organization := "com.typesafe.sbteclipse",
       // version is defined in version.sbt in order to support sbt-release
@@ -43,23 +45,4 @@ object Build extends Build {
       publishArtifact in (Compile, packageSrc) := false,
       scriptedLaunchOpts += "-Xmx1024m"
     )
-    /*Release.releaseSettings ++ Seq(
-      ReleaseKeys.releaseProcess <<= thisProjectRef { ref =>
-        import ReleaseStateTransformations._
-        Seq[ReleasePart](
-          initialGitChecks,
-          checkSnapshotDependencies,
-          releaseTask(check in Posterous in ref),
-          inquireVersions,
-          runTest,
-          setReleaseVersion,
-          commitReleaseVersion,
-          tagRelease,
-          releaseTask(publish in Global in ref),
-          releaseTask(publish in Posterous in ref),
-          setNextVersion,
-          commitNextVersion
-        )
-      }
-    )*/
 }
