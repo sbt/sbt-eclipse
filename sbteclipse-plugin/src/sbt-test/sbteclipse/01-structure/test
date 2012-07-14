@@ -1,7 +1,7 @@
 # Default settings (skip-parents=true)
 $ exec find . -path "*.classpath*" -delete
 $ exec find . -path "*.project*" -delete
-$ exec find . -path "*/.settings" -delete
+$ exec find . -path "*/.settings*" -delete
 $ exec find . -path "*/touch-pre-task" -delete
 > eclipse
 $ absent .classpath
@@ -27,7 +27,7 @@ $ absent sub/subc/touch-pre-task
 # skip-parents=false
 $ exec find . -path "*.classpath*" -delete
 $ exec find . -path "*.project*" -delete
-$ exec find . -path "*/.settings" -delete
+$ exec find . -path "*/.settings*" -delete
 > eclipse skip-parents=false
 $ exists .classpath
 $ exists .project
