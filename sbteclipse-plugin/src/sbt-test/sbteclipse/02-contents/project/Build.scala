@@ -117,6 +117,7 @@ object Build extends Build {
     new File("java"),
     settings = Project.defaultSettings ++ Seq(
       EclipseKeys.projectFlavor := EclipseProjectFlavor.Java
+      , autoScalaLibrary := false
     )
   )
 
