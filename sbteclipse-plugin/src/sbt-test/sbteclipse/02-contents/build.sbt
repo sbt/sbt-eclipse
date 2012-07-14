@@ -189,6 +189,12 @@ TaskKey[Unit]("verify-classpath-xml-subc") <<= baseDirectory map { dir =>
     error("""Expected .project of subc project to contain <foo bar="baz"/>!""")
 }
 
+TaskKey[Unit]("verify-classpath-xml-java") <<= baseDirectory map { dir =>
+  val classpath = XML.loadFile(dir / "java" / ".classpath")
+  if (classpath.child contains <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER" />)
+    error("Expected .classpath of java project not to contain Scala container: %s" format classpath)
+}
+
 TaskKey[Unit]("verify-settings") <<= baseDirectory map { dir =>
   val settings = {
     val p = new Properties 

@@ -11,4 +11,5 @@ $ mkdir target/scala-2.9.1/src_managed/main
 > verify-classpath-xml-suba
 > verify-classpath-xml-subb
 > verify-classpath-xml-subc
+> verify-classpath-xml-java
 > verify-settings
