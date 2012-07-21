@@ -116,7 +116,9 @@ object Build extends Build {
     "java",
     new File("java"),
     settings = Project.defaultSettings ++ Seq(
-      EclipseKeys.projectFlavor := EclipseProjectFlavor.Java
+      EclipseKeys.projectFlavor := EclipseProjectFlavor.Java,
+      EclipseKeys.linkedFolders := Seq( ("src-common", file(".") / "java-common") ),
+      unmanagedSourceDirectories in Compile ++= Seq( file(".") / "java-common" / "src" / "main" / "java" )
     )
   )
 

@@ -55,6 +55,11 @@ trait EclipsePlugin {
       "The optional Eclipse execution environment."
     )
 
+    val linkedFolders: SettingKey[Seq[(String, File)]] = SettingKey(
+      prefix(LinkedFolders),
+      "Link external folders."
+    )
+
     val skipParents: SettingKey[Boolean] = SettingKey(
       prefix(SkipParents),
       "Skip creating Eclipse files for parent project?"

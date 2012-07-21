@@ -31,6 +31,17 @@ TaskKey[Unit]("verify-project-xml-java") <<= baseDirectory map { dir =>
   // java project nature
   verify("buildCommand", "org.eclipse.jdt.core.javabuilder", (projectDescription \ "buildSpec" \ "buildCommand" \ "name").text)
   verify("natures", "org.eclipse.jdt.core.javanature", (projectDescription \ "natures" \ "nature").text)
+  // linked resources
+  verify("linkedResources", "src-common", (projectDescription \ "linkedResources" \ "link" \ "name").text)
+  verify("linkedResources", "2",          (projectDescription \ "linkedResources" \ "link" \ "type").text)
+  if (!(projectDescription \ "linkedResources" \ "link" \ "location").text.endsWith("/java-common"))
+    error("""Expected .project of Java project to contain a linkedResources link with location ending in "/java-common" """)
+}
+
+TaskKey[Unit]("verify-classpath-xml-java") <<= baseDirectory map { dir =>
+  val classpath = XML.loadFile(dir / "java" / ".classpath")
+  if (!(classpath.child contains <classpathentry kind="src" path="src-common/main/java" output="target/scala-2.9.2/classes" />))
+    error("""Expected .classpath of Java project to contain <classpathentry kind="src" path="src-common/main/java" output="target/scala-2.9.2/classes" /> """)
 }
 
 TaskKey[Unit]("verify-project-xml-subd") <<= baseDirectory map { dir =>
