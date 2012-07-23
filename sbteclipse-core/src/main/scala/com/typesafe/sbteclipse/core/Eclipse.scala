@@ -271,7 +271,7 @@ private object Eclipse {
     io {
       if (!srcDirectory.exists()) srcDirectory.mkdirs()
       EclipseClasspathEntry.Src(
-        findInLinkedFolder(srcDirectory, linkedFolders).getOrElse(relativize(baseDirectory, srcDirectory)),
+        findInLinkedFolder(srcDirectory, linkedFolders) getOrElse relativize(baseDirectory, srcDirectory),
         relativize(baseDirectory, classDirectory)
       )
     }
