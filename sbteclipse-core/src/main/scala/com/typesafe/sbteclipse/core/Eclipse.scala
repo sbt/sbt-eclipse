@@ -225,12 +225,13 @@ private object Eclipse {
         if (!linkedFolders.isEmpty) {
           <linkedResources>
             {
-              linkedFolders.map { lf =>
-                <link>
-                  <name>{ lf._1 }</name>
-                  <type>2</type>
-                  <location>{ lf._2.getCanonicalPath }</location>
-                </link>
+              linkedFolders.map {
+                case (name, file) =>
+                  <link>
+                    <name>{ name }</name>
+                    <type>2</type>
+                    <location>{ file.getCanonicalPath }</location>
+                  </link>
               }
             }
           </linkedResources>
