@@ -230,7 +230,7 @@ private object Eclipse {
                   <link>
                     <name>{ name }</name>
                     <type>2</type>
-                    <location>{ file.getCanonicalPath }</location>
+                    <location>{ file.getCanonicalPath.replaceAll("\\\\", "/") }</location>
                   </link>
               }
             }
