@@ -9,7 +9,7 @@ For the impatient
 
 - sbteclipse requires sbt 0.11.3-2 or 0.12!
 
-- Add sbteclipse to your plugin definition, usually found at ~/.sbt/plugins/plugins.sbt::
+- Add sbteclipse to your plugin definition file. You can use either the global one at ~/.sbt/plugins/plugins.sbt or the project-specific one at PROJECT_DIR/project/plugins.sbt::
 
     addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "2.1.0")
 
