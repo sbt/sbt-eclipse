@@ -196,10 +196,12 @@ TaskKey[Unit]("verify-settings") <<= baseDirectory map { dir =>
     p.asScala.toMap
   }
   val expected = Map(
-    "scala.compiler.useProjectSettings" -> "true", 
-    "unchecked" -> "true", 
+    "scala.compiler.additionalParams" -> """-Xprompt -Ydependent-method-types""",
+    "verbose" -> "true",
     "deprecation" -> "true",
-    "Xelide-below" -> "0"
+    "Xelide-below" -> "1000",
+    "unchecked" -> "true",
+    "scala.compiler.useProjectSettings" -> "true"
   ) 
   if (settings != expected) error("Expected settings to be '%s', but was '%s'!".format(expected, settings))
 }
