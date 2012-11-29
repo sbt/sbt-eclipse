@@ -60,8 +60,7 @@ import scalaz.{ Failure, NonEmptyList, Success }
 import scalaz.Scalaz._
 import scalaz.effects._
 
-private object Eclipse {
-
+private object Eclipse extends EclipseSDTConfig {
   val SettingFormat = """-([^:]*):?(.*)""".r
 
   val FileSepPattern = FileSep.replaceAll("""\\""", """\\\\""")
@@ -335,12 +334,7 @@ private object Eclipse {
       if (options.isEmpty)
         Nil
       else {
-        options.zipAll(options.tail, "-", "-") collect {
-          case (SettingFormat(key, value), next) if next startsWith "-" =>
-            key -> (if (!value.isEmpty) value else "true")
-          case (SettingFormat(key, _), next) =>
-            key -> next
-        } match {
+        fromScalacToSDT(options) match {
           case Seq() => Seq()
           case options => ("scala.compiler.useProjectSettings" -> "true") +: options
         }
