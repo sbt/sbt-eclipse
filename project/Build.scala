@@ -38,7 +38,11 @@ object Build extends Build {
       organization := "com.typesafe.sbteclipse",
       // version is defined in version.sbt in order to support sbt-release
       scalacOptions ++= Seq("-unchecked", "-deprecation"),
-      publishTo <<= isSnapshot(if (_) Some(Classpaths.typesafeSnapshots) else Some(Classpaths.typesafeReleases)),
+      publishTo <<= isSnapshot { isSnapshot =>
+        val id = if (isSnapshot) "snapshots" else "releases"
+        val uri = "https://typesafe.artifactoryonline.com/typesafe/ivy-" + id
+        Some(Resolver.url("typesafe-" + id, url(uri))(Resolver.ivyStylePatterns))
+      },
       sbtPlugin := true,
       publishMavenStyle := false,
       publishArtifact in (Compile, packageDoc) := false,
