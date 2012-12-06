@@ -320,7 +320,7 @@ private object Eclipse extends EclipseSDTConfig {
       if (values subsetOf createSrc)
         (setting(key in (ref, configuration), state) <**> classDirectory)((sds, cd) => sds map (_ -> cd))
       else
-        "".failNel
+        success(Seq.empty)
     Seq(
       dirs(ValueSet(Unmanaged, Source), Keys.unmanagedSourceDirectories),
       dirs(ValueSet(Managed, Source), Keys.managedSourceDirectories),
