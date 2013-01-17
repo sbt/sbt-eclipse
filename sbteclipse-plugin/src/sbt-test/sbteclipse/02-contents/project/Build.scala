@@ -45,6 +45,7 @@ object Build extends Build {
         "org.specs2" %% "specs2" % "1.9" % "test"
       ),
       EclipseKeys.createSrc := EclipseCreateSrc.ValueSet(EclipseCreateSrc.Managed, EclipseCreateSrc.Resource),
+      EclipseKeys.createSrc in Test := EclipseCreateSrc.ValueSet.empty,
       EclipseKeys.withSource := true
     )
   )

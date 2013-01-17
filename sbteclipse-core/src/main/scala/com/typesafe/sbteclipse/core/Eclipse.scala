@@ -121,7 +121,7 @@ private object Eclipse extends EclipseSDTConfig {
         name(ref, state) |@|
         buildDirectory(state) |@|
         baseDirectory(ref, state) |@|
-        mapConfigurations(configs, srcDirectories(ref, createSrc(ref, state), eclipseOutput(ref, state), state)) |@|
+        mapConfigurations(configs, config => srcDirectories(ref, createSrc(ref, state)(config), eclipseOutput(ref, state)(config), state)(config)) |@|
         scalacOptions(ref, state) |@|
         mapConfigurations(configs, externalDependencies(ref, withSourceArg getOrElse withSource(ref, state), state)) |@|
         mapConfigurations(configs, projectDependencies(ref, project, state))
@@ -320,7 +320,7 @@ private object Eclipse extends EclipseSDTConfig {
       if (values subsetOf createSrc)
         (setting(key in (ref, configuration), state) <**> classDirectory)((sds, cd) => sds map (_ -> cd))
       else
-        "".failNel
+        success(Seq.empty)
     Seq(
       dirs(ValueSet(Unmanaged, Source), Keys.unmanagedSourceDirectories),
       dirs(ValueSet(Managed, Source), Keys.managedSourceDirectories),
@@ -447,14 +447,14 @@ private object Eclipse extends EclipseSDTConfig {
       _.toSeq
     )
 
-  def createSrc(ref: Reference, state: State): EclipseCreateSrc.ValueSet =
-    setting(EclipseKeys.createSrc in ref, state).fold(_ => EclipseCreateSrc.Default, id)
+  def createSrc(ref: Reference, state: State)(configuration: Configuration): EclipseCreateSrc.ValueSet =
+    setting(EclipseKeys.createSrc in (ref, configuration), state).fold(_ => EclipseCreateSrc.Default, id)
 
   def projectFlavor(ref: Reference, state: State) =
     setting(EclipseKeys.projectFlavor in ref, state).fold(_ => EclipseProjectFlavor.Scala, id)
 
-  def eclipseOutput(ref: ProjectRef, state: State): Option[String] =
-    setting(EclipseKeys.eclipseOutput in ref, state).fold(_ => None, id)
+  def eclipseOutput(ref: ProjectRef, state: State)(config: Configuration): Option[String] =
+    setting(EclipseKeys.eclipseOutput in (ref, config), state).fold(_ => None, id)
 
   def preTasks(ref: ProjectRef, state: State): Seq[(TaskKey[_], ProjectRef)] =
     setting(EclipseKeys.preTasks in ref, state).fold(_ => Seq.empty, _.zipAll(Seq.empty, null, ref))
