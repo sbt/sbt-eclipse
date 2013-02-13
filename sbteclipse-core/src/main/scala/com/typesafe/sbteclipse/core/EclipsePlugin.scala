@@ -150,32 +150,49 @@ trait EclipsePlugin {
 
   sealed trait EclipseClasspathEntry {
     def toXml: Node
+    def toXmlNetBeans: Node
   }
 
   object EclipseClasspathEntry {
 
-    case class Src(path: String, output: String) extends EclipseClasspathEntry {
+    case class Src(scope: String, path: String, output: String) extends EclipseClasspathEntry {
       override def toXml = <classpathentry kind="src" path={ path } output={ output }/>
+      override def toXmlNetBeans = <classpathentry kind="src" path={ path } output={ output } scope={ scope }/>
     }
 
-    case class Lib(path: String, sourcePath: Option[String] = None) extends EclipseClasspathEntry {
+    case class Lib(scope: String, path: String, sourcePath: Option[String] = None) extends EclipseClasspathEntry {
       override def toXml =
         sourcePath.foldLeft(<classpathentry kind="lib" path={ path }/>)((xml, sp) =>
           xml % Attribute("sourcepath", Text(sp), Null)
         )
+      override def toXmlNetBeans =
+        sourcePath.foldLeft(<classpathentry kind="lib" path={ path } scope={ scope }/>)((xml, sp) =>
+          xml % Attribute("sourcepath", Text(sp), Null)
+        )
     }
 
-    case class Project(name: String) extends EclipseClasspathEntry {
+    case class Project(name: String, path: String, output: String) extends EclipseClasspathEntry {
       override def toXml =
         <classpathentry kind="src" path={ "/" + name } exported="true" combineaccessrules="false"/>
+      override def toXmlNetBeans =
+        <classpathentry kind="src" path={ name } exported="true" combineaccessrules="false" base={ path } output={ output }/>
+    }
+
+    case class AggProject(name: String, path: String) extends EclipseClasspathEntry {
+      override def toXml =
+        <classpathentry kind="agg" path={ "/" + name }/>
+      override def toXmlNetBeans =
+        <classpathentry kind="agg" path={ name } base={ path }/>
     }
 
     case class Con(path: String) extends EclipseClasspathEntry {
       override def toXml = <classpathentry kind="con" path={ path }/>
+      override def toXmlNetBeans = <classpathentry kind="con" path={ path }/>
     }
 
     case class Output(path: String) extends EclipseClasspathEntry {
       override def toXml = <classpathentry kind="output" path={ path }/>
+      override def toXmlNetBeans = <classpathentry kind="output" path={ path }/>
     }
   }
 

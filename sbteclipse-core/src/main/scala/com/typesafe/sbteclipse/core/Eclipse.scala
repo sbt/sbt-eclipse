@@ -82,7 +82,7 @@ private object Eclipse extends EclipseSDTConfig {
 
   def parser: Parser[Seq[(String, Any)]] = {
     import EclipseOpts._
-    (executionEnvironmentOpt | boolOpt(SkipParents) | boolOpt(WithSource)).*
+    (executionEnvironmentOpt | boolOpt(SkipParents) | boolOpt(WithSource) | boolOpt(GenNetBeans)).*
   }
 
   def executionEnvironmentOpt: Parser[(String, EclipseExecutionEnvironment.Value)] = {
@@ -101,6 +101,7 @@ private object Eclipse extends EclipseSDTConfig {
       (args get ExecutionEnvironment).asInstanceOf[Option[EclipseExecutionEnvironment.Value]],
       (args get SkipParents).asInstanceOf[Option[Boolean]] getOrElse skipParents(ThisBuild, state),
       (args get WithSource).asInstanceOf[Option[Boolean]],
+      (args get GenNetBeans).asInstanceOf[Option[Boolean]] getOrElse false,
       state
     ).fold(onFailure(state), onSuccess(state))
   }
@@ -109,6 +110,7 @@ private object Eclipse extends EclipseSDTConfig {
     executionEnvironmentArg: Option[EclipseExecutionEnvironment.Value],
     skipParents: Boolean,
     withSourceArg: Option[Boolean],
+    genNetBeans: Boolean,
     state: State): Validation[IO[Seq[String]]] = {
     val effects = for {
       ref <- structure(state).allProjectRefs
@@ -124,13 +126,15 @@ private object Eclipse extends EclipseSDTConfig {
         mapConfigurations(configs, config => srcDirectories(ref, createSrc(ref, state)(config), eclipseOutput(ref, state)(config), state)(config)) |@|
         scalacOptions(ref, state) |@|
         mapConfigurations(configs, externalDependencies(ref, withSourceArg getOrElse withSource(ref, state), state)) |@|
-        mapConfigurations(configs, projectDependencies(ref, project, state))
+        mapConfigurations(configs, projectDependencies(ref, project, state)) |@|
+        projectAggregate(ref, project, state)
       applic(
         handleProject(
           jreContainer(executionEnvironmentArg orElse executionEnvironment(ref, state)),
           preTasks(ref, state),
           relativizeLibs(ref, state),
           builderAndNatures(projectFlavor(ref, state)),
+          genNetBeans,
           state
         )
       )
@@ -164,14 +168,17 @@ private object Eclipse extends EclipseSDTConfig {
 
   def mapConfigurations[A](
     configurations: Seq[Configuration],
-    f: Configuration => Validation[Seq[A]]): Validation[Seq[A]] =
-    (configurations map f).sequence map (_.flatten.distinct)
+    f: Configuration => Validation[Seq[A]]): Validation[Seq[(Configuration, Seq[A])]] = {
+    def scoped(c: Configuration): Validation[(Configuration, Seq[A])] = f(c) fold (e => e.fail, s => success(c -> s.distinct))
+    (configurations map scoped).sequence
+  }
 
   def handleProject(
     jreContainer: String,
     preTasks: Seq[(TaskKey[_], ProjectRef)],
     relativizeLibs: Boolean,
     builderAndNatures: (String, Seq[String]),
+    genNetBeans: Boolean,
     state: State)(
       classpathEntryTransformer: Seq[EclipseClasspathEntry] => Seq[EclipseClasspathEntry],
       classpathTransformers: Seq[RewriteRule],
@@ -179,27 +186,31 @@ private object Eclipse extends EclipseSDTConfig {
       name: String,
       buildDirectory: File,
       baseDirectory: File,
-      srcDirectories: Seq[(File, File)],
+      srcDirectories: Seq[(Configuration, Seq[(File, File)])],
       scalacOptions: Seq[(String, String)],
-      externalDependencies: Seq[Lib],
-      projectDependencies: Seq[String]): IO[String] = {
+      externalDependencies: Seq[(Configuration, Seq[Lib])],
+      projectDependencies: Seq[(Configuration, Seq[Prj])],
+      projectAggregate: Seq[Prj]): IO[String] = {
     for {
       _ <- executePreTasks(preTasks, state)
       n <- io(name)
-      _ <- saveXml(baseDirectory / ".project", new RuleTransformer(projectTransformers: _*)(projectXml(name, builderAndNatures)))
+      _ <- if (genNetBeans) io(()) else saveXml(baseDirectory / ".project", new RuleTransformer(projectTransformers: _*)(projectXml(name, builderAndNatures)))
       cp <- classpath(
         classpathEntryTransformer,
+        name,
         buildDirectory,
         baseDirectory,
         relativizeLibs,
         srcDirectories,
         externalDependencies,
         projectDependencies,
+        projectAggregate,
         jreContainer,
+        genNetBeans,
         state
       )
-      _ <- saveXml(baseDirectory / ".classpath", new RuleTransformer(classpathTransformers: _*)(cp))
-      _ <- saveProperties(baseDirectory / ".settings" / "org.scala-ide.sdt.core.prefs", scalacOptions)
+      _ <- if (genNetBeans) saveXml(baseDirectory / ".classpath_nb", cp) else saveXml(baseDirectory / ".classpath", new RuleTransformer(classpathTransformers: _*)(cp))
+      _ <- if (genNetBeans) io(()) else saveProperties(baseDirectory / ".settings" / "org.scala-ide.sdt.core.prefs", scalacOptions)
     } yield n
   }
 
@@ -221,40 +232,49 @@ private object Eclipse extends EclipseSDTConfig {
 
   def classpath(
     classpathEntryTransformer: Seq[EclipseClasspathEntry] => Seq[EclipseClasspathEntry],
+    name: String,
     buildDirectory: File,
     baseDirectory: File,
     relativizeLibs: Boolean,
-    srcDirectories: Seq[(File, File)],
-    externalDependencies: Seq[Lib],
-    projectDependencies: Seq[String],
+    srcDirectories: Seq[(Configuration, Seq[(File, File)])],
+    externalDependencies: Seq[(Configuration, Seq[Lib])],
+    projectDependencies: Seq[(Configuration, Seq[Prj])],
+    projectAggregate: Seq[Prj],
     jreContainer: String,
+    genNetBeans: Boolean,
     state: State): IO[Node] = {
     val srcEntriesIoSeq =
-      for ((dir, output) <- srcDirectories) yield srcEntry(baseDirectory, dir, output, state)
+      for ((config, dirs) <- srcDirectories; (dir, output) <- dirs) yield srcEntry(config, baseDirectory, dir, output, genNetBeans, state)
     for (srcEntries <- srcEntriesIoSeq.sequence) yield {
       val entries = srcEntries ++
-        (externalDependencies map libEntry(buildDirectory, baseDirectory, relativizeLibs, state)) ++
-        (projectDependencies map EclipseClasspathEntry.Project) ++
+        (externalDependencies map { case (config, libs) => libs map libEntry(config, buildDirectory, baseDirectory, relativizeLibs, state) }).flatten ++
+        (projectDependencies map { case (config, prjs) => prjs map projectEntry(config, baseDirectory, state) }).flatten ++
+        (if (genNetBeans) (projectAggregate map aggProjectEntry(baseDirectory, state)) else Seq()) ++
         (Seq(jreContainer) map EclipseClasspathEntry.Con) ++
         (Seq("bin") map EclipseClasspathEntry.Output)
-      <classpath>{ classpathEntryTransformer(entries) map (_.toXml) }</classpath>
+      if (genNetBeans) <classpath name={ name }>{ classpathEntryTransformer(entries) map (_.toXmlNetBeans) }</classpath>
+      else <classpath>{ classpathEntryTransformer(entries) map (_.toXml) }</classpath>
     }
   }
 
   def srcEntry(
+    config: Configuration,
     baseDirectory: File,
     srcDirectory: File,
     classDirectory: File,
+    genNetBeans: Boolean,
     state: State): IO[EclipseClasspathEntry.Src] =
     io {
-      if (!srcDirectory.exists()) srcDirectory.mkdirs()
+      if (!srcDirectory.exists() && !genNetBeans) srcDirectory.mkdirs()
       EclipseClasspathEntry.Src(
+        config.name,
         relativize(baseDirectory, srcDirectory),
         relativize(baseDirectory, classDirectory)
       )
     }
 
   def libEntry(
+    config: Configuration,
     buildDirectory: File,
     baseDirectory: File,
     relativizeLibs: Boolean,
@@ -273,7 +293,29 @@ private object Eclipse extends EclipseSDTConfig {
       )
       if (relativizeLibs) relativized getOrElse file.getAbsolutePath else file.getAbsolutePath
     }
-    EclipseClasspathEntry.Lib(path(lib.binary), lib.source map path)
+    EclipseClasspathEntry.Lib(config.name, path(lib.binary), lib.source map path)
+  }
+
+  def projectEntry(
+    config: Configuration,
+    baseDirectory: File,
+    state: State)(
+      prj: Prj): EclipseClasspathEntry.Project = {
+    EclipseClasspathEntry.Project(
+      prj.name,
+      prj.baseDirectory.getAbsolutePath,
+      prj.classDirectory map (_.getAbsolutePath) getOrElse ""
+    )
+  }
+
+  def aggProjectEntry(
+    baseDirectory: File,
+    state: State)(
+      prj: Prj): EclipseClasspathEntry.AggProject = {
+    EclipseClasspathEntry.AggProject(
+      prj.name,
+      prj.baseDirectory.getAbsolutePath
+    )
   }
 
   def jreContainer(executionEnvironment: Option[EclipseExecutionEnvironment.Value]): String =
@@ -388,14 +430,34 @@ private object Eclipse extends EclipseSDTConfig {
     ref: ProjectRef,
     project: ResolvedProject,
     state: State)(
-      configuration: Configuration): Validation[Seq[String]] = {
-    val projectDependencies = project.dependencies collect {
+      configuration: Configuration): Validation[Seq[Prj]] = {
+    val projectDependencies: Seq[Validation[Prj]] = project.dependencies collect {
       case dependency if isInConfiguration(configuration, ref, dependency, state) =>
-        setting(Keys.name in dependency.project, state)
+        val dependencyRef = dependency.project
+        val name = setting(Keys.name in dependencyRef, state)
+        val baseDir = setting(Keys.baseDirectory in dependencyRef, state)
+        val classDir = setting(Keys.classDirectory in (dependencyRef, configuration), state) fold (f => f.fail, s => success(Option(s)))
+        (name |@| baseDir |@| classDir)(Prj)
     }
     val projectDependenciesSeq = projectDependencies.sequence
     state.log.debug("Project dependencies for configuration '%s': %s".format(configuration, projectDependenciesSeq))
     projectDependenciesSeq
+  }
+
+  def projectAggregate(
+    ref: ProjectRef,
+    project: ResolvedProject,
+    state: State): Validation[Seq[Prj]] = {
+    val projects: Seq[Validation[Prj]] = project.aggregate collect {
+      case prj =>
+        val prjRef = prj.project
+        val name = setting(Keys.name in prjRef, state)
+        val baseDir = setting(Keys.baseDirectory in prjRef, state)
+        (name |@| baseDir |@| success(None))(Prj)
+    }
+    val projectsSeq = projects.sequence
+    state.log.debug("Project aggregate: %s".format(projectsSeq))
+    projectsSeq
   }
 
   def isInConfiguration(
@@ -506,3 +568,4 @@ private case class Content(
   scalacOptions: Seq[(String, String)])
 
 private case class Lib(binary: File)(val source: Option[File])
+private case class Prj(name: String, baseDirectory: File, classDirectory: Option[File])

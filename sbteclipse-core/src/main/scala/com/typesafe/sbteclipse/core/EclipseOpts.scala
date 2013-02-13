@@ -27,4 +27,6 @@ private object EclipseOpts {
   val WithSource = "with-source"
 
   val UseProjectId = "use-project-id"
+
+  val GenNetBeans = "gen-netbeans"
 }
