@@ -1,8 +1,8 @@
-import com.typesafe.sbtscalariform.ScalariformPlugin._
 import sbt._
 import sbt.Keys._
 import sbt.ScriptedPlugin._
 import sbtrelease.ReleasePlugin._
+import com.typesafe.sbt.SbtScalariform._
 
 object Build extends Build {
 
@@ -30,7 +30,8 @@ object Build extends Build {
     settings = commonSettings
   )
 
-  def commonSettings = Defaults.defaultSettings ++
+  def commonSettings =
+    Defaults.defaultSettings ++
     scalariformSettings ++
     scriptedSettings ++
     releaseSettings ++

@@ -283,7 +283,7 @@ private object Eclipse extends EclipseSDTConfig {
     }
 
   def builderAndNatures(projectFlavor: EclipseProjectFlavor.Value) =
-    if (projectFlavor == EclipseProjectFlavor.Scala)
+    if (projectFlavor.id == EclipseProjectFlavor.Scala.id)
       ScalaBuilder -> Seq(ScalaNature, JavaNature)
     else
       JavaBuilder -> Seq(JavaNature)

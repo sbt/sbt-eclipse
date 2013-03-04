@@ -16,7 +16,7 @@ object Build extends Build {
       ),
       retrieveManaged := true
     ),
-    aggregate = Seq(sub, javaProject)
+    aggregate = Seq(sub, javaProject, scalaProject)
   )
 
   lazy val sub: Project = Project(
@@ -124,6 +124,14 @@ object Build extends Build {
     new File("java"),
     settings = Project.defaultSettings ++ Seq(
       EclipseKeys.projectFlavor := EclipseProjectFlavor.Java
+    )
+  )
+
+  lazy val scalaProject = Project(
+    "scala",
+    new File("scala"),
+    settings = Project.defaultSettings ++ Seq(
+      EclipseKeys.projectFlavor := EclipseProjectFlavor.Scala
     )
   )
 

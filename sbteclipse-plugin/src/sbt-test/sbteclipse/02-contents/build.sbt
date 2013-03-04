@@ -33,6 +33,18 @@ TaskKey[Unit]("verify-project-xml-java") <<= baseDirectory map { dir =>
   verify("natures", "org.eclipse.jdt.core.javanature", (projectDescription \ "natures" \ "nature").text)
 }
 
+TaskKey[Unit]("verify-project-xml-scala") <<= baseDirectory map { dir =>
+  val projectDescription = XML.loadFile(dir / "scala" / ".project")
+  // verifier method
+  def verify[A](name: String, expected: A, actual: A) =
+    if (actual != expected) error("Expected .project to contain %s '%s', but was '%s'!".format(name, expected, actual))
+  // project name
+  verify("name", "scala",  (projectDescription \ "name").text)
+  // scala project nature
+  verify("buildCommand", "org.scala-ide.sdt.core.scalabuilder", (projectDescription \ "buildSpec" \ "buildCommand" \ "name").text)
+  verify("natures", Set("org.scala-ide.sdt.core.scalanature", "org.eclipse.jdt.core.javanature"), (projectDescription \ "natures" \ "nature").map(_.text).toSet)
+}
+
 TaskKey[Unit]("verify-project-xml-subd") <<= baseDirectory map { dir =>
   val projectDescription = XML.loadFile(dir / "sub" / "subd" / ".project")
   val name = (projectDescription \ "name").text
