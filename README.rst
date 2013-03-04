@@ -11,7 +11,7 @@ For the impatient
 
 - Add sbteclipse to your plugin definition file. You can use either the global one at *~/.sbt/plugins/plugins.sbt* or the project-specific one at *PROJECT_DIR/project/plugins.sbt*::
 
-    addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "2.1.1")
+    addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "2.1.2")
 
 - In sbt use the command *eclipse* to create Eclipse project files::
 
