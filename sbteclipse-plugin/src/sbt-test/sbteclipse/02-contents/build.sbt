@@ -217,7 +217,8 @@ TaskKey[Unit]("verify-settings") <<= baseDirectory map { dir =>
     "deprecation" -> "true",
     "Xelide-below" -> "1000",
     "unchecked" -> "true",
-    "scala.compiler.useProjectSettings" -> "true"
+    "scala.compiler.useProjectSettings" -> "true",
+    "encoding/<project>" -> "UTF-8"
   ) 
   if (settings != expected) error("Expected settings to be '%s', but was '%s'!".format(expected, settings))
 }
