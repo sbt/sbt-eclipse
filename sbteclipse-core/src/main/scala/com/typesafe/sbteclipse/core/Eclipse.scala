@@ -129,6 +129,7 @@ private object Eclipse extends EclipseSDTConfig {
         handleProject(
           jreContainer(executionEnvironmentArg orElse executionEnvironment(ref, state)),
           preTasks(ref, state),
+          linkedFolders(ref, state),
           relativizeLibs(ref, state),
           builderAndNatures(projectFlavor(ref, state)),
           state
@@ -170,6 +171,7 @@ private object Eclipse extends EclipseSDTConfig {
   def handleProject(
     jreContainer: String,
     preTasks: Seq[(TaskKey[_], ProjectRef)],
+    linkedFolders: Seq[(String, File)],
     relativizeLibs: Boolean,
     builderAndNatures: (String, Seq[String]),
     state: State)(
@@ -186,13 +188,14 @@ private object Eclipse extends EclipseSDTConfig {
     for {
       _ <- executePreTasks(preTasks, state)
       n <- io(name)
-      _ <- saveXml(baseDirectory / ".project", new RuleTransformer(projectTransformers: _*)(projectXml(name, builderAndNatures)))
+      _ <- saveXml(baseDirectory / ".project", new RuleTransformer(projectTransformers: _*)(projectXml(name, builderAndNatures, linkedFolders)))
       cp <- classpath(
         classpathEntryTransformer,
         buildDirectory,
         baseDirectory,
         relativizeLibs,
         srcDirectories,
+        linkedFolders,
         externalDependencies,
         projectDependencies,
         jreContainer,
@@ -206,7 +209,7 @@ private object Eclipse extends EclipseSDTConfig {
   def executePreTasks(preTasks: Seq[(TaskKey[_], ProjectRef)], state: State): IO[Unit] =
     io(for ((preTask, ref) <- preTasks) evaluateTask(preTask, ref, state))
 
-  def projectXml(name: String, builderAndNatures: (String, Seq[String])): Node =
+  def projectXml(name: String, builderAndNatures: (String, Seq[String]), linkedFolders: Seq[(String, File)]): Node =
     <projectDescription>
       <name>{ name }</name>
       <buildSpec>
@@ -217,6 +220,22 @@ private object Eclipse extends EclipseSDTConfig {
       <natures>
         { builderAndNatures._2.map(n => <nature>{ n }</nature>) }
       </natures>
+      {
+        if (!linkedFolders.isEmpty) {
+          <linkedResources>
+            {
+              linkedFolders.map {
+                case (name, file) =>
+                  <link>
+                    <name>{ name }</name>
+                    <type>2</type>
+                    <location>{ file.getCanonicalPath.replaceAll("\\\\", "/") }</location>
+                  </link>
+              }
+            }
+          </linkedResources>
+        }
+      }
     </projectDescription>
 
   def classpath(
@@ -225,12 +244,13 @@ private object Eclipse extends EclipseSDTConfig {
     baseDirectory: File,
     relativizeLibs: Boolean,
     srcDirectories: Seq[(File, File)],
+    linkedFolders: Seq[(String, File)],
     externalDependencies: Seq[Lib],
     projectDependencies: Seq[String],
     jreContainer: String,
     state: State): IO[Node] = {
     val srcEntriesIoSeq =
-      for ((dir, output) <- srcDirectories) yield srcEntry(baseDirectory, dir, output, state)
+      for ((dir, output) <- srcDirectories) yield srcEntry(baseDirectory, dir, linkedFolders, output, state)
     for (srcEntries <- srcEntriesIoSeq.sequence) yield {
       val entries = srcEntries ++
         (externalDependencies map libEntry(buildDirectory, baseDirectory, relativizeLibs, state)) ++
@@ -244,15 +264,24 @@ private object Eclipse extends EclipseSDTConfig {
   def srcEntry(
     baseDirectory: File,
     srcDirectory: File,
+    linkedFolders: Seq[(String, File)],
     classDirectory: File,
     state: State): IO[EclipseClasspathEntry.Src] =
     io {
       if (!srcDirectory.exists()) srcDirectory.mkdirs()
       EclipseClasspathEntry.Src(
-        relativize(baseDirectory, srcDirectory),
+        findInLinkedFolder(srcDirectory, linkedFolders) getOrElse relativize(baseDirectory, srcDirectory),
         relativize(baseDirectory, classDirectory)
       )
     }
+
+  def findInLinkedFolder(srcDirectory: File, linkedFolders: Seq[(String, File)]): Option[String] = {
+    val paths = for {
+      (name, path) <- linkedFolders
+      rel <- IO.relativize(path, srcDirectory)
+    } yield (name + "/" + rel)
+    paths.headOption
+  }
 
   def libEntry(
     buildDirectory: File,
@@ -416,6 +445,9 @@ private object Eclipse extends EclipseSDTConfig {
 
   def executionEnvironment(ref: Reference, state: State): Option[EclipseExecutionEnvironment.Value] =
     setting(EclipseKeys.executionEnvironment in ref, state).fold(_ => None, id)
+
+  def linkedFolders(ref: Reference, state: State): Seq[(String, File)] =
+    setting(EclipseKeys.linkedFolders in ref, state).fold(_ => Nil, id)
 
   def skipParents(ref: Reference, state: State): Boolean =
     setting(EclipseKeys.skipParents in ref, state).fold(_ => true, id)

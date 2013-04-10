@@ -22,6 +22,8 @@ private object EclipseOpts {
 
   val ExecutionEnvironment = "execution-environment"
 
+  val LinkedFolders = "linked-folders"
+
   val SkipParents = "skip-parents"
 
   val WithSource = "with-source"
