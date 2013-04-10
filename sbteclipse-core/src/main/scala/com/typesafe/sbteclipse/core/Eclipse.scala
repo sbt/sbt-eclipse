@@ -186,18 +186,23 @@ private object Eclipse extends EclipseSDTConfig {
     for {
       _ <- executePreTasks(preTasks, state)
       n <- io(name)
-      _ <- saveXml(baseDirectory / ".project", new RuleTransformer(projectTransformers: _*)(projectXml(name, builderAndNatures)))
+      dirs <- splitSrcDirectories(srcDirectories, baseDirectory)
+      // Note - Io does not have filter... hence this ugly
+      localSrcDirectories = dirs._1
+      linkedSrcDirectories = dirs._2
       cp <- classpath(
         classpathEntryTransformer,
         buildDirectory,
         baseDirectory,
         relativizeLibs,
-        srcDirectories,
+        localSrcDirectories,
+        linkedSrcDirectories,
         externalDependencies,
         projectDependencies,
         jreContainer,
         state
       )
+      _ <- saveXml(baseDirectory / ".project", new RuleTransformer(projectTransformers: _*)(projectXml(name, builderAndNatures, linkedSrcDirectories)))
       _ <- saveXml(baseDirectory / ".classpath", new RuleTransformer(classpathTransformers: _*)(cp))
       _ <- saveProperties(baseDirectory / ".settings" / "org.scala-ide.sdt.core.prefs", scalacOptions)
     } yield n
@@ -206,7 +211,7 @@ private object Eclipse extends EclipseSDTConfig {
   def executePreTasks(preTasks: Seq[(TaskKey[_], ProjectRef)], state: State): IO[Unit] =
     io(for ((preTask, ref) <- preTasks) evaluateTask(preTask, ref, state))
 
-  def projectXml(name: String, builderAndNatures: (String, Seq[String])): Node =
+  def projectXml(name: String, builderAndNatures: (String, Seq[String]), sourceLinks: Seq[(File, String, File)]): Node =
     <projectDescription>
       <name>{ name }</name>
       <buildSpec>
@@ -217,7 +222,42 @@ private object Eclipse extends EclipseSDTConfig {
       <natures>
         { builderAndNatures._2.map(n => <nature>{ n }</nature>) }
       </natures>
+      <linkedResources>
+        {
+          sourceLinks map {
+            case (location, name, _) =>
+              <link>
+                <name>{ name }</name>
+                <type>2</type>
+                <location>{ location.getCanonicalPath }</location>
+              </link>
+          }
+        }
+      </linkedResources>
     </projectDescription>
+
+  def createLinkName(file: File, baseDirectory: File): String = {
+    val name = file.getCanonicalPath
+    // just put '-' in place of bad characters for the name... (for now).
+    // in the future we should limit the size via relativizing magikz.
+    name.replaceAll("[\\s\\\\/]+", "-")
+  }
+
+  def splitSrcDirectories(srcDirectories: Seq[(File, File)], baseDirectory: File): IO[(Seq[(File, File)], Seq[(File, String, File)])] = io {
+    val (local, linked) =
+      srcDirectories partition {
+        case (dir, _) => relativizeOpt(baseDirectory, dir).isDefined
+      }
+    //Now, create link names...
+
+    val links =
+      for {
+        (file, classDirectory) <- linked
+        name = createLinkName(file, baseDirectory)
+      } yield (file, name, classDirectory)
+
+    (local, links)
+  }
 
   def classpath(
     classpathEntryTransformer: Seq[EclipseClasspathEntry] => Seq[EclipseClasspathEntry],
@@ -225,14 +265,20 @@ private object Eclipse extends EclipseSDTConfig {
     baseDirectory: File,
     relativizeLibs: Boolean,
     srcDirectories: Seq[(File, File)],
+    srcDirectoryLinks: Seq[(File, String, File)],
     externalDependencies: Seq[Lib],
     projectDependencies: Seq[String],
     jreContainer: String,
     state: State): IO[Node] = {
     val srcEntriesIoSeq =
       for ((dir, output) <- srcDirectories) yield srcEntry(baseDirectory, dir, output, state)
-    for (srcEntries <- srcEntriesIoSeq.sequence) yield {
-      val entries = srcEntries ++
+    val srcLinkEntriesIoSeq =
+      for ((dir, name, output) <- srcDirectoryLinks) yield srcLink(baseDirectory, dir, name, output, state)
+    for (
+      srcEntries <- srcEntriesIoSeq.sequence;
+      linkEntries <- srcLinkEntriesIoSeq.sequence
+    ) yield {
+      val entries = srcEntries ++ linkEntries ++
         (externalDependencies map libEntry(buildDirectory, baseDirectory, relativizeLibs, state)) ++
         (projectDependencies map EclipseClasspathEntry.Project) ++
         (Seq(jreContainer) map EclipseClasspathEntry.Con) ++
@@ -240,6 +286,20 @@ private object Eclipse extends EclipseSDTConfig {
       <classpath>{ classpathEntryTransformer(entries) map (_.toXml) }</classpath>
     }
   }
+
+  def srcLink(
+    baseDirectory: File,
+    linkedDir: File,
+    linkName: String,
+    classDirectory: File,
+    state: State): IO[EclipseClasspathEntry.Src] =
+    io {
+      if (!linkedDir.exists) linkedDir.mkdirs()
+      EclipseClasspathEntry.Src(
+        linkName,
+        relativize(baseDirectory, classDirectory)
+      )
+    }
 
   def srcEntry(
     baseDirectory: File,
@@ -494,8 +554,29 @@ private object Eclipse extends EclipseSDTConfig {
 
   // Utilities
 
+  // Note: Relativize doesn't take into account "..", so we need to normalize *first* (yippie), then check for relativize.
+  // Also - Instead of failure we should generate a "link".
   def relativize(baseDirectory: File, file: File): String =
-    IO.relativize(baseDirectory, file).get
+    relativizeOpt(baseDirectory, file).get
+
+  def relativizeOpt(baseDirectory: File, file: File): Option[String] =
+    IO.relativize(baseDirectory, normalize(file))
+
+  def normalize(file: File): File =
+    new java.io.File(normalizeName(file.getAbsolutePath))
+
+  def normalizeName(filename: String): String = {
+    if (filename contains "..") {
+      val parts = (filename split "[\\/]+").toList
+      def fix(parts: List[String], result: String): String = parts match {
+        case Nil => result
+        case a :: ".." :: rest => fix(rest, result)
+        case a :: rest if result.isEmpty => fix(rest, a)
+        case a :: rest => fix(rest, result + java.io.File.separator + a)
+      }
+      fix(parts, "")
+    } else filename
+  }
 }
 
 private case class Content(
