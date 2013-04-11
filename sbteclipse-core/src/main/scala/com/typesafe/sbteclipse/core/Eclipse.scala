@@ -229,7 +229,7 @@ private object Eclipse extends EclipseSDTConfig {
               <link>
                 <name>{ name }</name>
                 <type>2</type>
-                <location>{ location.getCanonicalPath }</location>
+                <location>{ location.getCanonicalPath.replaceAll("\\\\", "/") }</location>
               </link>
           }
         }
