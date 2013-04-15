@@ -330,7 +330,9 @@ private object Eclipse extends EclipseSDTConfig {
   }
 
   def scalacOptions(ref: ProjectRef, state: State): Validation[Seq[(String, String)]] =
-    evaluateTask(Keys.scalacOptions, ref, state) map (options =>
+    // Here we have to look at scalacOptions *for compilation*, vs. the ones used for testing.
+    // We have to pick one set, and this should be the most complete set.
+    evaluateTask(Keys.scalacOptions in sbt.Compile, ref, state) map (options =>
       if (options.isEmpty)
         Nil
       else {
