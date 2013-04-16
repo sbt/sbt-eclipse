@@ -38,7 +38,7 @@ private trait EclipseSDTConfig {
     Flag("Xlog-implicits"),
     Flag("Xmigration"),
     Flag("Xno-uescape"),
-    ColonSeparated("Xplugin"),
+    XPluginHackery,
     ColonSeparated("Xplugin-disable"),
     ColonSeparated("Xplugin-require"),
     TakesArg("Xpluginsdir"),
@@ -67,6 +67,15 @@ private trait EclipseSDTConfig {
     val classify: ArgumentConsumer = {
       case (akku, Seq(`scalacOption`, tail @ _*)) => (akku + (name -> String.valueOf(true)), tail)
     }
+  }
+
+  // Eclipse Scala IDE automagically adds the continuations plugin, so we have a hack here to detect
+  // and remove it (which is dangerous, but less dangerous than not working...)
+  // Note: Reference Scala issue: https://issues.scala-lang.org/browse/SI-5491
+  private object XPluginHackery extends ColonSeparated("Xplugin", false) {
+    override def maybeAppend(pre: String, post: String) =
+      if (post contains "continuations") pre
+      else super.maybeAppend(pre, post)
   }
 
   private case class ColonSeparated(name: String, once: Boolean = true) extends SDTOption with ScalacOption {
