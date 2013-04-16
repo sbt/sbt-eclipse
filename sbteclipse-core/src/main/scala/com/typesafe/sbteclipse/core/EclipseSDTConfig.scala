@@ -71,6 +71,7 @@ private trait EclipseSDTConfig {
 
   // Eclipse Scala IDE automagically adds the continuations plugin, so we have a hack here to detect
   // and remove it (which is dangerous, but less dangerous than not working...)
+  // Note: Reference Scala issue: https://issues.scala-lang.org/browse/SI-5491
   private object XPluginHackery extends ColonSeparated("Xplugin", false) {
     override def maybeAppend(pre: String, post: String) =
       if (post contains "continuations") pre
