@@ -46,6 +46,21 @@ object Build extends Build {
       },
       sbtPlugin := true,
       publishMavenStyle := false,
+      sbtVersion in GlobalScope <<= (sbtVersion in GlobalScope) { sbtVersion =>
+        System.getProperty("sbt.build.version", sbtVersion)
+      },
+      sbtBinaryVersion in GlobalScope <<= (sbtVersion in GlobalScope) { sbtVersion =>
+        // This isn't needed once we start using SBT 0.13 to build
+        if (CrossVersion.isStable(sbtVersion)) CrossVersion.binarySbtVersion(sbtVersion) else sbtVersion
+      },
+      scalaVersion <<= (sbtVersion in GlobalScope) {
+        case sbt013 if sbt013.startsWith("0.13.") => "2.10.1"
+        case sbt012 if sbt012.startsWith("0.12.") => "2.9.1"
+        case _ => "2.9.1"
+      },
+      sbtDependency in GlobalScope <<= (sbtDependency in GlobalScope, sbtVersion in GlobalScope) { (dep, sbtVersion) =>
+        dep.copy(revision = sbtVersion)
+      },
       publishArtifact in (Compile, packageDoc) := false,
       publishArtifact in (Compile, packageSrc) := false,
       scriptedLaunchOpts += "-Xmx1024m"
