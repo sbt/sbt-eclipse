@@ -1,7 +1,7 @@
 import sbt._
 import sbt.Keys._
 import sbt.ScriptedPlugin._
-import sbtrelease.ReleasePlugin._
+//import sbtrelease.ReleasePlugin._
 import com.typesafe.sbt.SbtScalariform._
 
 object Build extends Build {
@@ -34,7 +34,7 @@ object Build extends Build {
     Defaults.defaultSettings ++
     scalariformSettings ++
     scriptedSettings ++
-    releaseSettings ++
+//    releaseSettings ++
     Seq(
       organization := "com.typesafe.sbteclipse",
       // version is defined in version.sbt in order to support sbt-release
@@ -49,10 +49,10 @@ object Build extends Build {
       sbtVersion in GlobalScope <<= (sbtVersion in GlobalScope) { sbtVersion =>
         System.getProperty("sbt.build.version", sbtVersion)
       },
-      sbtBinaryVersion in GlobalScope <<= (sbtVersion in GlobalScope) { sbtVersion =>
-        // This isn't needed once we start using SBT 0.13 to build
-        if (CrossVersion.isStable(sbtVersion)) CrossVersion.binarySbtVersion(sbtVersion) else sbtVersion
-      },
+      // sbtBinaryVersion in GlobalScope <<= (sbtVersion in GlobalScope) { sbtVersion =>
+      //   // This isn't needed once we start using SBT 0.13 to build
+      //   if (CrossVersion.isStable(sbtVersion)) CrossVersion.binarySbtVersion(sbtVersion) else sbtVersion
+      // },
       scalaVersion <<= (sbtVersion in GlobalScope) {
         case sbt013 if sbt013.startsWith("0.13.") => "2.10.2"
         case sbt012 if sbt012.startsWith("0.12.") => "2.9.1"
