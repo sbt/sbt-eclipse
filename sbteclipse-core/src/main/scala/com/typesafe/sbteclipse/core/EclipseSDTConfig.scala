@@ -42,6 +42,7 @@ private trait EclipseSDTConfig {
     ColonSeparated("Xplugin-disable"),
     ColonSeparated("Xplugin-require"),
     TakesArg("Xpluginsdir"),
+    TakesArg("Xmax-classfile-name"),
 
     Flag("Yno-generic-signatures"),
     Flag("Yno-imports"),
