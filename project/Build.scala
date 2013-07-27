@@ -19,7 +19,9 @@ object Build extends Build {
     "sbteclipse-core",
     file("sbteclipse-core"),
     settings = commonSettings ++ Seq(
-      libraryDependencies ++= Seq("org.scalaz" %% "scalaz-core" % "6.0.4")
+      libraryDependencies ++= Seq(
+       "org.scalaz"  %% "scalaz-core"  % "7.0.2",
+       "org.scalaz" %% "scalaz-effect" % "7.0.2")
     )
   )
 

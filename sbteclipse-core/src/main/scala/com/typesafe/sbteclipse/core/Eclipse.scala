@@ -58,7 +58,8 @@ import scala.xml.{ Node, PrettyPrinter }
 import scala.xml.transform.{ RewriteRule, RuleTransformer }
 import scalaz.{ Failure, NonEmptyList, Success }
 import scalaz.Scalaz._
-import scalaz.effects._
+import scalaz.effect._
+import scalaz.std.tuple._
 
 private object Eclipse extends EclipseSDTConfig {
   val SettingFormat = """-([^:]*):?(.*)""".r
@@ -116,8 +117,8 @@ private object Eclipse extends EclipseSDTConfig {
     } yield {
       val configs = configurations(ref, state)
       val applic = classpathEntryTransformerFactory(ref, state).createTransformer(ref, state) |@|
-        (classpathTransformerFactories(ref, state) map (_.createTransformer(ref, state))).sequence[Validation, RewriteRule] |@|
-        (projectTransformerFactories(ref, state) map (_.createTransformer(ref, state))).sequence[Validation, RewriteRule] |@|
+        (classpathTransformerFactories(ref, state).toList map (_.createTransformer(ref, state))).sequence[Validation, RewriteRule] |@|
+        (projectTransformerFactories(ref, state).toList map (_.createTransformer(ref, state))).sequence[Validation, RewriteRule] |@|
         name(ref, state) |@|
         buildDirectory(state) |@|
         baseDirectory(ref, state) |@|
@@ -135,14 +136,14 @@ private object Eclipse extends EclipseSDTConfig {
         )
       )
     }
-    effects.sequence[Validation, IO[String]] map (_.sequence)
+    effects.toList.sequence[Validation, IO[String]].map((list: List[IO[String]]) => list.toStream.sequence.map(_.toList))
   }
 
   def onFailure(state: State)(errors: NonEmptyList[String]): State = {
     state.log.error(
       "Could not create Eclipse project files:%s%s".format(NewLine, errors.list mkString NewLine)
     )
-    state.fail
+    state
   }
 
   def onSuccess(state: State)(effects: IO[Seq[String]]): State = {
@@ -165,7 +166,7 @@ private object Eclipse extends EclipseSDTConfig {
   def mapConfigurations[A](
     configurations: Seq[Configuration],
     f: Configuration => Validation[Seq[A]]): Validation[Seq[A]] =
-    (configurations map f).sequence map (_.flatten.distinct)
+    (configurations map f).toList.sequence map (_.flatten.distinct)
 
   def handleProject(
     jreContainer: String,
@@ -275,8 +276,8 @@ private object Eclipse extends EclipseSDTConfig {
     val srcLinkEntriesIoSeq =
       for ((dir, name, output) <- srcDirectoryLinks) yield srcLink(baseDirectory, dir, name, output, state)
     for (
-      srcEntries <- srcEntriesIoSeq.sequence;
-      linkEntries <- srcLinkEntriesIoSeq.sequence
+      srcEntries <- srcEntriesIoSeq.toList.sequence;
+      linkEntries <- srcLinkEntriesIoSeq.toList.sequence
     ) yield {
       val entries = srcEntries ++ linkEntries ++
         (externalDependencies map libEntry(buildDirectory, baseDirectory, relativizeLibs, state)) ++
@@ -376,17 +377,17 @@ private object Eclipse extends EclipseSDTConfig {
       case Some(name) => baseDirectory(ref, state) map (new File(_, name))
       case None => setting(Keys.classDirectory in (ref, configuration), state)
     }
-    def dirs(values: ValueSet, key: SettingKey[Seq[File]]) =
+    def dirs(values: ValueSet, key: SettingKey[Seq[File]]): Validation[List[(sbt.File, java.io.File)]] =
       if (values subsetOf createSrc)
-        (setting(key in (ref, configuration), state) <**> classDirectory)((sds, cd) => sds map (_ -> cd))
+        (setting(key in (ref, configuration), state) <**> classDirectory)((sds, cd) => sds.toList map (_ -> cd))
       else
-        success(Seq.empty)
-    Seq(
+        scalaz.Validation.success(Nil)
+    List(
       dirs(ValueSet(Unmanaged, Source), Keys.unmanagedSourceDirectories),
       dirs(ValueSet(Managed, Source), Keys.managedSourceDirectories),
       dirs(ValueSet(Unmanaged, Resource), Keys.unmanagedResourceDirectories),
       dirs(ValueSet(Managed, Resource), Keys.managedResourceDirectories)
-    ) reduceLeft (_ >>*<< _)
+    ) reduceLeft (_ +++ _)
   }
 
   def scalacOptions(ref: ProjectRef, state: State): Validation[Seq[(String, String)]] =
@@ -455,7 +456,7 @@ private object Eclipse extends EclipseSDTConfig {
       case dependency if isInConfiguration(configuration, ref, dependency, state) =>
         setting(Keys.name in dependency.project, state)
     }
-    val projectDependenciesSeq = projectDependencies.sequence
+    val projectDependenciesSeq = projectDependencies.toList.sequence
     state.log.debug("Project dependencies for configuration '%s': %s".format(configuration, projectDependenciesSeq))
     projectDependenciesSeq
   }
@@ -553,6 +554,8 @@ private object Eclipse extends EclipseSDTConfig {
 
   def closeWriter(writer: Writer): IO[Unit] =
     io(writer.close())
+
+  private def io[T](t: => T): IO[T] = scalaz.effect.IO(t)
 
   // Utilities
 
