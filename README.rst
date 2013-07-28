@@ -7,11 +7,11 @@ Plugin for `sbt`_ to create `Eclipse`_ project definitions. Please see the `Docu
 For the impatient
 -----------------
 
-- sbteclipse requires sbt 0.11.3-2 or 0.12!
+- sbteclipse 2.3.0 requires sbt 0.13, sbteclipse 2.2.0 works with sbt 0.12 and 0.13!
 
 - Add sbteclipse to your plugin definition file. You can use either the global one at *~/.sbt/plugins/plugins.sbt* or the project-specific one at *PROJECT_DIR/project/plugins.sbt*::
 
-    addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "2.2.0")
+    addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "2.3.0")
 
 - In sbt use the command *eclipse* to create Eclipse project files::
 
