@@ -11,7 +11,7 @@ object Build extends Build {
       unmanagedSourceDirectories in Compile <+= baseDirectory(new File(_, "src/main/scala")),
       unmanagedSourceDirectories in Test <+= baseDirectory(new File(_, "src/test/scala")),
       libraryDependencies ++= Seq(
-        "org.scala-lang" % "scala-compiler" % "2.9.2",
+        "org.scala-lang" % "scala-compiler" % "2.10.2",
         "biz.aQute" % "bndlib" % "1.50.0"
       ),
       retrieveManaged := true
@@ -42,7 +42,7 @@ object Build extends Build {
       libraryDependencies ++= Seq(
         "ch.qos.logback" % "logback-classic" % "1.0.1",
         "biz.aQute" % "bndlib" % "1.50.0",
-        "org.specs2" %% "specs2" % "1.9" % "test"
+        "org.specs2" %% "specs2" % "2.1.1" % "test"
       ),
       EclipseKeys.createSrc := EclipseCreateSrc.ValueSet(EclipseCreateSrc.Managed, EclipseCreateSrc.Resource),
       EclipseKeys.createSrc in Test := EclipseCreateSrc.ValueSet.empty,
@@ -65,7 +65,6 @@ object Build extends Build {
         "-verbose",
         "-Xprompt",
         "-deprecation",
-        "-Ydependent-method-types",
         "-unchecked"),
       EclipseKeys.configurations := Set(Configurations.Compile, Configurations.IntegrationTest)
     ),

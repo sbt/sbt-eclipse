@@ -3,6 +3,8 @@ import java.util.Properties
 import scala.collection.JavaConverters._
 import scala.xml.XML
 
+EclipseKeys.skipParents in ThisBuild := false
+
 organization := "com.typesafe.sbteclipse"
 
 name := "sbteclipse-test"
@@ -64,25 +66,25 @@ TaskKey[Unit]("verify-classpath-xml-root") <<= baseDirectory map { dir =>
   if ((classpath \ "classpathentry") != (classpath \ "classpathentry").distinct)
     error("Expected .classpath of root project not to contain duplicate entries: %s" format classpath)
   // src entries
-  if (!(classpath.child contains <classpathentry kind="src" path="src/main/scala" output="target/scala-2.9.2/classes" />))
-    error("""Expected .classpath of root project to contain <classpathentry kind="src" path="src/main/scala" output="target/scala-2.9.2/classes" /> """)
-  if (!(classpath.child contains <classpathentry kind="src" path="src/main/java" output="target/scala-2.9.2/classes" />))
-    error("""Expected .classpath of root project to contain <classpathentry kind="src" path="src/main/java" output="target/scala-2.9.2/classes" /> """)
-  if (!(classpath.child contains <classpathentry kind="src" path="src/test/scala" output="target/scala-2.9.2/test-classes" />))
-    error("""Expected .classpath of root project to contain <classpathentry kind="src" path="src/test/scala" output="target/scala-2.9.2/test-classes" /> """)
-  if (!(classpath.child contains <classpathentry kind="src" path="src/test/java" output="target/scala-2.9.2/test-classes" />))
-    error("""Expected .classpath of root project to contain <classpathentry kind="src" path="src/test/java" output="target/scala-2.9.2/test-classes" /> """)
+  if (!(classpath.child contains <classpathentry kind="src" path="src/main/scala" output="target/scala-2.10/classes" />))
+    error("""Expected .classpath of root project to contain <classpathentry kind="src" path="src/main/scala" output="target/scala-2.10/classes" /> """)
+  if (!(classpath.child contains <classpathentry kind="src" path="src/main/java" output="target/scala-2.10/classes" />))
+    error("""Expected .classpath of root project to contain <classpathentry kind="src" path="src/main/java" output="target/scala-2.10/classes" /> """)
+  if (!(classpath.child contains <classpathentry kind="src" path="src/test/scala" output="target/scala-2.10/test-classes" />))
+    error("""Expected .classpath of root project to contain <classpathentry kind="src" path="src/test/scala" output="target/scala-2.10/test-classes" /> """)
+  if (!(classpath.child contains <classpathentry kind="src" path="src/test/java" output="target/scala-2.10/test-classes" />))
+    error("""Expected .classpath of root project to contain <classpathentry kind="src" path="src/test/java" output="target/scala-2.10/test-classes" /> """)
   if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "src/main/resources") 
     error("""Not expected .classpath of root project to contain <classpathentry kind="..." path="src/main/resources" output="..." /> """)
   if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "src/test/resources") 
     	error("""Not expected .classpath of root project to contain <classpathentry kind="..." path="src/test/resources" output="..." /> """)
-  if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "target/scala-2.9.2/src_managed/main") 
+  if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "target/scala-2.10/src_managed/main") 
     error("""Not expected .classpath of root project to contain <classpathentry kind="..." path="...src_managed/main" output="..." /> """)
-  if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "target/scala-2.9.2/src_managed/test") 
+  if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "target/scala-2.10/src_managed/test") 
     error("""Not expected .classpath of root project to contain <classpathentry kind="..." path="...src_managed/test" output="..." /> """)
-  if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "target/scala-2.9.2/resource_managed/main") 
+  if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "target/scala-2.10/resource_managed/main") 
     error("""Not expected .classpath of root project to contain <classpathentry kind="..." path="...resource_managed/main" output="..." /> """)
-  if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "target/scala-2.9.2/resource_managed/test") 
+  if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "target/scala-2.10/resource_managed/test") 
     error("""Not expected .classpath of root project to contain <classpathentry kind="..." path="...resource_managed/test" output="..." /> """)
   // lib entries without sources
   if (!(classpath.child contains <classpathentry kind="lib" path="./lib_managed/jars/biz.aQute/bndlib/bndlib-1.50.0.jar" />))
@@ -121,17 +123,17 @@ TaskKey[Unit]("verify-classpath-xml-suba") <<= baseDirectory map { dir =>
   if ((classpath \ "classpathentry") != (classpath \ "classpathentry").distinct)
     error("Expected .classpath of suba project not to contain duplicate entries: %s" format classpath)
   // src entries
-  if (!(classpath.child contains <classpathentry kind="src" path="target/scala-2.9.2/resource_managed/main" output="target/scala-2.9.2/classes" />))
-    error("""Expected .classpath of suba project to contain <classpathentry kind="src" path="target/scala-2.9.2/resource_managed/main" output="target/scala-2.9.2/classes" />: %s """ format classpath)
-  if ((classpath.child contains <classpathentry kind="src" path="target/scala-2.9.2/resource_managed/test" output="target/scala-2.9.2/test-classes" />))
-    error("""Not expected .classpath of suba project to contain <classpathentry kind="src" path="target/scala-2.9.2/resource_managed/test" output="target/scala-2.9.2/test-classes" />: %s """ format classpath)
-  if ((classpath.child contains <classpathentry kind="src" path="src/test/scala" output="target/scala-2.9.2/test-classes" />))
-    error("""Not expected .classpath of root project to contain <classpathentry kind="src" path="src/test/scala" output="target/scala-2.9.2/test-classes" /> """)
-  if ((classpath.child contains <classpathentry kind="src" path="src/test/java" output="target/scala-2.9.2/test-classes" />))
-    error("""Not expected .classpath of root project to contain <classpathentry kind="src" path="src/test/java" output="target/scala-2.9.2/test-classes" /> """)
-  if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "target/scala-2.9.2/src_managed/main") 
+  if (!(classpath.child contains <classpathentry kind="src" path="target/scala-2.10/resource_managed/main" output="target/scala-2.10/classes" />))
+    error("""Expected .classpath of suba project to contain <classpathentry kind="src" path="target/scala-2.10/resource_managed/main" output="target/scala-2.10/classes" />: %s """ format classpath)
+  if ((classpath.child contains <classpathentry kind="src" path="target/scala-2.10/resource_managed/test" output="target/scala-2.10/test-classes" />))
+    error("""Not expected .classpath of suba project to contain <classpathentry kind="src" path="target/scala-2.10/resource_managed/test" output="target/scala-2.10/test-classes" />: %s """ format classpath)
+  if ((classpath.child contains <classpathentry kind="src" path="src/test/scala" output="target/scala-2.10/test-classes" />))
+    error("""Not expected .classpath of root project to contain <classpathentry kind="src" path="src/test/scala" output="target/scala-2.10/test-classes" /> """)
+  if ((classpath.child contains <classpathentry kind="src" path="src/test/java" output="target/scala-2.10/test-classes" />))
+    error("""Not expected .classpath of root project to contain <classpathentry kind="src" path="src/test/java" output="target/scala-2.10/test-classes" /> """)
+  if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "target/scala-2.10/src_managed/main") 
     error("""Not expected .classpath of suba project to contain <classpathentry kind="..." path="...src_managed/main" output="..." />: %s """ format classpath)
-  if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "target/scala-2.9.2/src_managed/test") 
+  if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "target/scala-2.10/src_managed/test") 
     error("""Not expected .classpath of suba project to contain <classpathentry kind="..." path="...src_managed/test" output="..." />: %s """ format classpath)
   if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "src/main/scala") 
     error("""Not expected .classpath of suba project to contain <classpathentry kind="..." path="src/main/scala" output="..." />: %s """ format classpath)
@@ -156,8 +158,8 @@ TaskKey[Unit]("verify-classpath-xml-suba") <<= baseDirectory map { dir =>
     error("""Expected .classpath of suba project to contain <classpathentry kind="lib" path={ home + "/.ivy2/cache/ch.qos.logback/logback-classic/jars/logback-classic-1.0.1.jar" } sourcepath={ home + "/.ivy2/cache/ch.qos.logback/logback-classic/srcs/logback-classic-1.0.1-sources.jar" } />: %s""" format classpath)
   if (!(classpath.child contains <classpathentry kind="lib" path={ home + "/.ivy2/cache/biz.aQute/bndlib/jars/bndlib-1.50.0.jar" } sourcepath={ home + "/.ivy2/cache/biz.aQute/bndlib/srcs/bndlib-1.50.0-sources.jar" } />))
     error("""Expected .classpath of suba project to contain <classpathentry kind="lib" path={ home + "/.ivy2/cache/biz.aQute/bndlib/jars/bndlib-1.50.0.jar" } sourcepath={ home + "/.ivy2/cache/biz.aQute/bndlib/srcs/bndlib-1.50.0-sources.jar" } />: %s""" format classpath)
-  if (!(classpath.child contains <classpathentry kind="lib" path={ home + "/.ivy2/cache/org.specs2/specs2_2.9.2/jars/specs2_2.9.2-1.9.jar" } sourcepath={ home + "/.ivy2/cache/org.specs2/specs2_2.9.2/srcs/specs2_2.9.2-1.9-sources.jar" } />))
-    error("""Expected .classpath of suba project to contain <classpathentry kind="lib" path={ home + "/.ivy2/cache/org.specs2/specs2_2.9.2/jars/specs2_2.9.2-1.9.jar" } sourcepath={ home + "/.ivy2/cache/org.specs2/specs2_2.9.2/srcs/specs2_2.9.2-1.9-sources.jar" } />: %s""" format classpath)
+  if (!(classpath.child contains <classpathentry kind="lib" path={ home + "/.ivy2/cache/org.specs2/specs2_2.10/jars/specs2_2.10-2.1.1.jar" } sourcepath={ home + "/.ivy2/cache/org.specs2/specs2_2.10/srcs/specs2_2.10-2.1.1-sources.jar" } />))
+    error("""Expected .classpath of suba project to contain <classpathentry kind="lib" path={ home + "/.ivy2/cache/org.specs2/specs2_2.10/jars/specs2_2.10-2.1.1.jar" } sourcepath={ home + "/.ivy2/cache/org.specs2/specs2_2.10/srcs/specs2_2.10-2.1.1-sources.jar" } />: %s""" format classpath)
 }
 
 TaskKey[Unit]("verify-classpath-xml-subb") <<= baseDirectory map { dir =>
@@ -165,8 +167,8 @@ TaskKey[Unit]("verify-classpath-xml-subb") <<= baseDirectory map { dir =>
   if ((classpath \ "classpathentry") != (classpath \ "classpathentry").distinct)
     error("Expected .classpath of subb project not to contain duplicate entries: %s" format classpath)
     // src entries
-  if (!(classpath.child contains <classpathentry kind="src" path="src/it/scala" output="target/scala-2.9.2/it-classes" />))
-    error("""Expected .classpath of subb project to contain <classpathentry kind="src" path="src/it/scala" output="target/scala-2.9.2/it-classes" />: %s""" format classpath)
+  if (!(classpath.child contains <classpathentry kind="src" path="src/it/scala" output="target/scala-2.10/it-classes" />))
+    error("""Expected .classpath of subb project to contain <classpathentry kind="src" path="src/it/scala" output="target/scala-2.10/it-classes" />: %s""" format classpath)
   if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "src/test/scala") 
     error("""Not expected .classpath of root project to contain <classpathentry kind="..." path="src/test/scala" output="..." /> """)
   // lib entries without sources
@@ -176,8 +178,8 @@ TaskKey[Unit]("verify-classpath-xml-subb") <<= baseDirectory map { dir =>
     error("""Expected .classpath of subb project to contain <classpathentry kind="lib" path="../../lib_managed/jars/biz.aQute/bndlib/bndlib-1.50.0.jar" />: %s""" format classpath)
   if (!(classpath.child contains <classpathentry kind="lib" path="../../lib_managed/jars/junit/junit/junit-4.7.jar" />))
     error("""Expected .classpath of subb project to contain <classpathentry kind="lib" path="../../lib_managed/jars/junit/junit/junit-4.7.jar" />: %s""" format classpath)
-  if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "specs2_2.9.2") 
-    error("""Not expected .classpath of subb project to contain <classpathentry kind="..." path="...specs2_2.9.2..." output="..." /> """)
+  if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "specs2_2.10") 
+    error("""Not expected .classpath of subb project to contain <classpathentry kind="..." path="...specs2_2.10..." output="..." /> """)
   // project dependencies
   if (!(classpath.child contains <classpathentry kind="src" path="/suba" exported="true" combineaccessrules="false" />))
     error("""Expected .classpath of subb project to contain <classpathentry kind="src" path="/suba" exported="true" combineaccessrules="false" />: %s""" format classpath)
@@ -212,7 +214,7 @@ TaskKey[Unit]("verify-settings") <<= baseDirectory map { dir =>
     p.asScala.toMap
   }
   val expected = Map(
-    "scala.compiler.additionalParams" -> """-Xprompt -Ydependent-method-types""",
+    "scala.compiler.additionalParams" -> """-Xprompt""",
     "verbose" -> "true",
     "deprecation" -> "true",
     "Xelide-below" -> "1000",
