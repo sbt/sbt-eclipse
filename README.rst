@@ -9,13 +9,21 @@ For the impatient
 
 - sbteclipse 2.3.0 requires sbt 0.13, sbteclipse 2.2.0 works with sbt 0.12 and 0.13!
 
-- Add sbteclipse to your plugin definition file. You can use either the global one at *~/.sbt/plugins/plugins.sbt* or the project-specific one at *PROJECT_DIR/project/plugins.sbt*::
+- Add sbteclipse to your plugin definition file. You can use either:
 
-    addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "2.3.0")
+  - the global file (for versions earlier than 0.13) at *~/.sbt/plugins/plugins.sbt*
+  - the global file (for version 0.13 and up) at *~/.sbt/0.13/plugins/*
+  - the project-specific file at *PROJECT_DIR/project/plugins.sbt*
 
-- In sbt use the command *eclipse* to create Eclipse project files::
+::
 
-    > eclipse
+  addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "2.3.0")
+
+- In sbt use the command *eclipse* to create Eclipse project files
+
+::
+
+  > eclipse
 
 - In Eclipse use the *Import Wizard* to import *Existing Projects into Workspace*
 
