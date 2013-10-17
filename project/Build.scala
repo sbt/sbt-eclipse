@@ -43,7 +43,7 @@ object Build extends Build {
       scalacOptions ++= Seq("-unchecked", "-deprecation"),
       publishTo <<= isSnapshot { isSnapshot =>
         val id = if (isSnapshot) "snapshots" else "releases"
-        val uri = "https://typesafe.artifactoryonline.com/typesafe/ivy-" + id
+        val uri = "https://private-repo.typesafe.com/typesafe/ivy-" + id
         Some(Resolver.url("typesafe-" + id, url(uri))(Resolver.ivyStylePatterns))
       },
       sbtPlugin := true,
@@ -56,15 +56,15 @@ object Build extends Build {
       //   if (CrossVersion.isStable(sbtVersion)) CrossVersion.binarySbtVersion(sbtVersion) else sbtVersion
       // },
       scalaVersion <<= (sbtVersion in GlobalScope) {
-        case sbt013 if sbt013.startsWith("0.13.") => "2.10.2"
-        case sbt012 if sbt012.startsWith("0.12.") => "2.9.1"
-        case _ => "2.9.1"
+        case sbt013 if sbt013.startsWith("0.13.") => "2.10.3"
+        case sbt012 if sbt012.startsWith("0.12.") => "2.9.3"
+        case _ => "2.9.3"
       },
       sbtDependency in GlobalScope <<= (sbtDependency in GlobalScope, sbtVersion in GlobalScope) { (dep, sbtVersion) =>
         dep.copy(revision = sbtVersion)
       },
       publishArtifact in (Compile, packageDoc) := false,
       publishArtifact in (Compile, packageSrc) := false,
-      scriptedLaunchOpts += "-Xmx1024m"
+      scriptedLaunchOpts ++= List("-Xmx1024m", "-XX:MaxPermSize=256M")
     )
 }

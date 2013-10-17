@@ -124,7 +124,7 @@ private object Eclipse extends EclipseSDTConfig {
         baseDirectory(ref, state) |@|
         mapConfigurations(configs, config => srcDirectories(ref, createSrc(ref, state)(config), eclipseOutput(ref, state)(config), state)(config)) |@|
         scalacOptions(ref, state) |@|
-        mapConfigurations(configs, externalDependencies(ref, withSourceArg getOrElse withSource(ref, state), state)) |@|
+        mapConfigurations(removeExtendedConfigurations(configs), externalDependencies(ref, withSourceArg getOrElse withSource(ref, state), state)) |@|
         mapConfigurations(configs, projectDependencies(ref, project, state))
       applic(
         handleProject(
@@ -137,6 +137,17 @@ private object Eclipse extends EclipseSDTConfig {
       )
     }
     effects.toList.sequence[Validation, IO[String]].map((list: List[IO[String]]) => list.toStream.sequence.map(_.toList))
+  }
+
+  def removeExtendedConfigurations(configurations: Seq[Configuration]): Seq[Configuration] = {
+    def findExtended(configurations: Seq[Configuration], acc: Seq[Configuration] = Nil): Seq[Configuration] = {
+      val extended = configurations flatMap (_.extendsConfigs)
+      if (extended.isEmpty)
+        acc
+      else
+        findExtended(extended, extended ++ acc)
+    }
+    configurations filterNot findExtended(configurations).contains
   }
 
   def onFailure(state: State)(errors: NonEmptyList[String]): State = {
