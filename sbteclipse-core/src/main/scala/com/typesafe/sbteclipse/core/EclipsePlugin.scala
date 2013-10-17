@@ -32,7 +32,7 @@ import sbt.{
 }
 import sbt.Keys.{ baseDirectory, commands }
 import scala.util.control.Exception
-import scala.xml.{ Attribute, Elem, MetaData, Node, Null, Text }
+import scala.xml.{ Attribute, Elem, MetaData, Node, NodeSeq, Null, Text }
 import scala.xml.transform.RewriteRule
 
 object EclipsePlugin extends EclipsePlugin
@@ -235,6 +235,8 @@ trait EclipsePlugin {
       override def transform(node: Node): Seq[Node] = node match {
         case Elem(pf, CpEntry, attrs, scope, child @ _*) if isScalaLibrary(attrs) =>
           Elem(pf, CpEntry, container(ScalaContainer), scope, child: _*)
+        case Elem(pf, CpEntry, attrs, scope, child @ _*) if isScalaReflect(attrs) =>
+          NodeSeq.Empty
         case Elem(pf, CpEntry, attrs, scope, child @ _*) if isScalaCompiler(attrs) =>
           Elem(pf, CpEntry, container(ScalaCompilerContainer), scope, child: _*)
         case other =>
@@ -246,11 +248,15 @@ trait EclipsePlugin {
 
       private def isScalaLibrary(metaData: MetaData) =
         metaData("kind") == Text("lib") &&
-          (Option(metaData("path").text) map (_ contains "scala-library.jar") getOrElse false)
+          (Option(metaData("path").text) map (_ contains "scala-library") getOrElse false)
+
+      private def isScalaReflect(metaData: MetaData) =
+        metaData("kind") == Text("lib") &&
+          (Option(metaData("path").text) map (_ contains "scala-reflect") getOrElse false)
 
       private def isScalaCompiler(metaData: MetaData) =
         metaData("kind") == Text("lib") &&
-          (Option(metaData("path").text) map (_ contains "scala-compiler.jar") getOrElse false)
+          (Option(metaData("path").text) map (_ contains "scala-compiler") getOrElse false)
     }
 
     object Identity extends EclipseTransformerFactory[RewriteRule] {
