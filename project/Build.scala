@@ -1,7 +1,7 @@
 import sbt._
 import sbt.Keys._
 import sbt.ScriptedPlugin._
-//import sbtrelease.ReleasePlugin._
+import sbtrelease.ReleasePlugin._
 import com.typesafe.sbt.SbtScalariform._
 
 object Build extends Build {
@@ -36,7 +36,7 @@ object Build extends Build {
     Defaults.defaultSettings ++
     scalariformSettings ++
     scriptedSettings ++
-//    releaseSettings ++
+    releaseSettings ++
     Seq(
       organization := "com.typesafe.sbteclipse",
       // version is defined in version.sbt in order to support sbt-release
