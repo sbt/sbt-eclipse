@@ -1,2 +1,2 @@
 
-addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "2.4.0-SNAPSHOT")
+addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "2.5.0-SNAPSHOT")
