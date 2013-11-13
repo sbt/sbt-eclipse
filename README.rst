@@ -1,5 +1,5 @@
-sbteclipse
-==========
+sbteclipse |Build Status|
+=========================
 
 Plugin for `sbt`_ to create `Eclipse`_ project definitions. Please see the `Documentation`_ for information about installing and using sbteclipse. Information about mailing lists, contribution policy and license can be found below.
 
@@ -51,3 +51,5 @@ This code is open source software licensed under the `Apache 2.0 License`_. Feel
 .. _`sbt mailing list`: http://groups.google.com/group/simple-build-tool
 .. _`Apache 2.0 License`: http://www.apache.org/licenses/LICENSE-2.0.html
 .. _`Typesafe Contributor License Agreement`: http://www.typesafe.com/contribute/cla
+.. |Build Status| image:: https://travis-ci.org/typesafehub/sbteclipse.png?branch=master
+                        :target: https://travis-ci.org/typesafehub/sbteclipse
