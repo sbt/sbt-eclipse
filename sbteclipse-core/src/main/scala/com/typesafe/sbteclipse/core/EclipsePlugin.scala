@@ -154,8 +154,10 @@ trait EclipsePlugin {
 
   object EclipseClasspathEntry {
 
-    case class Src(path: String, output: String) extends EclipseClasspathEntry {
-      override def toXml = <classpathentry kind="src" path={ path } output={ output }/>
+    case class Src(path: String, output: Option[String]) extends EclipseClasspathEntry {
+      override def toXml =
+        output.foldLeft(<classpathentry kind="src" path={ path }/>)((xml, sp) =>
+          xml % Attribute("output", Text(sp), Null))
     }
 
     case class Lib(path: String, sourcePath: Option[String] = None) extends EclipseClasspathEntry {

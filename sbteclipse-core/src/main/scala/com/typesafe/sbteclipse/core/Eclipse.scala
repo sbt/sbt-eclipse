@@ -309,7 +309,7 @@ private object Eclipse extends EclipseSDTConfig {
       if (!linkedDir.exists) linkedDir.mkdirs()
       EclipseClasspathEntry.Src(
         linkName,
-        relativize(baseDirectory, classDirectory)
+        Some(relativize(baseDirectory, classDirectory))
       )
     }
 
@@ -322,7 +322,7 @@ private object Eclipse extends EclipseSDTConfig {
       if (!srcDirectory.exists()) srcDirectory.mkdirs()
       EclipseClasspathEntry.Src(
         relativize(baseDirectory, srcDirectory),
-        relativize(baseDirectory, classDirectory)
+        Some(relativize(baseDirectory, classDirectory))
       )
     }
 
