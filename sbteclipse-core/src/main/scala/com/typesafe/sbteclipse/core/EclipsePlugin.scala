@@ -180,7 +180,7 @@ trait EclipsePlugin {
       override def toXml = <classpathentry kind="output" path={ path }/>
     }
 
-    implicit def eclipseClasspathEntryToNode[T <: EclipseClasspathEntry](t: T) = t.toXml
+    implicit def eclipseClasspathEntryToNode[T <: EclipseClasspathEntry](t: T): scala.xml.Node = t.toXml
 
   }
 
