@@ -76,6 +76,8 @@ object Build extends Build {
 	import scala.xml._
 	import scala.xml.transform.RewriteRule
 	import scalaz.Scalaz._
+	import EclipseClasspathEntry.Lib
+	import DefaultTransforms._
     Project(
       "subc",
       new File("sub/subc"),
@@ -86,34 +88,8 @@ object Build extends Build {
         retrieveManaged := true,
         EclipseKeys.relativizeLibs := false,
         EclipseKeys.eclipseOutput := Some(".target"),
-        EclipseKeys.classpathTransformerFactories := Seq(new EclipseTransformerFactory[RewriteRule] {
-          override def createTransformer(ref: ProjectRef, state: State): Validation[RewriteRule] = {
-            val rule = new RewriteRule {
-              override def transform(node: Node): Seq[Node] = node match {
-                case elem if (elem.label == "classpath") =>
-                  val newChild = elem.child ++ Elem(elem.prefix, "foo", Attribute("bar", Text("baz"), Null), elem.scope)
-                  Elem(elem.prefix, "classpath", elem.attributes, elem.scope, newChild: _*)
-                case other =>
-                  other
-              }
-            }
-            rule.success
-          }
-        }),
-        EclipseKeys.projectTransformerFactories := Seq(new EclipseTransformerFactory[RewriteRule] {
-          override def createTransformer(ref: ProjectRef, state: State): Validation[RewriteRule] = {
-            val rule = new RewriteRule {
-              override def transform(node: Node): Seq[Node] = node match {
-                case elem if (elem.label == "projectDescription") =>
-                  val newChild = elem.child ++ Elem(elem.prefix, "foo", Attribute("bar", Text("baz"), Null), elem.scope)
-                  Elem(elem.prefix, "projectDescription", elem.attributes, elem.scope, newChild: _*)
-                case other =>
-                  other
-              }
-            }
-            rule.success
-          }
-        })
+        EclipseKeys.classpathTransformerFactories := Seq(transformNode("classpath", Append(Lib("libs/my.jar")))),
+        EclipseKeys.projectTransformerFactories := Seq(transformNode("projectDescription", Append(<foo bar="baz"/>)))
       )
     )
   }

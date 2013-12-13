@@ -201,8 +201,8 @@ TaskKey[Unit]("verify-classpath-xml-subc") <<= baseDirectory map { dir =>
   // classpath transformer
   if (!(classpath.child contains <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/>))
     error("""Expected .classpath of root project to contain <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/> """)
-  if (!(classpath.child contains <foo bar="baz"/>))
-    error("""Expected .classpath of subc project to contain <foo bar="baz"/>!""")
+  if (!(classpath.child contains <classpathentry kind="lib" path="libs/my.jar"/>))
+    error("""Expected .classpath of subc project to contain <classpathentry kind="lib" path="libs/my.jar"/>!""")
   if (!(project.child contains <foo bar="baz"/>))
     error("""Expected .project of subc project to contain <foo bar="baz"/>!""")
 }

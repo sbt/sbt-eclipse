@@ -154,8 +154,10 @@ trait EclipsePlugin {
 
   object EclipseClasspathEntry {
 
-    case class Src(path: String, output: String) extends EclipseClasspathEntry {
-      override def toXml = <classpathentry kind="src" path={ path } output={ output }/>
+    case class Src(path: String, output: Option[String]) extends EclipseClasspathEntry {
+      override def toXml =
+        output.foldLeft(<classpathentry kind="src" path={ path }/>)((xml, sp) =>
+          xml % Attribute("output", Text(sp), Null))
     }
 
     case class Lib(path: String, sourcePath: Option[String] = None) extends EclipseClasspathEntry {
@@ -177,6 +179,9 @@ trait EclipsePlugin {
     case class Output(path: String) extends EclipseClasspathEntry {
       override def toXml = <classpathentry kind="output" path={ path }/>
     }
+
+    implicit def eclipseClasspathEntryToNode[T <: EclipseClasspathEntry](t: T): scala.xml.Node = t.toXml
+
   }
 
   object EclipseCreateSrc extends Enumeration {
@@ -270,5 +275,55 @@ trait EclipsePlugin {
       override def createTransformer(ref: ProjectRef, state: State): Validation[RewriteRule] =
         ClasspathDefaultRule.success
     }
+  }
+
+  // Represents the transformation type
+  object DefaultTransforms {
+    case class Append(v: Node*) extends (Seq[Node] => Seq[Node]) {
+      def apply(children: Seq[Node]) = children ++ v
+    }
+    case class Prepend(v: Node*) extends (Seq[Node] => Seq[Node]) {
+      def apply(children: Seq[Node]) = v ++ children
+    }
+    case class Remove(v: Node*) extends (Seq[Node] => Seq[Node]) {
+      def apply(children: Seq[Node]) = children.diff(v)
+    }
+    case class ReplaceWith(v: Node*) extends (Seq[Node] => Seq[Node]) {
+      def apply(children: Seq[Node]) = v
+    }
+    case class InsertBefore(pred: Node => Boolean, v: Node*) extends (Seq[Node] => Seq[Node]) {
+      def apply(children: Seq[Node]) = {
+        val (before, after) = children.span(pred)
+        before ++ v ++ after
+      }
+    }
+  }
+
+  def transformNode(parentName: String, transform: Seq[Node] => Seq[Node]) =
+    new ChildTransformer(parentName, transform)
+
+  case class ChildTransformer(
+      parentName: String,
+      transformation: Seq[Node] => Seq[Node]) extends EclipseTransformerFactory[RewriteRule] {
+
+    import scalaz.Scalaz._
+
+    /**
+     * Rewrite rule that searches for a certain parent node and
+     * applies a transformation to its children
+     */
+    object Rule extends RewriteRule {
+      override def transform(node: Node): Seq[Node] = node match {
+        case Elem(pf, el, attrs, scope, children @ _*) if (el == parentName) => {
+          val newChildren = transformation(children)
+          Elem(pf, el, attrs, scope, newChildren: _*)
+        }
+        case other => other
+      }
+    }
+
+    // Return a new transformer object
+    override def createTransformer(ref: ProjectRef, state: State): Validation[RewriteRule] =
+      Rule.success
   }
 }
