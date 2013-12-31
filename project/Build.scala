@@ -65,6 +65,8 @@ object Build extends Build {
       },
       publishArtifact in (Compile, packageDoc) := false,
       publishArtifact in (Compile, packageSrc) := false,
-      scriptedLaunchOpts ++= List("-Xmx1024m", "-XX:MaxPermSize=256M")
+      // Uncomment the following line to get verbose output
+      // scriptedBufferLog := false,
+      scriptedLaunchOpts ++= List("-Xmx1024m", "-XX:MaxPermSize=256M", "-Dplugin.version=" + version.value)
     )
 }
