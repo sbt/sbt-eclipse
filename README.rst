@@ -4,15 +4,12 @@ sbteclipse |Build Status|
 Plugin for `sbt`_ to create `Eclipse`_ project definitions. Please see the `Documentation`_ for information about installing and using sbteclipse. Information about mailing lists, contribution policy and license can be found below.
 
 
-For the impatient
------------------
-
-- sbteclipse 2.4.0 requires sbt 0.13
+For sbt 0.13 and up
+---------------------
 
 - Add sbteclipse to your plugin definition file. You can use either:
 
-  - the global file (for versions earlier than 0.13) at *~/.sbt/plugins/plugins.sbt*
-  - the global file (for version 0.13 and up) at *~/.sbt/0.13/plugins/*
+  - the global file (for version 0.13 and up) at *~/.sbt/0.13/plugins/plugins.sbt*
   - the project-specific file at *PROJECT_DIR/project/plugins.sbt*
 
 ::
@@ -27,6 +24,20 @@ For the impatient
 
 - In Eclipse use the *Import Wizard* to import *Existing Projects into Workspace*
 
+For sbt 0.12 and earlier
+------------------------
+
+- Add sbteclipse to the old global file at *~/.sbt/plugins/plugins.sbt* or to the project-specific file (see above).
+
+- Use an earlier version of sbteclipse:
+
+=============  ====================
+ sbt version    sbteclipse version
+=============  ====================
+0.12           2.1.2
+0.11.3         2.1.1
+0.11.2         2.0.0
+=============  ====================
 
 Mailing list
 ------------
