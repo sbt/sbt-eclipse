@@ -131,6 +131,8 @@ trait EclipsePlugin {
 
   object EclipseExecutionEnvironment extends Enumeration {
 
+    val JavaSE18 = Value("JavaSE-1.8")
+
     val JavaSE17 = Value("JavaSE-1.7")
 
     val JavaSE16 = Value("JavaSE-1.6")
@@ -145,7 +147,7 @@ trait EclipsePlugin {
 
     val JRE11 = Value("JRE-1.1")
 
-    val valueSeq: Seq[Value] = JavaSE17 :: JavaSE16 :: J2SE15 :: J2SE14 :: J2SE13 :: J2SE12 :: JRE11 :: Nil
+    val valueSeq: Seq[Value] = JavaSE18 :: JavaSE17 :: JavaSE16 :: J2SE15 :: J2SE14 :: J2SE13 :: J2SE12 :: JRE11 :: Nil
   }
 
   sealed trait EclipseClasspathEntry {
