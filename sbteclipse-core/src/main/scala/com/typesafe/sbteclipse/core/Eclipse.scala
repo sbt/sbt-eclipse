@@ -42,6 +42,7 @@ import sbt.{
   IO,
   Keys,
   ModuleID,
+  ModuleReport,
   Project,
   ProjectRef,
   Reference,
@@ -83,7 +84,7 @@ private object Eclipse extends EclipseSDTConfig {
 
   def parser: Parser[Seq[(String, Any)]] = {
     import EclipseOpts._
-    (executionEnvironmentOpt | boolOpt(SkipParents) | boolOpt(WithSource)).*
+    (executionEnvironmentOpt | boolOpt(SkipParents) | boolOpt(WithSource) | boolOpt(WithJavadoc)).*
   }
 
   def executionEnvironmentOpt: Parser[(String, EclipseExecutionEnvironment.Value)] = {
@@ -102,6 +103,7 @@ private object Eclipse extends EclipseSDTConfig {
       (args get ExecutionEnvironment).asInstanceOf[Option[EclipseExecutionEnvironment.Value]],
       (args get SkipParents).asInstanceOf[Option[Boolean]] getOrElse skipParents(ThisBuild, state),
       (args get WithSource).asInstanceOf[Option[Boolean]],
+      (args get WithJavadoc).asInstanceOf[Option[Boolean]],
       state
     ).fold(onFailure(state), onSuccess(state))
   }
@@ -110,12 +112,15 @@ private object Eclipse extends EclipseSDTConfig {
     executionEnvironmentArg: Option[EclipseExecutionEnvironment.Value],
     skipParents: Boolean,
     withSourceArg: Option[Boolean],
+    withJavadocArg: Option[Boolean],
     state: State): Validation[IO[Seq[String]]] = {
     val effects = for {
       ref <- structure(state).allProjectRefs
       project <- Project.getProject(ref, structure(state)) if !skip(ref, project, skipParents, state)
     } yield {
       val configs = configurations(ref, state)
+      val source = withSourceArg getOrElse withSource(ref, state)
+      val javadoc = withJavadocArg getOrElse withJavadoc(ref, state)
       val applic = classpathEntryTransformerFactory(ref, state).createTransformer(ref, state) |@|
         (classpathTransformerFactories(ref, state).toList map (_.createTransformer(ref, state))).sequence[Validation, RewriteRule] |@|
         (projectTransformerFactories(ref, state).toList map (_.createTransformer(ref, state))).sequence[Validation, RewriteRule] |@|
@@ -124,7 +129,7 @@ private object Eclipse extends EclipseSDTConfig {
         baseDirectory(ref, state) |@|
         mapConfigurations(configs, config => srcDirectories(ref, createSrc(ref, state)(config), eclipseOutput(ref, state)(config), state)(config)) |@|
         scalacOptions(ref, state) |@|
-        mapConfigurations(removeExtendedConfigurations(configs), externalDependencies(ref, withSourceArg getOrElse withSource(ref, state), state)) |@|
+        mapConfigurations(removeExtendedConfigurations(configs), externalDependencies(ref, source, javadoc, state)) |@|
         mapConfigurations(configs, projectDependencies(ref, project, state))
       applic(
         handleProject(
@@ -345,7 +350,7 @@ private object Eclipse extends EclipseSDTConfig {
       )
       if (relativizeLibs) relativized getOrElse file.getAbsolutePath else file.getAbsolutePath
     }
-    EclipseClasspathEntry.Lib(path(lib.binary), lib.source map path)
+    EclipseClasspathEntry.Lib(path(lib.binary), lib.source map path, lib.javadoc map path)
   }
 
   def jreContainer(executionEnvironment: Option[EclipseExecutionEnvironment.Value]): String =
@@ -418,40 +423,61 @@ private object Eclipse extends EclipseSDTConfig {
   def externalDependencies(
     ref: ProjectRef,
     withSource: Boolean,
+    withJavadoc: Boolean,
     state: State)(
       configuration: Configuration): Validation[Seq[Lib]] = {
-    def moduleToFile(key: TaskKey[UpdateReport], p: (Artifact, File) => Boolean = (artifact, _) => artifact.classifier === None) =
-      evaluateTask(key in configuration, ref, state) map { updateReport =>
+    def evalTask[A](key: TaskKey[A]) = evaluateTask(key in configuration, ref, state)
+    def moduleReports(key: TaskKey[UpdateReport]) =
+      evalTask(key) map { updateReport =>
+        for {
+          configurationReport <- (updateReport configuration configuration.name).toSeq
+          moduleReports <- configurationReport.modules
+        } yield moduleReports
+      }
+    def moduleToFile(moduleReports: Validation[Seq[ModuleReport]], p: (Artifact, File) => Boolean = (artifact, _) => artifact.classifier === None) = {
+      moduleReports map (moduleReports => {
         val moduleToFile =
           for {
-            configurationReport <- (updateReport configuration configuration.name).toSeq
-            moduleReport <- configurationReport.modules
+            moduleReport <- moduleReports
             (artifact, file) <- moduleReport.artifacts if p(artifact, file)
           } yield moduleReport.module -> file
         moduleToFile.toMap
-      }
-    def libs(files: Seq[Attributed[File]], binaries: Map[ModuleID, File], sources: Map[ModuleID, File]) = {
-      val binaryFilesToSourceFiles =
-        for {
-          (moduleId, binaryFile) <- binaries
-          sourceFile <- sources get moduleId
-        } yield binaryFile -> sourceFile
-      files.files map (file => Lib(file)(binaryFilesToSourceFiles get file))
+      })
     }
-    val externalDependencyClasspath =
-      evaluateTask(Keys.externalDependencyClasspath in configuration, ref, state)
-    val binaryModuleToFile = moduleToFile(Keys.update)
-    val sourceModuleToFile =
-      if (withSource)
-        moduleToFile(Keys.updateClassifiers, (artifact, _) => artifact.classifier === Some("sources"))
-      else
-        Map[ModuleID, File]().success
-    val externalDependencies =
-      (externalDependencyClasspath |@| binaryModuleToFile |@| sourceModuleToFile)(libs)
+    def moduleFileToArtifactFile(binaries: Map[ModuleID, File], sources: Map[ModuleID, File], javadocs: Map[ModuleID, File]) =
+      for ((moduleId, binaryFile) <- binaries)
+        yield binaryFile -> Lib(binaryFile)(sources get moduleId)(javadocs get moduleId)
+    def libs(files: Seq[Attributed[File]], moduleFiles: Map[File, Lib]) =
+      files.files map { file => moduleFiles.get(file).getOrElse(Lib(file)(None)(None)) }
+    val externalDependencyClasspath = evalTask(Keys.externalDependencyClasspath)
+    val moduleFiles = {
+      lazy val classifierModuleReports = moduleReports(Keys.updateClassifiers)
+
+      def classifierModuleToFile(classifier: Option[String]) = {
+        if (classifier.isDefined)
+          moduleToFile(classifierModuleReports, (artifact, _) => artifact.classifier === classifier)
+        else
+          Map[ModuleID, File]().success
+      }
+
+      val sources = if (withSource) Some("sources") else None
+      val javadoc = if (withJavadoc) Some("javadoc") else None
+
+      sources |+| javadoc match {
+        case Some(_) => {
+          val binaryModuleToFile = moduleToFile(moduleReports(Keys.update))
+
+          (binaryModuleToFile |@| classifierModuleToFile(sources) |@| classifierModuleToFile(javadoc))(moduleFileToArtifactFile)
+        }
+        case None => Map[File, Lib]().success
+      }
+    }
+    val externalDependencies = (externalDependencyClasspath |@| moduleFiles)(libs)
     state.log.debug(
-      "External dependencies for configuration '%s' and withSource '%s': %s".format(
+      "External dependencies for configuration '%s' and withSource '%s' and withJavadoc '%s': %s".format(
         configuration,
         withSource,
+        withJavadoc,
         externalDependencies
       )
     )
@@ -496,6 +522,9 @@ private object Eclipse extends EclipseSDTConfig {
 
   def withSource(ref: Reference, state: State): Boolean =
     setting(EclipseKeys.withSource in ref, state).fold(_ => false, id)
+
+  def withJavadoc(ref: Reference, state: State): Boolean =
+    setting(EclipseKeys.withJavadoc in ref, state).fold(_ => false, id)
 
   def classpathEntryTransformerFactory(ref: Reference, state: State): EclipseTransformerFactory[Seq[EclipseClasspathEntry] => Seq[EclipseClasspathEntry]] =
     setting(EclipseKeys.classpathEntryTransformerFactory in ref, state).fold(
@@ -602,4 +631,4 @@ private case class Content(
   classpath: Node,
   scalacOptions: Seq[(String, String)])
 
-private case class Lib(binary: File)(val source: Option[File])
+private case class Lib(binary: File)(val source: Option[File])(val javadoc: Option[File])

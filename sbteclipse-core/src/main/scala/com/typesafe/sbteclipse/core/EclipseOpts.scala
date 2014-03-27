@@ -26,5 +26,7 @@ private object EclipseOpts {
 
   val WithSource = "with-source"
 
+  val WithJavadoc = "with-javadoc"
+
   val UseProjectId = "use-project-id"
 }
