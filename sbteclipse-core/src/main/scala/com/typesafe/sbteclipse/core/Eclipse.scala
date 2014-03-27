@@ -420,7 +420,7 @@ private object Eclipse extends EclipseSDTConfig {
     withSource: Boolean,
     state: State)(
       configuration: Configuration): Validation[Seq[Lib]] = {
-    def moduleToFile(key: TaskKey[UpdateReport], p: (Artifact, File) => Boolean = (_, _) => true) =
+    def moduleToFile(key: TaskKey[UpdateReport], p: (Artifact, File) => Boolean = (artifact, _) => artifact.classifier === None) =
       evaluateTask(key in configuration, ref, state) map { updateReport =>
         val moduleToFile =
           for {
