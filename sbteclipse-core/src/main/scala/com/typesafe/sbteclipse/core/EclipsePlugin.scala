@@ -65,6 +65,11 @@ trait EclipsePlugin {
       "Download and link sources for library dependencies?"
     )
 
+    val withJavadoc: SettingKey[Boolean] = SettingKey(
+      prefix(WithJavadoc),
+      "Download and link javadoc for library dependencies?"
+    )
+
     val useProjectId: SettingKey[Boolean] = SettingKey(
       prefix(UseProjectId),
       "Use the sbt project id as the Eclipse project name?"
@@ -162,11 +167,16 @@ trait EclipsePlugin {
           xml % Attribute("output", Text(sp), Null))
     }
 
-    case class Lib(path: String, sourcePath: Option[String] = None) extends EclipseClasspathEntry {
-      override def toXml =
-        sourcePath.foldLeft(<classpathentry kind="lib" path={ path }/>)((xml, sp) =>
+    case class Lib(path: String, sourcePath: Option[String] = None, javadocPath: Option[String] = None) extends EclipseClasspathEntry {
+      override def toXml = {
+        val classpathentry = sourcePath.foldLeft(<classpathentry kind="lib" path={ path }/>)((xml, sp) =>
           xml % Attribute("sourcepath", Text(sp), Null)
         )
+
+        javadocPath.foldLeft(classpathentry)((xml, jp) =>
+          xml.copy(child = <attributes><attribute name="javadoc_location" value={ "jar:file:" + jp + "!/" }/></attributes>)
+        )
+      }
     }
 
     case class Project(name: String) extends EclipseClasspathEntry {
@@ -241,11 +251,11 @@ trait EclipsePlugin {
 
       override def transform(node: Node): Seq[Node] = node match {
         case Elem(pf, CpEntry, attrs, scope, child @ _*) if isScalaLibrary(attrs) =>
-          Elem(pf, CpEntry, container(ScalaContainer), scope, child: _*)
+          Elem(pf, CpEntry, container(ScalaContainer), scope)
         case Elem(pf, CpEntry, attrs, scope, child @ _*) if isScalaReflect(attrs) =>
           NodeSeq.Empty
         case Elem(pf, CpEntry, attrs, scope, child @ _*) if isScalaCompiler(attrs) =>
-          Elem(pf, CpEntry, container(ScalaCompilerContainer), scope, child: _*)
+          Elem(pf, CpEntry, container(ScalaCompilerContainer), scope)
         case other =>
           other
       }
