@@ -288,7 +288,10 @@ private object Eclipse extends EclipseSDTConfig {
     jreContainer: String,
     state: State): IO[Node] = {
     val srcEntriesIoSeq =
-      for ((dir, output) <- srcDirectories) yield srcEntry(baseDirectory, dir, output, state)
+      for {
+        (dir, output) <- srcDirectories
+        excludes = srcExcludes(srcDirectories, dir)
+      } yield srcEntry(baseDirectory, dir, output, excludes, state)
     val srcLinkEntriesIoSeq =
       for ((dir, name, output) <- srcDirectoryLinks) yield srcLink(baseDirectory, dir, name, output, state)
     for (
@@ -302,6 +305,17 @@ private object Eclipse extends EclipseSDTConfig {
         (Seq("bin") map EclipseClasspathEntry.Output)
       <classpath>{ classpathEntryTransformer(entries) map (_.toXml) }</classpath>
     }
+  }
+
+  def srcExcludes(srcDirectories: Seq[(File, File)], srcDirectory: File): Seq[String] = {
+    val separator = java.io.File.separator
+    val srcDirectoryPath = srcDirectory.getCanonicalPath + separator
+    val srcDirectoryPaths = for ((dir, output) <- srcDirectories) yield dir.getCanonicalPath
+    val subFolders = srcDirectoryPaths filter { dirPath =>
+      val subFolder = dirPath.startsWith(srcDirectoryPath)
+      subFolder && dirPath != srcDirectoryPath
+    }
+    subFolders map (_.substring(srcDirectoryPath.length) + separator)
   }
 
   def srcLink(
@@ -322,12 +336,14 @@ private object Eclipse extends EclipseSDTConfig {
     baseDirectory: File,
     srcDirectory: File,
     classDirectory: File,
+    excludes: Seq[String],
     state: State): IO[EclipseClasspathEntry.Src] =
     io {
       if (!srcDirectory.exists()) srcDirectory.mkdirs()
       EclipseClasspathEntry.Src(
         relativize(baseDirectory, srcDirectory),
-        Some(relativize(baseDirectory, classDirectory))
+        Some(relativize(baseDirectory, classDirectory)),
+        excludes
       )
     }
 
