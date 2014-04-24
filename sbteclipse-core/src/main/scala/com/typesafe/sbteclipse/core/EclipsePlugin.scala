@@ -70,6 +70,11 @@ trait EclipsePlugin {
       "Download and link javadoc for library dependencies?"
     )
 
+    val withBundledScalaContainers: SettingKey[Boolean] = SettingKey(
+      prefix(WithBundledScalaContainers),
+      "Let the generated project use the bundled Scala library of the ScalaIDE plugin"
+    )
+
     val useProjectId: SettingKey[Boolean] = SettingKey(
       prefix(UseProjectId),
       "Use the sbt project id as the Eclipse project name?"
