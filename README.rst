@@ -39,12 +39,6 @@ For sbt 0.12 and earlier
 0.11.2         2.0.0
 =============  ====================
 
-Mailing list
-------------
-
-Please use the `sbt mailing list`_ and prefix the subject with "[sbteclipse]".
-
-
 Contribution policy
 -------------------
 
@@ -59,7 +53,6 @@ This code is open source software licensed under the `Apache 2.0 License`_. Feel
 .. _`sbt`: http://github.com/harrah/xsbt/
 .. _`Eclipse`: http://www.eclipse.org/
 .. _`Documentation`: http://github.com/typesafehub/sbteclipse/wiki/
-.. _`sbt mailing list`: http://groups.google.com/group/simple-build-tool
 .. _`Apache 2.0 License`: http://www.apache.org/licenses/LICENSE-2.0.html
 .. _`Typesafe Contributor License Agreement`: http://www.typesafe.com/contribute/cla
 .. |Build Status| image:: https://travis-ci.org/typesafehub/sbteclipse.png?branch=master
