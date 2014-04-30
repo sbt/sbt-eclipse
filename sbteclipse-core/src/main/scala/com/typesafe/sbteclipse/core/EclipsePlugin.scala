@@ -166,10 +166,17 @@ trait EclipsePlugin {
 
   object EclipseClasspathEntry {
 
-    case class Src(path: String, output: Option[String]) extends EclipseClasspathEntry {
-      override def toXml =
-        output.foldLeft(<classpathentry kind="src" path={ path }/>)((xml, sp) =>
-          xml % Attribute("output", Text(sp), Null))
+    case class Src(path: String, output: Option[String], excludes: Seq[String] = Nil) extends EclipseClasspathEntry {
+      override def toXml = {
+        val classpathentry = output.foldLeft(<classpathentry kind="src" path={ path }/>)((xml, sp) =>
+          xml % Attribute("output", Text(sp), Null)
+        )
+
+        val excluding = excludes.reduceOption(_ + "|" + _)
+        excluding.foldLeft(classpathentry)((xml, excluding) =>
+          xml % Attribute("excluding", Text(excluding), Null)
+        )
+      }
     }
 
     case class Lib(path: String, sourcePath: Option[String] = None, javadocPath: Option[String] = None) extends EclipseClasspathEntry {
