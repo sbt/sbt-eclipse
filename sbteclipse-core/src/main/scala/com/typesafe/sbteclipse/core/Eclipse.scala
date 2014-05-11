@@ -247,7 +247,7 @@ private object Eclipse extends EclipseSDTConfig {
           sourceLinks map {
             case (location, name, _) =>
               <link>
-                <name>{ name }</name>
+                <name>{ name.replaceAll("^[A-Z]:", "") }</name>
                 <type>2</type>
                 <location>{ location.getCanonicalPath.replaceAll("\\\\", "/") }</location>
               </link>
