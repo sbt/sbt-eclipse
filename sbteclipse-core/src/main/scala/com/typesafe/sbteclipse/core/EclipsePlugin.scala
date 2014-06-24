@@ -43,98 +43,84 @@ trait EclipsePlugin {
     import EclipseKeys._
     Seq(
       commandName := "eclipse",
-      commands <+= (commandName)(Eclipse.eclipseCommand)
-    )
+      commands <+= (commandName)(Eclipse.eclipseCommand))
   }
 
   object EclipseKeys {
     import EclipseOpts._
 
+    val testProjectDirectory: SettingKey[Option[File]] = SettingKey(
+      prefix(TestProjectDirectory),
+      "To create a standalone project for test.")
+
     val executionEnvironment: SettingKey[Option[EclipseExecutionEnvironment.Value]] = SettingKey(
       prefix(ExecutionEnvironment),
-      "The optional Eclipse execution environment."
-    )
+      "The optional Eclipse execution environment.")
 
     val skipParents: SettingKey[Boolean] = SettingKey(
       prefix(SkipParents),
-      "Skip creating Eclipse files for parent project?"
-    )
+      "Skip creating Eclipse files for parent project?")
 
     val withSource: SettingKey[Boolean] = SettingKey(
       prefix(WithSource),
-      "Download and link sources for library dependencies?"
-    )
+      "Download and link sources for library dependencies?")
 
     val withJavadoc: SettingKey[Boolean] = SettingKey(
       prefix(WithJavadoc),
-      "Download and link javadoc for library dependencies?"
-    )
+      "Download and link javadoc for library dependencies?")
 
     val withBundledScalaContainers: SettingKey[Boolean] = SettingKey(
       prefix(WithBundledScalaContainers),
-      "Let the generated project use the bundled Scala library of the ScalaIDE plugin"
-    )
+      "Let the generated project use the bundled Scala library of the ScalaIDE plugin")
 
     val useProjectId: SettingKey[Boolean] = SettingKey(
       prefix(UseProjectId),
-      "Use the sbt project id as the Eclipse project name?"
-    )
+      "Use the sbt project id as the Eclipse project name?")
 
     @deprecated("Use classpathTransformerFactories instead!", "2.1.0")
     val classpathEntryTransformerFactory: SettingKey[EclipseTransformerFactory[Seq[EclipseClasspathEntry] => Seq[EclipseClasspathEntry]]] = SettingKey(
       prefix("classpathEntryTransformerFactory"),
-      "Creates a transformer for classpath entries."
-    )
+      "Creates a transformer for classpath entries.")
 
     val classpathTransformerFactories: SettingKey[Seq[EclipseTransformerFactory[RewriteRule]]] = SettingKey(
       prefix("classpathTransformerFactory"),
-      "Factories for a rewrite rule for the .classpath file."
-    )
+      "Factories for a rewrite rule for the .classpath file.")
 
     val projectTransformerFactories: SettingKey[Seq[EclipseTransformerFactory[RewriteRule]]] = SettingKey(
       prefix("projectTransformerFactory"),
-      "Factories for a rewrite rule for the .project file."
-    )
+      "Factories for a rewrite rule for the .project file.")
 
     val commandName: SettingKey[String] = SettingKey(
       prefix("command-name"),
-      "The name of the command."
-    )
+      "The name of the command.")
 
     val configurations: SettingKey[Set[Configuration]] = SettingKey(
       prefix("configurations"),
-      "The configurations to take into account."
-    )
+      "The configurations to take into account.")
 
     val createSrc: SettingKey[EclipseCreateSrc.ValueSet] = SettingKey(
       prefix("create-src"),
-      "The source kinds to be included."
-    )
+      "The source kinds to be included.")
 
     val projectFlavor: SettingKey[EclipseProjectFlavor.Value] = SettingKey(
       prefix("project-flavor"),
-      "The flavor of project (Scala or Java) to build."
-    )
+      "The flavor of project (Scala or Java) to build.")
 
     val eclipseOutput: SettingKey[Option[String]] = SettingKey(
       prefix("eclipse-output"),
-      "The optional output for Eclipse."
-    )
+      "The optional output for Eclipse.")
 
     val preTasks: SettingKey[Seq[TaskKey[_]]] = SettingKey(
       prefix("pre-tasks"),
-      "The tasks to be evaluated prior to creating the Eclipse project definition."
-    )
+      "The tasks to be evaluated prior to creating the Eclipse project definition.")
 
     val relativizeLibs: SettingKey[Boolean] = SettingKey(
       prefix("relativize-libs"),
-      "Relativize the paths to the libraries?"
-    )
+      "Relativize the paths to the libraries?")
 
     val skipProject: SettingKey[Boolean] = SettingKey(
       prefix("skipProject"),
-      "Skip creating Eclipse files for a given project?"
-    )
+      "Skip creating Eclipse files for a given project?")
 
     private def prefix(key: String) = "eclipse-" + key
   }
@@ -169,25 +155,21 @@ trait EclipsePlugin {
     case class Src(path: String, output: Option[String], excludes: Seq[String] = Nil) extends EclipseClasspathEntry {
       override def toXml = {
         val classpathentry = output.foldLeft(<classpathentry kind="src" path={ path }/>)((xml, sp) =>
-          xml % Attribute("output", Text(sp), Null)
-        )
+          xml % Attribute("output", Text(sp), Null))
 
         val excluding = excludes.reduceOption(_ + "|" + _)
         excluding.foldLeft(classpathentry)((xml, excluding) =>
-          xml % Attribute("excluding", Text(excluding), Null)
-        )
+          xml % Attribute("excluding", Text(excluding), Null))
       }
     }
 
     case class Lib(path: String, sourcePath: Option[String] = None, javadocPath: Option[String] = None) extends EclipseClasspathEntry {
       override def toXml = {
         val classpathentry = sourcePath.foldLeft(<classpathentry kind="lib" path={ path }/>)((xml, sp) =>
-          xml % Attribute("sourcepath", Text(sp), Null)
-        )
+          xml % Attribute("sourcepath", Text(sp), Null))
 
         javadocPath.foldLeft(classpathentry)((xml, jp) =>
-          xml.copy(child = <attributes><attribute name="javadoc_location" value={ "jar:file:" + jp + "!/" }/></attributes>)
-        )
+          xml.copy(child = <attributes><attribute name="javadoc_location" value={ "jar:file:" + jp + "!/" }/></attributes>))
       }
     }
 
