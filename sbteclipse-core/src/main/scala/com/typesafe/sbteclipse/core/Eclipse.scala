@@ -116,7 +116,6 @@ private object Eclipse extends EclipseSDTConfig {
     withJavadocArg: Option[Boolean],
     withBundledScalaContainersArg: Option[Boolean],
     state: State): Validation[IO[Seq[String]]] = {
-    println("my sbteclipse test!")
     val effects = for {
       ref <- structure(state).allProjectRefs
       project <- Project.getProject(ref, structure(state)) if !skip(ref, project, skipParents, state)
