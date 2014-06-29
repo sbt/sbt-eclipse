@@ -231,7 +231,13 @@ private object Eclipse extends EclipseSDTConfig {
   def executePreTasks(preTasks: Seq[(TaskKey[_], ProjectRef)], state: State): IO[Unit] =
     io(for ((preTask, ref) <- preTasks) evaluateTask(preTask, ref, state))
 
-  def projectXml(name: String, builderAndNatures: (String, Seq[String]), sourceLinks: Seq[(File, String, File)]): Node =
+  def projectXml(name: String, builderAndNatures: (String, Seq[String]), linkedSrcDirectories: Seq[(File, Option[String], File, Option[String])]): Node = {
+    val sourceLinks = linkedSrcDirectories.flatMap {
+      case (location1, name1, location2, name2) =>
+        name1.map(n => Seq((location1, n))).getOrElse(Seq.empty[(File, String)]) ++
+          name2.map(n => Seq((location2, n))).getOrElse(Seq.empty[(File, String)])
+    }
+
     <projectDescription>
       <name>{ name }</name>
       <buildSpec>
@@ -245,7 +251,7 @@ private object Eclipse extends EclipseSDTConfig {
       <linkedResources>
         {
           sourceLinks map {
-            case (location, name, _) =>
+            case (location, name) =>
               <link>
                 <name>{ name.replaceAll("^[A-Z]:", "") }</name>
                 <type>2</type>
@@ -255,6 +261,7 @@ private object Eclipse extends EclipseSDTConfig {
         }
       </linkedResources>
     </projectDescription>
+  }
 
   def createLinkName(file: File, baseDirectory: File): String = {
     val name = file.getCanonicalPath
@@ -263,18 +270,19 @@ private object Eclipse extends EclipseSDTConfig {
     name.replaceAll("[\\s\\\\/]+", "-")
   }
 
-  def splitSrcDirectories(srcDirectories: Seq[(File, File)], baseDirectory: File): IO[(Seq[(File, File)], Seq[(File, String, File)])] = io {
+  def splitSrcDirectories(srcDirectories: Seq[(File, File)], baseDirectory: File): IO[(Seq[(File, File)], Seq[(File, Option[String], File, Option[String])])] = io {
     val (local, linked) =
       srcDirectories partition {
-        case (dir, _) => relativizeOpt(baseDirectory, dir).isDefined
+        case (dir, classpath) => relativizeOpt(baseDirectory, dir).isDefined && relativizeOpt(baseDirectory, classpath).isDefined
       }
     //Now, create link names...
 
     val links =
       for {
         (file, classDirectory) <- linked
-        name = createLinkName(file, baseDirectory)
-      } yield (file, name, classDirectory)
+        fileName = if (relativizeOpt(baseDirectory, file).isDefined) None else Some(createLinkName(file, baseDirectory))
+        classDirectoryName = if (relativizeOpt(baseDirectory, classDirectory).isDefined) None else Some(createLinkName(classDirectory, baseDirectory))
+      } yield (file, fileName, classDirectory, classDirectoryName)
 
     (local, links)
   }
@@ -285,7 +293,7 @@ private object Eclipse extends EclipseSDTConfig {
     baseDirectory: File,
     relativizeLibs: Boolean,
     srcDirectories: Seq[(File, File)],
-    srcDirectoryLinks: Seq[(File, String, File)],
+    srcDirectoryLinks: Seq[(File, Option[String], File, Option[String])],
     externalDependencies: Seq[Lib],
     projectDependencies: Seq[String],
     jreContainer: String,
@@ -296,7 +304,7 @@ private object Eclipse extends EclipseSDTConfig {
         excludes = srcExcludes(srcDirectories, dir)
       } yield srcEntry(baseDirectory, dir, output, excludes, state)
     val srcLinkEntriesIoSeq =
-      for ((dir, name, output) <- srcDirectoryLinks) yield srcLink(baseDirectory, dir, name, output, state)
+      for ((dir, dirName, output, outputName) <- srcDirectoryLinks) yield srcLink(baseDirectory, dir, dirName, output, outputName, state)
     for (
       srcEntries <- srcEntriesIoSeq.toList.sequence;
       linkEntries <- srcLinkEntriesIoSeq.toList.sequence
@@ -323,15 +331,16 @@ private object Eclipse extends EclipseSDTConfig {
 
   def srcLink(
     baseDirectory: File,
-    linkedDir: File,
-    linkName: String,
-    classDirectory: File,
+    pathDir: File,
+    pathName: Option[String],
+    output: File,
+    outputName: Option[String],
     state: State): IO[EclipseClasspathEntry.Src] =
     io {
-      if (!linkedDir.exists) linkedDir.mkdirs()
+      if (!pathDir.exists) pathDir.mkdirs()
       EclipseClasspathEntry.Src(
-        linkName,
-        Some(relativize(baseDirectory, classDirectory))
+        pathName.getOrElse(relativize(baseDirectory, pathDir)),
+        Some(outputName.getOrElse(relativize(baseDirectory, output)))
       )
     }
 
