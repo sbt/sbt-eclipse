@@ -51,7 +51,7 @@ trait EclipsePlugin {
 
     val testProjectDirectory: SettingKey[Option[File]] = SettingKey(
       prefix(TestProjectDirectory),
-      "To create a standalone project for test.")
+      "The directory where .classpath and .project files for the test project will create.")
 
     val executionEnvironment: SettingKey[Option[EclipseExecutionEnvironment.Value]] = SettingKey(
       prefix(ExecutionEnvironment),
