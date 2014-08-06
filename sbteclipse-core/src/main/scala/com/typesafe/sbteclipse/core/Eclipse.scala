@@ -425,10 +425,10 @@ private object Eclipse extends EclipseSDTConfig {
     ) reduceLeft (_ +++ _)
   }
 
-  def scalacOptions(ref: ProjectRef, state: State): Validation[Seq[(String, String)]] =
+  def scalacOptions(ref: ProjectRef, state: State): Validation[Seq[(String, String)]] = {
     // Here we have to look at scalacOptions *for compilation*, vs. the ones used for testing.
     // We have to pick one set, and this should be the most complete set.
-    evaluateTask(Keys.scalacOptions in sbt.Compile, ref, state) map (options =>
+    val scalacOpts: Validation[Vector[(String, String)]] = evaluateTask(Keys.scalacOptions in sbt.Compile, ref, state).map { options: Seq[String] =>
       if (options.isEmpty)
         Nil
       else {
@@ -437,7 +437,12 @@ private object Eclipse extends EclipseSDTConfig {
           case options => ("scala.compiler.useProjectSettings" -> "true") +: options
         }
       }
-    )
+    }.map { _.toVector }
+    
+    val compileOrderOpts: Validation[Vector[(String, String)]] = setting(Keys.compileOrder in ref, state) map { order => Vector(("compileorder" -> order.toString)) }
+
+    (scalacOpts +|+ compileOrderOpts).map { _.toSeq }
+  }
 
   def externalDependencies(
     ref: ProjectRef,
