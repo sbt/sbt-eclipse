@@ -132,6 +132,7 @@ private object Eclipse extends EclipseSDTConfig {
         baseDirectory(ref, state) |@|
         mapConfigurations(configs, config => srcDirectories(ref, createSrc(ref, state)(config), eclipseOutput(ref, state)(config), state)(config)) |@|
         scalacOptions(ref, state) |@|
+        compileOrder(ref, state) |@|
         mapConfigurations(removeExtendedConfigurations(configs), externalDependencies(ref, source, javadoc, bcontainers, state)) |@|
         mapConfigurations(configs, projectDependencies(ref, project, state))
       applic(
@@ -201,6 +202,7 @@ private object Eclipse extends EclipseSDTConfig {
       baseDirectory: File,
       srcDirectories: Seq[(File, File)],
       scalacOptions: Seq[(String, String)],
+      compileOrder: Option[String],
       externalDependencies: Seq[Lib],
       projectDependencies: Seq[String]): IO[String] = {
     for {
@@ -224,7 +226,7 @@ private object Eclipse extends EclipseSDTConfig {
       )
       _ <- saveXml(baseDirectory / ".project", new RuleTransformer(projectTransformers: _*)(projectXml(name, builderAndNatures, linkedSrcDirectories)))
       _ <- saveXml(baseDirectory / ".classpath", new RuleTransformer(classpathTransformers: _*)(cp))
-      _ <- saveProperties(baseDirectory / ".settings" / "org.scala-ide.sdt.core.prefs", scalacOptions)
+      _ <- saveProperties(baseDirectory / ".settings" / "org.scala-ide.sdt.core.prefs", scalacOptions ++: compileOrder.map { order => Seq(("compileorder" -> order)) }.getOrElse(Nil))
     } yield n
   }
 
@@ -437,6 +439,12 @@ private object Eclipse extends EclipseSDTConfig {
           case options => ("scala.compiler.useProjectSettings" -> "true") +: options
         }
       }
+    )
+
+  def compileOrder(ref: ProjectRef, state: State): Validation[Option[String]] =
+    setting(Keys.compileOrder in ref, state).map(order =>
+      if (order == xsbti.compile.CompileOrder.Mixed) None
+      else Some(order.toString)
     )
 
   def externalDependencies(
