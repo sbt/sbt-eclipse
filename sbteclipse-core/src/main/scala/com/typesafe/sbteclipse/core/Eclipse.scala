@@ -416,7 +416,7 @@ private object Eclipse extends EclipseSDTConfig {
     }
     def dirs(values: ValueSet, key: SettingKey[Seq[File]]): Validation[List[(sbt.File, java.io.File)]] =
       if (values subsetOf createSrc)
-        (setting(key in (ref, configuration), state) <**> classDirectory)((sds, cd) => sds.toList map (_ -> cd))
+        (setting(key in (ref, configuration), state) |@| classDirectory)((sds, cd) => sds.toList map (_ -> cd))
       else
         scalaz.Validation.success(Nil)
     List(
