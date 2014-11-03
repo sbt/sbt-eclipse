@@ -157,6 +157,7 @@ private object Eclipse extends EclipseSDTConfig {
       baseDirectory(ref, state) |@|
       mapConfigurations(configs, config => srcDirectories(ref, createSrc(ref, state)(config), eclipseOutput(ref, state)(config), state)(config)) |@|
       scalacOptions(ref, state) |@|
+			compileOrder(ref, state) |@|
       mapConfigurations(removeExtendedConfigurations(configs), externalDependencies(ref, source, javadoc, bcontainers, state)) |@|
       mapConfigurations(configs, projectDependencies(ref, project, state))
     applic(
@@ -224,6 +225,7 @@ private object Eclipse extends EclipseSDTConfig {
       baseDirectory: File,
       srcDirectories: Seq[(File, File)],
       scalacOptions: Seq[(String, String)],
+      compileOrder: Option[String],
       externalDependencies: Seq[Lib],
       projectDependencies: Seq[String]): IO[String] = {
     for {
@@ -246,16 +248,21 @@ private object Eclipse extends EclipseSDTConfig {
         testProject,
         projectName,
         state)
-      _ <- saveXml(generateDirectory / ".project", new RuleTransformer(projectTransformers: _*)(projectXml(baseDirectory, name, builderAndNatures, linkedSrcDirectories)))
+      _ <- saveXml(generateDirectory / ".project", new RuleTransformer(projectTransformers: _*)(projectXml(name, builderAndNatures, linkedSrcDirectories)))
       _ <- saveXml(generateDirectory / ".classpath", new RuleTransformer(classpathTransformers: _*)(cp))
-      _ <- saveProperties(generateDirectory / ".settings" / "org.scala-ide.sdt.core.prefs", scalacOptions)
+      _ <- saveProperties(generateDirectory / ".settings" / "org.scala-ide.sdt.core.prefs", scalacOptions ++: compileOrder.map { order => Seq(("compileorder" -> order)) }.getOrElse(Nil))
     } yield n
   }
 
   def executePreTasks(preTasks: Seq[(TaskKey[_], ProjectRef)], state: State): IO[Unit] =
     io(for ((preTask, ref) <- preTasks) evaluateTask(preTask, ref, state))
 
-  def projectXml(baseDirectory: File, name: String, builderAndNatures: (String, Seq[String]), sourceLinks: Seq[(File, String, File)]): Node =
+  def projectXml(name: String, builderAndNatures: (String, Seq[String]), linkedSrcDirectories: Seq[(File, Option[String], File, Option[String])]): Node = {
+    val sourceLinks = linkedSrcDirectories.flatMap {
+      case (location1, name1, location2, name2) =>
+        name1.map(n => Seq((location1, n))).getOrElse(Seq.empty[(File, String)]) ++
+          name2.map(n => Seq((location2, n))).getOrElse(Seq.empty[(File, String)])
+    }
     <projectDescription>
       <name>{ name }</name>
       <buildSpec>
@@ -269,7 +276,7 @@ private object Eclipse extends EclipseSDTConfig {
       <linkedResources>
         {
           sourceLinks map {
-            case (location, name, _) =>
+            case (location, name) =>
               <link>
                 <name>{ name }</name>
                 <type>2</type>
@@ -281,6 +288,7 @@ private object Eclipse extends EclipseSDTConfig {
         }
       </linkedResources>
     </projectDescription>
+  }
 
   def createLinkName(file: File, baseDirectory: File): String = {
     val name = file.relativeTo(baseDirectory).get.toString
@@ -289,18 +297,22 @@ private object Eclipse extends EclipseSDTConfig {
     name.replaceAll("[\\s\\\\/]+", "-").replaceAll("^[A-Z]:", "")
   }
 
-  def splitSrcDirectories(srcDirectories: Seq[(File, File)], baseDirectory: File, testProject: Boolean): IO[(Seq[(File, File)], Seq[(File, String, File)])] = io {
+  def splitSrcDirectories(
+		srcDirectories: Seq[(File, File)], 
+	  baseDirectory: File, 
+		testProject: Boolean): IO[(Seq[(File, File)], Seq[(File, Option[String], File, Option[String])])] = io {
     val (local, linked) =
       srcDirectories partition {
-        case (dir, _) => relativizeOpt(baseDirectory, dir).isDefined && !testProject
+        case (dir, classpath) => relativizeOpt(baseDirectory, dir).isDefined && !testProject && relativizeOpt(baseDirectory, classpath).isDefined
       }
     //Now, create link names...
 
     val links =
       for {
         (file, classDirectory) <- linked
-        name = createLinkName(file, baseDirectory)
-      } yield (file, name, classDirectory)
+        fileName = if (relativizeOpt(baseDirectory, file).isDefined && !testProject) None else Some(createLinkName(file, baseDirectory))
+        classDirectoryName = if (relativizeOpt(baseDirectory, classDirectory).isDefined && !testProject) None else Some(createLinkName(classDirectory, baseDirectory))
+      } yield (file, fileName, classDirectory, classDirectoryName)
 
     (local, links)
   }
@@ -311,7 +323,7 @@ private object Eclipse extends EclipseSDTConfig {
     baseDirectory: File,
     relativizeLibs: Boolean,
     srcDirectories: Seq[(File, File)],
-    srcDirectoryLinks: Seq[(File, String, File)],
+    srcDirectoryLinks: Seq[(File, Option[String], File, Option[String])],
     externalDependencies: Seq[Lib],
     projectDependencies: Seq[String],
     jreContainer: String,
@@ -328,7 +340,7 @@ private object Eclipse extends EclipseSDTConfig {
         excludes = srcExcludes(srcDirectories, dir)
       } yield srcEntry(baseDirectory, dir, output, excludes, state)
     val srcLinkEntriesIoSeq =
-      for ((dir, name, output) <- srcDirectoryLinks) yield srcLink(baseDirectory, dir, name, output, state)
+      for ((dir, dirName, output, outputName) <- srcDirectoryLinks) yield srcLink(baseDirectory, dir, dirName, output, outputName, state)
     for (
       srcEntries <- srcEntriesIoSeq.toList.sequence;
       linkEntries <- srcLinkEntriesIoSeq.toList.sequence
@@ -355,15 +367,17 @@ private object Eclipse extends EclipseSDTConfig {
 
   def srcLink(
     baseDirectory: File,
-    linkedDir: File,
-    linkName: String,
-    classDirectory: File,
+    pathDir: File,
+    pathName: Option[String],
+    output: File,
+    outputName: Option[String],
     state: State): IO[EclipseClasspathEntry.Src] =
     io {
-      if (!linkedDir.exists) linkedDir.mkdirs()
+      if (!pathDir.exists) pathDir.mkdirs()
       EclipseClasspathEntry.Src(
-        linkName,
-        Some(relativize(baseDirectory, classDirectory)))
+        pathName.getOrElse(relativize(baseDirectory, pathDir)),
+        Some(outputName.getOrElse(relativize(baseDirectory, output)))
+      )
     }
 
   def srcEntry(
@@ -455,7 +469,7 @@ private object Eclipse extends EclipseSDTConfig {
     }
     def dirs(values: ValueSet, key: SettingKey[Seq[File]]): Validation[List[(sbt.File, java.io.File)]] =
       if (values subsetOf createSrc)
-        (setting(key in (ref, configuration), state) <**> classDirectory)((sds, cd) => sds.toList map (_ -> cd))
+        (setting(key in (ref, configuration), state) |@| classDirectory)((sds, cd) => sds.toList map (_ -> cd))
       else
         scalaz.Validation.success(Nil)
     List(
@@ -477,6 +491,12 @@ private object Eclipse extends EclipseSDTConfig {
           case options => ("scala.compiler.useProjectSettings" -> "true") +: options
         }
       })
+
+  def compileOrder(ref: ProjectRef, state: State): Validation[Option[String]] =
+    setting(Keys.compileOrder in ref, state).map(order =>
+      if (order == xsbti.compile.CompileOrder.Mixed) None
+      else Some(order.toString)
+    )
 
   def externalDependencies(
     ref: ProjectRef,
