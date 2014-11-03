@@ -157,7 +157,7 @@ private object Eclipse extends EclipseSDTConfig {
       baseDirectory(ref, state) |@|
       mapConfigurations(configs, config => srcDirectories(ref, createSrc(ref, state)(config), eclipseOutput(ref, state)(config), state)(config)) |@|
       scalacOptions(ref, state) |@|
-			compileOrder(ref, state) |@|
+      compileOrder(ref, state) |@|
       mapConfigurations(removeExtendedConfigurations(configs), externalDependencies(ref, source, javadoc, bcontainers, state)) |@|
       mapConfigurations(configs, projectDependencies(ref, project, state))
     applic(
@@ -298,9 +298,9 @@ private object Eclipse extends EclipseSDTConfig {
   }
 
   def splitSrcDirectories(
-		srcDirectories: Seq[(File, File)], 
-	  baseDirectory: File, 
-		testProject: Boolean): IO[(Seq[(File, File)], Seq[(File, Option[String], File, Option[String])])] = io {
+    srcDirectories: Seq[(File, File)], 
+    baseDirectory: File, 
+    testProject: Boolean): IO[(Seq[(File, File)], Seq[(File, Option[String], File, Option[String])])] = io {
     val (local, linked) =
       srcDirectories partition {
         case (dir, classpath) => relativizeOpt(baseDirectory, dir).isDefined && !testProject && relativizeOpt(baseDirectory, classpath).isDefined
