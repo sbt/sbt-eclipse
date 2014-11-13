@@ -200,7 +200,7 @@ private object Eclipse extends EclipseSDTConfig {
       name: String,
       buildDirectory: File,
       baseDirectory: File,
-      srcDirectories: Seq[(File, File)],
+      srcDirectories: Seq[(File, Option[File])],
       scalacOptions: Seq[(String, String)],
       compileOrder: Option[String],
       externalDependencies: Seq[Lib],
@@ -272,10 +272,11 @@ private object Eclipse extends EclipseSDTConfig {
     name.replaceAll("[\\s\\\\/]+", "-")
   }
 
-  def splitSrcDirectories(srcDirectories: Seq[(File, File)], baseDirectory: File): IO[(Seq[(File, File)], Seq[(File, Option[String], File, Option[String])])] = io {
+  def splitSrcDirectories(srcDirectories: Seq[(File, Option[File])], baseDirectory: File): IO[(Seq[(File, Option[File])], Seq[(File, Option[String], File, Option[String])])] = io {
     val (local, linked) =
       srcDirectories partition {
-        case (dir, classpath) => relativizeOpt(baseDirectory, dir).isDefined && relativizeOpt(baseDirectory, classpath).isDefined
+        case (dir, Some(classpath)) => relativizeOpt(baseDirectory, dir).isDefined && relativizeOpt(baseDirectory, classpath).isDefined
+        case (dir, None) => relativizeOpt(baseDirectory, dir).isDefined
       }
     //Now, create link names...
 
@@ -283,8 +284,8 @@ private object Eclipse extends EclipseSDTConfig {
       for {
         (file, classDirectory) <- linked
         fileName = if (relativizeOpt(baseDirectory, file).isDefined) None else Some(createLinkName(file, baseDirectory))
-        classDirectoryName = if (relativizeOpt(baseDirectory, classDirectory).isDefined) None else Some(createLinkName(classDirectory, baseDirectory))
-      } yield (file, fileName, classDirectory, classDirectoryName)
+        classDirectoryName = if (relativizeOpt(baseDirectory, classDirectory.getOrElse(file)).isDefined) None else Some(createLinkName(classDirectory.getOrElse(file), baseDirectory))
+      } yield (file, fileName, classDirectory.getOrElse(file), classDirectoryName)
 
     (local, links)
   }
@@ -294,7 +295,7 @@ private object Eclipse extends EclipseSDTConfig {
     buildDirectory: File,
     baseDirectory: File,
     relativizeLibs: Boolean,
-    srcDirectories: Seq[(File, File)],
+    srcDirectories: Seq[(File, Option[File])],
     srcDirectoryLinks: Seq[(File, Option[String], File, Option[String])],
     externalDependencies: Seq[Lib],
     projectDependencies: Seq[String],
@@ -306,7 +307,7 @@ private object Eclipse extends EclipseSDTConfig {
         excludes = srcExcludes(srcDirectories, dir)
       } yield srcEntry(baseDirectory, dir, output, excludes, state)
     val srcLinkEntriesIoSeq =
-      for ((dir, dirName, output, outputName) <- srcDirectoryLinks) yield srcLink(baseDirectory, dir, dirName, output, outputName, state)
+      for ((dir, dirName, output, outputName) <- srcDirectoryLinks) yield srcLink(baseDirectory, dir, dirName, Some(output), outputName, state)
     for (
       srcEntries <- srcEntriesIoSeq.toList.sequence;
       linkEntries <- srcLinkEntriesIoSeq.toList.sequence
@@ -320,7 +321,7 @@ private object Eclipse extends EclipseSDTConfig {
     }
   }
 
-  def srcExcludes(srcDirectories: Seq[(File, File)], srcDirectory: File): Seq[String] = {
+  def srcExcludes(srcDirectories: Seq[(File, Option[File])], srcDirectory: File): Seq[String] = {
     val separator = java.io.File.separator
     val srcDirectoryPath = srcDirectory.getCanonicalPath + separator
     val srcDirectoryPaths = for ((dir, output) <- srcDirectories) yield dir.getCanonicalPath
@@ -335,28 +336,31 @@ private object Eclipse extends EclipseSDTConfig {
     baseDirectory: File,
     pathDir: File,
     pathName: Option[String],
-    output: File,
+    output: Option[File],
     outputName: Option[String],
     state: State): IO[EclipseClasspathEntry.Src] =
     io {
       if (!pathDir.exists) pathDir.mkdirs()
       EclipseClasspathEntry.Src(
         pathName.getOrElse(relativize(baseDirectory, pathDir)),
-        Some(outputName.getOrElse(relativize(baseDirectory, output)))
+        outputName match {
+          case Some(outputName) => Some(outputName)
+          case None => output.map(relativize(baseDirectory, _))
+        }
       )
     }
 
   def srcEntry(
     baseDirectory: File,
     srcDirectory: File,
-    classDirectory: File,
+    classDirectory: Option[File],
     excludes: Seq[String],
     state: State): IO[EclipseClasspathEntry.Src] =
     io {
       if (!srcDirectory.exists()) srcDirectory.mkdirs()
       EclipseClasspathEntry.Src(
         relativize(baseDirectory, srcDirectory),
-        Some(relativize(baseDirectory, classDirectory)),
+        classDirectory.map(relativize(baseDirectory, _)),
         excludes
       )
     }
@@ -417,13 +421,14 @@ private object Eclipse extends EclipseSDTConfig {
     createSrc: EclipseCreateSrc.ValueSet,
     eclipseOutput: Option[String],
     state: State)(
-      configuration: Configuration): Validation[Seq[(File, File)]] = {
+      configuration: Configuration): Validation[Seq[(File, Option[File])]] = {
     import EclipseCreateSrc._
-    val classDirectory = eclipseOutput match {
-      case Some(name) => baseDirectory(ref, state) map (new File(_, name))
-      case None => setting(Keys.classDirectory in (ref, configuration), state)
+    val classDirectory: Validation[Option[File]] = eclipseOutput match {
+      case Some(name) => baseDirectory(ref, state) map { dir => Some(new File(dir, name)) }
+      case None => None.success
     }
-    def dirs(values: ValueSet, key: SettingKey[Seq[File]]): Validation[List[(sbt.File, java.io.File)]] =
+
+    def dirs(values: ValueSet, key: SettingKey[Seq[File]]): Validation[List[(sbt.File, Option[java.io.File])]] =
       if (values subsetOf createSrc)
         (setting(key in (ref, configuration), state) |@| classDirectory)((sds, cd) => sds.toList map (_ -> cd))
       else
