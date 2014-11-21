@@ -218,7 +218,7 @@ trait EclipsePlugin {
 
     val Resource = Value
 
-    val Default = ValueSet(Unmanaged, Source)
+    val Default = ValueSet(Unmanaged, Source, Resource)
 
     val All = ValueSet(Unmanaged, Managed, Source, Resource)
   }
