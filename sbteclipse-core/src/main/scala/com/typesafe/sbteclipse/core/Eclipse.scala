@@ -345,7 +345,6 @@ private object Eclipse extends EclipseSDTConfig {
       linkEntries <- srcLinkEntriesIoSeq.toList.sequence
     ) yield {
       val entries = srcEntries ++ linkEntries ++
-        (projectDependencies map EclipseClasspathEntry.Project) ++
         (externalDependencies map libEntry(buildDirectory, baseDirectory, relativizeLibs, state)) ++
         (newProjectDependencies map EclipseClasspathEntry.Project) ++
         (Seq(jreContainer) map EclipseClasspathEntry.Con) ++
