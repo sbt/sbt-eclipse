@@ -19,8 +19,16 @@
 package com.typesafe.sbteclipse.plugin
 
 import com.typesafe.sbteclipse.core.{ EclipsePlugin => CoreEclipsePlugin }
-import sbt.{ Plugin, Setting }
+import sbt.{ AutoPlugin, Setting }
 
-object EclipsePlugin extends Plugin with CoreEclipsePlugin {
-  override def settings: Seq[Setting[_]] = CoreEclipsePlugin.eclipseSettings
+object EclipsePlugin extends AutoPlugin with CoreEclipsePlugin {
+
+  override def requires = sbt.plugins.JvmPlugin
+
+  override def trigger = allRequirements
+
+  val autoImport = CoreEclipsePlugin
+
+  override def projectSettings: Seq[Setting[_]] = CoreEclipsePlugin.eclipseSettings
+
 }
