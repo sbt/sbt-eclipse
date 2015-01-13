@@ -20,8 +20,8 @@ object Build extends Build {
     file("sbteclipse-core"),
     settings = commonSettings ++ Seq(
       libraryDependencies ++= Seq(
-       "org.scalaz"  %% "scalaz-core"  % "7.0.2",
-       "org.scalaz" %% "scalaz-effect" % "7.0.2")
+       "org.scalaz" %% "scalaz-core"   % "7.1.0",
+       "org.scalaz" %% "scalaz-effect" % "7.1.0")
     )
   )
 
@@ -41,27 +41,25 @@ object Build extends Build {
       organization := "com.typesafe.sbteclipse",
       // version is defined in version.sbt in order to support sbt-release
       scalacOptions ++= Seq("-unchecked", "-deprecation"),
-      publishTo <<= isSnapshot { isSnapshot =>
-        val id = if (isSnapshot) "snapshots" else "releases"
+      publishTo := {
+        val id = if (isSnapshot.value) "snapshots" else "releases"
         val uri = "https://private-repo.typesafe.com/typesafe/ivy-" + id
         Some(Resolver.url("typesafe-" + id, url(uri))(Resolver.ivyStylePatterns))
       },
       sbtPlugin := true,
       publishMavenStyle := false,
-      sbtVersion in GlobalScope <<= (sbtVersion in GlobalScope) { sbtVersion =>
-        System.getProperty("sbt.build.version", sbtVersion)
+      sbtVersion in GlobalScope := {
+        System.getProperty("sbt.build.version", (sbtVersion in GlobalScope).value)
       },
-      // sbtBinaryVersion in GlobalScope <<= (sbtVersion in GlobalScope) { sbtVersion =>
-      //   // This isn't needed once we start using SBT 0.13 to build
-      //   if (CrossVersion.isStable(sbtVersion)) CrossVersion.binarySbtVersion(sbtVersion) else sbtVersion
-      // },
-      scalaVersion <<= (sbtVersion in GlobalScope) {
-        case sbt013 if sbt013.startsWith("0.13.") => "2.10.3"
-        case sbt012 if sbt012.startsWith("0.12.") => "2.9.3"
-        case _ => "2.9.3"
+      scalaVersion := {
+        (sbtVersion in GlobalScope).value match {
+          case sbt013 if sbt013.startsWith("0.13.") => "2.10.4"
+          case sbt012 if sbt012.startsWith("0.12.") => "2.9.3"
+          case _ => "2.9.3"
+        }
       },
-      sbtDependency in GlobalScope <<= (sbtDependency in GlobalScope, sbtVersion in GlobalScope) { (dep, sbtVersion) =>
-        dep.copy(revision = sbtVersion)
+      sbtDependency in GlobalScope := {
+        (sbtDependency in GlobalScope).value.copy(revision = (sbtVersion in GlobalScope).value)
       },
       publishArtifact in (Compile, packageDoc) := false,
       publishArtifact in (Compile, packageSrc) := false,
