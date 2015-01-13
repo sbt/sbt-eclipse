@@ -61,6 +61,7 @@ import scalaz.{ Failure, NonEmptyList, Success }
 import scalaz.Scalaz._
 import scalaz.effect._
 import scalaz.std.tuple._
+import sbt.MessageOnlyException
 
 private object Eclipse extends EclipseSDTConfig {
   val SettingFormat = """-([^:]*):?(.*)""".r
@@ -105,8 +106,7 @@ private object Eclipse extends EclipseSDTConfig {
       (args get WithSource).asInstanceOf[Option[Boolean]],
       (args get WithJavadoc).asInstanceOf[Option[Boolean]],
       (args get WithBundledScalaContainers).asInstanceOf[Option[Boolean]],
-      state
-    ).fold(onFailure(state), onSuccess(state))
+      state).fold(onFailure(state), onSuccess(state))
   }
 
   def handleProjects(
@@ -120,32 +120,55 @@ private object Eclipse extends EclipseSDTConfig {
       ref <- structure(state).allProjectRefs
       project <- Project.getProject(ref, structure(state)) if !skip(ref, project, skipParents, state)
     } yield {
-      val configs = configurations(ref, state)
-      val source = withSourceArg getOrElse withSource(ref, state)
-      val javadoc = withJavadocArg getOrElse withJavadoc(ref, state)
-      val bcontainers = withBundledScalaContainersArg getOrElse withBundledScalaContainers(ref, state)
-      val applic = classpathEntryTransformerFactory(ref, state).createTransformer(ref, state) |@|
-        (classpathTransformerFactories(ref, state).toList map (_.createTransformer(ref, state))).sequence[Validation, RewriteRule] |@|
-        (projectTransformerFactories(ref, state).toList map (_.createTransformer(ref, state))).sequence[Validation, RewriteRule] |@|
-        name(ref, state) |@|
-        buildDirectory(state) |@|
-        baseDirectory(ref, state) |@|
-        mapConfigurations(configs, config => srcDirectories(ref, createSrc(ref, state)(config), eclipseOutput(ref, state)(config), state)(config)) |@|
-        scalacOptions(ref, state) |@|
-        compileOrder(ref, state) |@|
-        mapConfigurations(removeExtendedConfigurations(configs), externalDependencies(ref, source, javadoc, bcontainers, state)) |@|
-        mapConfigurations(configs, projectDependencies(ref, project, state))
-      applic(
-        handleProject(
-          jreContainer(executionEnvironmentArg orElse executionEnvironment(ref, state)),
-          preTasks(ref, state),
-          relativizeLibs(ref, state),
-          builderAndNatures(projectFlavor(ref, state)),
-          state
-        )
-      )
+      val baseDir = baseDirectory(ref, state).toOption.get
+      testProjectDirectory(ref, state) match {
+        case Some(testProjectDir: File) =>
+          IO.createDirectory(testProjectDirectory(ref, state).get)
+          Seq(generateProject(true, Seq(Configurations.Test), executionEnvironmentArg, ref, withSourceArg, withJavadocArg, withBundledScalaContainersArg, project, testProjectDir, state),
+            generateProject(false, configurations(ref, state), executionEnvironmentArg, ref, withSourceArg, withJavadocArg, withBundledScalaContainersArg, project, baseDir, state))
+        case _ =>
+          val configs = configurations(ref, state)
+          Seq(generateProject(false, configs, executionEnvironmentArg, ref, withSourceArg, withJavadocArg, withBundledScalaContainersArg, project, baseDir, state))
+      }
     }
-    effects.toList.sequence[Validation, IO[String]].map((list: List[IO[String]]) => list.toStream.sequence.map(_.toList))
+    effects.flatten.toList.sequence[Validation, IO[String]].map((list: List[IO[String]]) => list.toStream.sequence.map(_.toList))
+  }
+
+  def generateProject(
+    testProject: Boolean,
+    configs: Seq[Configuration],
+    executionEnvironmentArg: Option[EclipseExecutionEnvironment.Value],
+    ref: ProjectRef,
+    withSourceArg: Option[Boolean],
+    withJavadocArg: Option[Boolean],
+    withBundledScalaContainersArg: Option[Boolean],
+    project: ResolvedProject,
+    generateDirectory: File,
+    state: State) = {
+    val source = withSourceArg getOrElse withSource(ref, state)
+    val javadoc = withJavadocArg getOrElse withJavadoc(ref, state)
+    val bcontainers = withBundledScalaContainersArg getOrElse withBundledScalaContainers(ref, state)
+    val applic = classpathEntryTransformerFactory(ref, state).createTransformer(ref, state) |@|
+      (classpathTransformerFactories(ref, state).toList map (_.createTransformer(ref, state))).sequence[Validation, RewriteRule] |@|
+      (projectTransformerFactories(ref, state).toList map (_.createTransformer(ref, state))).sequence[Validation, RewriteRule] |@|
+      projectName(ref, state) |@|
+      name(ref, state, testProject) |@|
+      buildDirectory(state) |@|
+      baseDirectory(ref, state) |@|
+      mapConfigurations(configs, config => srcDirectories(ref, createSrc(ref, state)(config), eclipseOutput(ref, state)(config), state)(config)) |@|
+      scalacOptions(ref, state) |@|
+      compileOrder(ref, state) |@|
+      mapConfigurations(removeExtendedConfigurations(configs), externalDependencies(ref, source, javadoc, bcontainers, state)) |@|
+      mapConfigurations(configs, projectDependencies(ref, project, state))
+    applic(
+      handleProject(
+        jreContainer(executionEnvironmentArg orElse executionEnvironment(ref, state)),
+        preTasks(ref, state),
+        relativizeLibs(ref, state),
+        builderAndNatures(projectFlavor(ref, state)),
+        testProject,
+        generateDirectory,
+        state))
   }
 
   def removeExtendedConfigurations(configurations: Seq[Configuration]): Seq[Configuration] = {
@@ -161,8 +184,7 @@ private object Eclipse extends EclipseSDTConfig {
 
   def onFailure(state: State)(errors: NonEmptyList[String]): State = {
     state.log.error(
-      "Could not create Eclipse project files:%s%s".format(NewLine, errors.list mkString NewLine)
-    )
+      "Could not create Eclipse project files:%s%s".format(NewLine, errors.list mkString NewLine))
     state
   }
 
@@ -174,9 +196,7 @@ private object Eclipse extends EclipseSDTConfig {
       state.log.info(
         "Successfully created Eclipse project files for project(s):%s%s".format(
           NewLine,
-          names mkString NewLine
-        )
-      )
+          names mkString NewLine))
     state
   }
 
@@ -193,10 +213,13 @@ private object Eclipse extends EclipseSDTConfig {
     preTasks: Seq[(TaskKey[_], ProjectRef)],
     relativizeLibs: Boolean,
     builderAndNatures: (String, Seq[String]),
+    testProject: Boolean,
+    generateDirectory: File,
     state: State)(
       classpathEntryTransformer: Seq[EclipseClasspathEntry] => Seq[EclipseClasspathEntry],
       classpathTransformers: Seq[RewriteRule],
       projectTransformers: Seq[RewriteRule],
+      projectName: String,
       name: String,
       buildDirectory: File,
       baseDirectory: File,
@@ -208,7 +231,7 @@ private object Eclipse extends EclipseSDTConfig {
     for {
       _ <- executePreTasks(preTasks, state)
       n <- io(name)
-      dirs <- splitSrcDirectories(srcDirectories, baseDirectory)
+      dirs <- splitSrcDirectories(srcDirectories, baseDirectory, testProject)
       // Note - Io does not have filter... hence this ugly
       localSrcDirectories = dirs._1
       linkedSrcDirectories = dirs._2
@@ -222,11 +245,12 @@ private object Eclipse extends EclipseSDTConfig {
         externalDependencies,
         projectDependencies,
         jreContainer,
-        state
-      )
-      _ <- saveXml(baseDirectory / ".project", new RuleTransformer(projectTransformers: _*)(projectXml(name, builderAndNatures, linkedSrcDirectories)))
-      _ <- saveXml(baseDirectory / ".classpath", new RuleTransformer(classpathTransformers: _*)(cp))
-      _ <- saveProperties(baseDirectory / ".settings" / "org.scala-ide.sdt.core.prefs", scalacOptions ++: compileOrder.map { order => Seq(("compileorder" -> order)) }.getOrElse(Nil))
+        testProject,
+        projectName,
+        state)
+      _ <- saveXml(generateDirectory / ".project", new RuleTransformer(projectTransformers: _*)(projectXml(name, builderAndNatures, linkedSrcDirectories)))
+      _ <- saveXml(generateDirectory / ".classpath", new RuleTransformer(classpathTransformers: _*)(cp))
+      _ <- saveProperties(generateDirectory / ".settings" / "org.scala-ide.sdt.core.prefs", scalacOptions ++: compileOrder.map { order => Seq(("compileorder" -> order)) }.getOrElse(Nil))
     } yield n
   }
 
@@ -239,7 +263,6 @@ private object Eclipse extends EclipseSDTConfig {
         name1.map(n => Seq((location1, n))).getOrElse(Seq.empty[(File, String)]) ++
           name2.map(n => Seq((location2, n))).getOrElse(Seq.empty[(File, String)])
     }
-
     <projectDescription>
       <name>{ name }</name>
       <buildSpec>
@@ -255,9 +278,11 @@ private object Eclipse extends EclipseSDTConfig {
           sourceLinks map {
             case (location, name) =>
               <link>
-                <name>{ name.replaceAll("^[A-Z]:", "") }</name>
+                <name>{ name }</name>
                 <type>2</type>
-                <location>{ location.getCanonicalPath.replaceAll("\\\\", "/") }</location>
+                <location>{
+                  location.getCanonicalPath.replaceAll("\\\\", "/")
+                }</location>
               </link>
           }
         }
@@ -266,27 +291,28 @@ private object Eclipse extends EclipseSDTConfig {
   }
 
   def createLinkName(file: File, baseDirectory: File): String = {
-    val name = file.getCanonicalPath
+    val name = file.relativeTo(baseDirectory).get.toString
     // just put '-' in place of bad characters for the name... (for now).
     // in the future we should limit the size via relativizing magikz.
-    name.replaceAll("[\\s\\\\/]+", "-")
+    name.replaceAll("[\\s\\\\/]+", "-").replaceAll("^[A-Z]:", "")
   }
 
-  def splitSrcDirectories(srcDirectories: Seq[(File, Option[File])], baseDirectory: File): IO[(Seq[(File, Option[File])], Seq[(File, Option[String], File, Option[String])])] = io {
+  def splitSrcDirectories(
+    srcDirectories: Seq[(File, Option[File])], 
+    baseDirectory: File, 
+    testProject: Boolean): IO[(Seq[(File, Option[File])], Seq[(File, Option[String], File, Option[String])])] = io {
     val (local, linked) =
       srcDirectories partition {
-        case (dir, Some(classpath)) => relativizeOpt(baseDirectory, dir).isDefined && relativizeOpt(baseDirectory, classpath).isDefined
+        case (dir, Some(classpath)) => relativizeOpt(baseDirectory, dir).isDefined && !testProject && relativizeOpt(baseDirectory, classpath).isDefined
         case (dir, None) => relativizeOpt(baseDirectory, dir).isDefined
       }
     //Now, create link names...
-
     val links =
       for {
         (file, classDirectory) <- linked
-        fileName = if (relativizeOpt(baseDirectory, file).isDefined) None else Some(createLinkName(file, baseDirectory))
-        classDirectoryName = if (relativizeOpt(baseDirectory, classDirectory.getOrElse(file)).isDefined) None else Some(createLinkName(classDirectory.getOrElse(file), baseDirectory))
+        fileName = if (relativizeOpt(baseDirectory, file).isDefined && !testProject) None else Some(createLinkName(file, baseDirectory))
+        classDirectoryName = if (relativizeOpt(baseDirectory, classDirectory.getOrElse(file)).isDefined && !testProject) None else Some(createLinkName(classDirectory.getOrElse(file), baseDirectory))
       } yield (file, fileName, classDirectory.getOrElse(file), classDirectoryName)
-
     (local, links)
   }
 
@@ -300,7 +326,13 @@ private object Eclipse extends EclipseSDTConfig {
     externalDependencies: Seq[Lib],
     projectDependencies: Seq[String],
     jreContainer: String,
+    testProject: Boolean,
+    projectName: String,
     state: State): IO[Node] = {
+    val newProjectDependencies = testProject match {
+      case false => projectDependencies
+      case true => projectDependencies ++ Seq(projectName)
+    }
     val srcEntriesIoSeq =
       for {
         (dir, output) <- srcDirectories
@@ -313,8 +345,8 @@ private object Eclipse extends EclipseSDTConfig {
       linkEntries <- srcLinkEntriesIoSeq.toList.sequence
     ) yield {
       val entries = srcEntries ++ linkEntries ++
-        (projectDependencies map EclipseClasspathEntry.Project) ++
         (externalDependencies map libEntry(buildDirectory, baseDirectory, relativizeLibs, state)) ++
+        (newProjectDependencies map EclipseClasspathEntry.Project) ++
         (Seq(jreContainer) map EclipseClasspathEntry.Con) ++
         (Seq("bin") map EclipseClasspathEntry.Output)
       <classpath>{ classpathEntryTransformer(entries) map (_.toXml) }</classpath>
@@ -361,8 +393,7 @@ private object Eclipse extends EclipseSDTConfig {
       EclipseClasspathEntry.Src(
         relativize(baseDirectory, srcDirectory),
         classDirectory.map(relativize(baseDirectory, _)),
-        excludes
-      )
+        excludes)
     }
 
   def libEntry(
@@ -379,9 +410,7 @@ private object Eclipse extends EclipseSDTConfig {
         "%s%s%s".format(
           base split FileSepPattern map (part => if (part != ".") ".." else part) mkString FileSep,
           FileSep,
-          file
-        )
-      )
+          file))
       if (relativizeLibs) relativized getOrElse file.getAbsolutePath else file.getAbsolutePath
     }
     EclipseClasspathEntry.Lib(path(lib.binary), lib.source map path, lib.javadoc map path)
@@ -401,7 +430,20 @@ private object Eclipse extends EclipseSDTConfig {
 
   // Getting and transforming mandatory settings and task results
 
-  def name(ref: Reference, state: State): Validation[String] =
+  def name(ref: Reference, state: State, testProject: Boolean): Validation[String] =
+    testProjectDirectory(ref, state) match {
+      case Some(testProjectDir: File) =>
+        testProject match {
+          case true =>
+            Success(testProjectDir.relativeTo(baseDirectory(ref, state).toOption.get).get.toString)
+          case false =>
+            projectName(ref, state)
+        }
+      case _ =>
+        projectName(ref, state)
+    }
+
+  def projectName(ref: Reference, state: State): Validation[String] =
     if (setting(EclipseKeys.useProjectId in ref, state).fold(_ => false, id))
       setting(Keys.thisProject in ref, state) map (_.id)
     else
@@ -437,8 +479,7 @@ private object Eclipse extends EclipseSDTConfig {
       dirs(ValueSet(Unmanaged, Source), Keys.unmanagedSourceDirectories),
       dirs(ValueSet(Managed, Source), Keys.managedSourceDirectories),
       dirs(ValueSet(Unmanaged, Resource), Keys.unmanagedResourceDirectories),
-      dirs(ValueSet(Managed, Resource), Keys.managedResourceDirectories)
-    ) reduceLeft (_ +++ _)
+      dirs(ValueSet(Managed, Resource), Keys.managedResourceDirectories)) reduceLeft (_ +++ _)
   }
 
   def scalacOptions(ref: ProjectRef, state: State): Validation[Seq[(String, String)]] =
@@ -452,8 +493,7 @@ private object Eclipse extends EclipseSDTConfig {
           case Seq() => Seq()
           case options => ("scala.compiler.useProjectSettings" -> "true") +: options
         }
-      }
-    )
+      })
 
   def compileOrder(ref: ProjectRef, state: State): Validation[Option[String]] =
     setting(Keys.compileOrder in ref, state).map(order =>
@@ -522,9 +562,7 @@ private object Eclipse extends EclipseSDTConfig {
         withSource,
         withJavadoc,
         withBundledScalaContainers,
-        externalDependencies
-      )
-    )
+        externalDependencies))
     externalDependencies
   }
 
@@ -551,12 +589,14 @@ private object Eclipse extends EclipseSDTConfig {
       dependency.configuration,
       Configurations.names(Classpaths.getConfigurations(ref, structure(state).data)),
       Configurations.names(Classpaths.getConfigurations(dependency.project, structure(state).data)),
-      "compile", "*->compile"
-    )
+      "compile", "*->compile")
     !map(configuration.name).isEmpty
   }
 
   // Getting and transforming optional settings and task results
+
+  def testProjectDirectory(ref: Reference, state: State): Option[File] =
+    setting(EclipseKeys.testProjectDirectory in ref, state).fold(_ => None, id)
 
   def executionEnvironment(ref: Reference, state: State): Option[EclipseExecutionEnvironment.Value] =
     setting(EclipseKeys.executionEnvironment in ref, state).fold(_ => None, id)
@@ -576,32 +616,32 @@ private object Eclipse extends EclipseSDTConfig {
   def classpathEntryTransformerFactory(ref: Reference, state: State): EclipseTransformerFactory[Seq[EclipseClasspathEntry] => Seq[EclipseClasspathEntry]] =
     setting(EclipseKeys.classpathEntryTransformerFactory in ref, state).fold(
       _ => EclipseClasspathEntryTransformerFactory.Identity,
-      id
-    )
+      id)
 
   def classpathTransformerFactories(ref: Reference, state: State): Seq[EclipseTransformerFactory[RewriteRule]] =
     if (!withBundledScalaContainers(ref, state))
       setting(EclipseKeys.classpathTransformerFactories in ref, state).fold(
         _ => Seq(EclipseRewriteRuleTransformerFactory.Identity),
-        id
-      )
+        id)
     else
       setting(EclipseKeys.classpathTransformerFactories in ref, state).fold(
         _ => Seq(EclipseRewriteRuleTransformerFactory.ClasspathDefault),
-        EclipseRewriteRuleTransformerFactory.ClasspathDefault +: _
-      )
+        EclipseRewriteRuleTransformerFactory.ClasspathDefault +: _)
 
   def projectTransformerFactories(ref: Reference, state: State): Seq[EclipseTransformerFactory[RewriteRule]] =
     setting(EclipseKeys.projectTransformerFactories in ref, state).fold(
       _ => Seq(EclipseRewriteRuleTransformerFactory.Identity),
-      id
-    )
+      id)
 
-  def configurations(ref: Reference, state: State): Seq[Configuration] =
+  def configurations(ref: Reference, state: State): Seq[Configuration] = {
+    val defaultConfigs: Seq[Configuration] = testProjectDirectory(ref, state) match {
+      case Some(_) => Seq(Configurations.Compile)
+      case _ => Seq(Configurations.Compile, Configurations.Test)
+    }
     setting(EclipseKeys.configurations in ref, state).fold(
-      _ => Seq(Configurations.Compile, Configurations.Test),
-      _.toSeq
-    )
+      _ => defaultConfigs,
+      _.toSeq)
+  }
 
   def createSrc(ref: Reference, state: State)(configuration: Configuration): EclipseCreateSrc.ValueSet =
     setting(EclipseKeys.createSrc in (ref, configuration), state).fold(_ => EclipseCreateSrc.Default, id)
@@ -631,8 +671,7 @@ private object Eclipse extends EclipseSDTConfig {
       val properties = new Properties
       for ((key, value) <- settings) properties.setProperty(key, value)
       fileWriterMkdirs(file).bracket(closeWriter)(writer =>
-        io(properties.store(writer, "Generated by sbteclipse"))
-      )
+        io(properties.store(writer, "Generated by sbteclipse")))
     } else
       io(())
 

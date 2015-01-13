@@ -31,4 +31,6 @@ private object EclipseOpts {
   val UseProjectId = "use-project-id"
 
   val WithBundledScalaContainers = "with-bundled-scala-containers"
+
+  val TestProjectDirectory = "test-project-directory"
 }
