@@ -21,7 +21,8 @@ object Build extends Build {
     settings = commonSettings ++ Seq(
       libraryDependencies ++= Seq(
        "org.scalaz" %% "scalaz-core"   % "7.1.0",
-       "org.scalaz" %% "scalaz-effect" % "7.1.0")
+       "org.scalaz" %% "scalaz-effect" % "7.1.0",
+       "org.scalatest" %% "scalatest" % "2.2.1" % "test")
     )
   )
 
