@@ -61,6 +61,7 @@ import scalaz.{ Failure, NonEmptyList, Success }
 import scalaz.Scalaz._
 import scalaz.effect._
 import scalaz.std.tuple._
+import com.typesafe.sbteclipse.util.ScalaVersion
 
 private object Eclipse extends EclipseSDTConfig {
   val SettingFormat = """-([^:]*):?(.*)""".r
@@ -441,19 +442,26 @@ private object Eclipse extends EclipseSDTConfig {
     ) reduceLeft (_ +++ _)
   }
 
-  def scalacOptions(ref: ProjectRef, state: State): Validation[Seq[(String, String)]] =
+  def scalacOptions(ref: ProjectRef, state: State): Validation[Seq[(String, String)]] = {
     // Here we have to look at scalacOptions *for compilation*, vs. the ones used for testing.
     // We have to pick one set, and this should be the most complete set.
-    evaluateTask(Keys.scalacOptions in sbt.Compile, ref, state) map (options =>
-      if (options.isEmpty)
-        Nil
-      else {
-        fromScalacToSDT(options) match {
-          case Seq() => Seq()
-          case options => ("scala.compiler.useProjectSettings" -> "true") +: options
-        }
-      }
-    )
+    (evaluateTask(Keys.scalacOptions in sbt.Compile, ref, state) |@| setting(Keys.scalaVersion in ref, state)) { (options, version) =>
+      val ideSettings = fromScalacToSDT(options)
+      ideSettingsWithMultipleScalaSupport(ideSettings.toMap, ScalaVersion.parse(version)).toSeq
+    } map { options => if (options.nonEmpty) ("scala.compiler.useProjectSettings" -> "true") +: options else options }
+  }
+
+  /**
+   * If `version` is Scala 2.10, returns the `settings` with the required additional parameters for enabling the Scala 2.10 support in Scala IDE 4.0+.
+   * Otherwise, returns `settings` unchanged.
+   */
+  private def ideSettingsWithMultipleScalaSupport(settings: Map[String, String], version: Option[ScalaVersion]): Map[String, String] = version match {
+    case Some(version) if version.isScala210 =>
+      val key = "scala.compiler.additionalParams"
+      val newValue = (settings.getOrElse(key, "") + " -Xsource:2.10 -Ymacro-expand:none").trim()
+      settings + (key -> newValue) + ("scala.compiler.sourceLevel" -> "2.10")
+    case _ => settings
+  }
 
   def compileOrder(ref: ProjectRef, state: State): Validation[Option[String]] =
     setting(Keys.compileOrder in ref, state).map(order =>
