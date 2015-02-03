@@ -14,7 +14,8 @@ object Build extends Build {
         "org.scala-lang" % "scala-compiler" % "2.10.2",
         "biz.aQute" % "bndlib" % "1.50.0"
       ),
-      retrieveManaged := true
+      retrieveManaged := true,
+      EclipseKeys.createSrc := EclipseCreateSrc.Default - EclipseCreateSrc.Managed
     ),
     aggregate = Seq(sub, javaProject, scalaProject)
   )

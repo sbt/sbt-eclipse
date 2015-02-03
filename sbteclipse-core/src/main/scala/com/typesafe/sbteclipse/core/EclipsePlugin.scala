@@ -218,9 +218,9 @@ trait EclipsePlugin {
 
     val Resource = Value
 
-    val Default = ValueSet(Unmanaged, Source, Resource)
-
     val All = ValueSet(Unmanaged, Managed, Source, Resource)
+
+    val Default = All
   }
 
   object EclipseProjectFlavor extends Enumeration {
