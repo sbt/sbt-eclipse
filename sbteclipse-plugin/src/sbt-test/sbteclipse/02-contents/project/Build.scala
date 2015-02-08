@@ -14,7 +14,8 @@ object Build extends Build {
         "org.scala-lang" % "scala-compiler" % "2.10.2",
         "biz.aQute" % "bndlib" % "1.50.0"
       ),
-      retrieveManaged := true
+      retrieveManaged := true,
+      EclipseKeys.createSrc := EclipseCreateSrc.Default
     ),
     aggregate = Seq(sub, javaProject, scalaProject)
   )
@@ -32,7 +33,7 @@ object Build extends Build {
       EclipseKeys.executionEnvironment := Some(EclipseExecutionEnvironment.JavaSE16),
       EclipseKeys.withSource := true
     ),
-    aggregate = Seq(suba, subb, subc, subd, sube)
+    aggregate = Seq(suba, subb, subc, subd, sube, subf)
   )
 
   lazy val suba = Project(
@@ -126,4 +127,17 @@ object Build extends Build {
       name := "sube"
     )
   )
+
+  lazy val subf = Project(
+    "subf",
+    new File("sub/subf"),
+      settings = Project.defaultSettings ++ Seq(
+      libraryDependencies ++= Seq(
+        "org.scala-lang" % "scala-compiler" % "2.10.2"
+      ),
+      EclipseKeys.createSrc := EclipseCreateSrc.Default - EclipseCreateSrc.Managed,
+      EclipseKeys.withSource := true
+    )
+  )
+
 }
