@@ -107,7 +107,6 @@ private object Eclipse extends EclipseSDTConfig {
       (args get SkipParents).asInstanceOf[Option[Boolean]] getOrElse skipParents(ThisBuild, state),
       (args get WithSource).asInstanceOf[Option[Boolean]],
       (args get WithJavadoc).asInstanceOf[Option[Boolean]],
-      (args get WithBundledScalaContainers).asInstanceOf[Option[Boolean]],
       state
     ).fold(onFailure(state), onSuccess(state))
   }
@@ -117,7 +116,6 @@ private object Eclipse extends EclipseSDTConfig {
     skipParents: Boolean,
     withSourceArg: Option[Boolean],
     withJavadocArg: Option[Boolean],
-    withBundledScalaContainersArg: Option[Boolean],
     state: State): Validation[IO[Seq[String]]] = {
     val effects = for {
       ref <- structure(state).allProjectRefs
@@ -126,7 +124,6 @@ private object Eclipse extends EclipseSDTConfig {
       val configs = configurations(ref, state)
       val source = withSourceArg getOrElse withSource(ref, state)
       val javadoc = withJavadocArg getOrElse withJavadoc(ref, state)
-      val bcontainers = withBundledScalaContainersArg getOrElse withBundledScalaContainers(ref, state)
       val applic =
         (classpathTransformerFactories(ref, state).toList map (_.createTransformer(ref, state))).sequence[Validation, RewriteRule] |@|
           (projectTransformerFactories(ref, state).toList map (_.createTransformer(ref, state))).sequence[Validation, RewriteRule] |@|
@@ -136,7 +133,7 @@ private object Eclipse extends EclipseSDTConfig {
           mapConfigurations(configs, config => srcDirectories(ref, createSrc(ref, state)(config), eclipseOutput(ref, state)(config), state)(config)) |@|
           scalacOptions(ref, state) |@|
           compileOrder(ref, state) |@|
-          mapConfigurations(removeExtendedConfigurations(configs), externalDependencies(ref, source, javadoc, bcontainers, state)) |@|
+          mapConfigurations(removeExtendedConfigurations(configs), externalDependencies(ref, source, javadoc, state)) |@|
           mapConfigurations(configs, projectDependencies(ref, project, state))
       applic(
         handleProject(
@@ -397,7 +394,7 @@ private object Eclipse extends EclipseSDTConfig {
     }
 
   def builderAndNatures(projectFlavor: EclipseProjectFlavor.Value) =
-    if (projectFlavor.id == EclipseProjectFlavor.Scala.id)
+    if (projectFlavor.id == EclipseProjectFlavor.ScalaIDE.id)
       ScalaBuilder -> Seq(ScalaNature, JavaNature)
     else
       JavaBuilder -> Seq(JavaNature)
@@ -468,7 +465,6 @@ private object Eclipse extends EclipseSDTConfig {
     ref: ProjectRef,
     withSource: Boolean,
     withJavadoc: Boolean,
-    withBundledScalaContainers: Boolean,
     state: State)(
       configuration: Configuration): Validation[Seq[Lib]] = {
     def evalTask[A](key: TaskKey[A]) = evaluateTask(key in configuration, ref, state)
@@ -507,7 +503,6 @@ private object Eclipse extends EclipseSDTConfig {
 
       val sources = if (withSource) Some("sources") else None
       val javadoc = if (withJavadoc) Some("javadoc") else None
-      val bcontainers = if (withBundledScalaContainers) Some("bcontainers") else none
 
       sources |+| javadoc match {
         case Some(_) => {
@@ -520,11 +515,10 @@ private object Eclipse extends EclipseSDTConfig {
     }
     val externalDependencies = (externalDependencyClasspath |@| moduleFiles)(libs)
     state.log.debug(
-      "External dependencies for configuration '%s' and withSource '%s' and withJavadoc '%s' and withBundledScalaContainers'%s': %s".format(
+      "External dependencies for configuration '%s' and withSource '%s' and withJavadoc '%s': %s".format(
         configuration,
         withSource,
         withJavadoc,
-        withBundledScalaContainers,
         externalDependencies
       )
     )
@@ -574,7 +568,7 @@ private object Eclipse extends EclipseSDTConfig {
     setting(EclipseKeys.withJavadoc in ref, state).fold(_ => false, id)
 
   def withBundledScalaContainers(ref: Reference, state: State): Boolean =
-    setting(EclipseKeys.withBundledScalaContainers in ref, state).fold(_ => true, id)
+    setting(EclipseKeys.withBundledScalaContainers in ref, state).fold(_ => projectFlavor(ref, state) == EclipseProjectFlavor.ScalaIDE, id)
 
   def classpathTransformerFactories(ref: Reference, state: State): Seq[EclipseTransformerFactory[RewriteRule]] =
     if (!withBundledScalaContainers(ref, state))
@@ -604,7 +598,7 @@ private object Eclipse extends EclipseSDTConfig {
     setting(EclipseKeys.createSrc in (ref, configuration), state).fold(_ => EclipseCreateSrc.Default, id)
 
   def projectFlavor(ref: Reference, state: State) =
-    setting(EclipseKeys.projectFlavor in ref, state).fold(_ => EclipseProjectFlavor.Scala, id)
+    setting(EclipseKeys.projectFlavor in ref, state).fold(_ => EclipseProjectFlavor.ScalaIDE, id)
 
   def eclipseOutput(ref: ProjectRef, state: State)(config: Configuration): Option[String] =
     setting(EclipseKeys.eclipseOutput in (ref, config), state).fold(_ => None, id)
