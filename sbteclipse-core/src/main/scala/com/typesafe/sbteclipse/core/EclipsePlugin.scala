@@ -210,17 +210,26 @@ trait EclipsePlugin {
 
   object EclipseCreateSrc extends Enumeration {
 
+    @deprecated("Always enabled", "3.1.0")
     val Unmanaged = Value
 
+    @deprecated("Use ManagedSrc and ManagedResources", "3.1.0")
     val Managed = Value
 
+    @deprecated("Always enabled", "3.1.0")
     val Source = Value
 
+    @deprecated("Always enabled", "3.1.0")
     val Resource = Value
 
-    val Default = ValueSet(Unmanaged, Source, Resource)
+    val ManagedSrc = Value
 
-    val All = ValueSet(Unmanaged, Managed, Source, Resource)
+    val ManagedResources = Value
+
+    val Default = ValueSet(ManagedSrc, ManagedResources)
+
+    @deprecated("Does nothing. Uses default values", "3.1.0")
+    val All = Default
   }
 
   object EclipseProjectFlavor extends Enumeration {
