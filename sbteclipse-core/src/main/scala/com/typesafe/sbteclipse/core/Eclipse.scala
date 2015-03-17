@@ -305,9 +305,13 @@ private object Eclipse extends EclipseSDTConfig {
       for {
         (dir, output) <- srcDirectories
         excludes = srcExcludes(srcDirectories, dir)
+        if dir.exists()
       } yield srcEntry(baseDirectory, dir, output, excludes, state)
     val srcLinkEntriesIoSeq =
-      for ((dir, dirName, output, outputName) <- srcDirectoryLinks) yield srcLink(baseDirectory, dir, dirName, Some(output), outputName, state)
+      for {
+        (dir, dirName, output, outputName) <- srcDirectoryLinks
+        if dir.exists()
+      } yield srcLink(baseDirectory, dir, dirName, Some(output), outputName, state)
     for (
       srcEntries <- srcEntriesIoSeq.toList.sequence;
       linkEntries <- srcLinkEntriesIoSeq.toList.sequence
@@ -340,7 +344,6 @@ private object Eclipse extends EclipseSDTConfig {
     outputName: Option[String],
     state: State): IO[EclipseClasspathEntry.Src] =
     io {
-      if (!pathDir.exists) pathDir.mkdirs()
       EclipseClasspathEntry.Src(
         pathName.getOrElse(relativize(baseDirectory, pathDir)),
         outputName match {
@@ -357,7 +360,6 @@ private object Eclipse extends EclipseSDTConfig {
     excludes: Seq[String],
     state: State): IO[EclipseClasspathEntry.Src] =
     io {
-      if (!srcDirectory.exists()) srcDirectory.mkdirs()
       EclipseClasspathEntry.Src(
         relativize(baseDirectory, srcDirectory),
         classDirectory.map(relativize(baseDirectory, _)),
@@ -435,8 +437,8 @@ private object Eclipse extends EclipseSDTConfig {
         scalaz.Validation.success(Nil)
     List(
       dirs(ValueSet(Unmanaged, Source), Keys.unmanagedSourceDirectories),
-      dirs(ValueSet(Managed, Source), Keys.managedSourceDirectories),
       dirs(ValueSet(Unmanaged, Resource), Keys.unmanagedResourceDirectories),
+      dirs(ValueSet(Managed, Source), Keys.managedSourceDirectories),
       dirs(ValueSet(Managed, Resource), Keys.managedResourceDirectories)
     ) reduceLeft (_ +++ _)
   }
