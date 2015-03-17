@@ -53,7 +53,7 @@ object Build extends Build {
       },
       scalaVersion := {
         (sbtVersion in GlobalScope).value match {
-          case sbt013 if sbt013.startsWith("0.13.") => "2.10.4"
+          case sbt013 if sbt013.startsWith("0.13.") => "2.10.5"
           case sbt012 if sbt012.startsWith("0.12.") => "2.9.3"
           case _ => "2.9.3"
         }
@@ -65,6 +65,6 @@ object Build extends Build {
       publishArtifact in (Compile, packageSrc) := false,
       // Uncomment the following line to get verbose output
       // scriptedBufferLog := false,
-      scriptedLaunchOpts ++= List("-Xmx1024m", "-XX:MaxPermSize=256M", "-Dplugin.version=" + version.value)
+      scriptedLaunchOpts ++= List("-Dplugin.version=" + version.value)
     )
 }
