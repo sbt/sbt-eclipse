@@ -203,7 +203,19 @@ TaskKey[Unit]("verify-classpath-xml-subc") <<= baseDirectory map { dir =>
     error("""Expected .project of subc project to contain <foo bar="baz"/>!""")
 }
 
-TaskKey[Unit]("verify-settings") <<= baseDirectory map { dir =>
+TaskKey[Unit]("verify-java-settings") <<= baseDirectory map { dir =>
+  val settings = {
+    val p = new Properties 
+    p.load(new FileInputStream(dir / "sub/subb/.settings/org.eclipse.core.resources.prefs"))
+    p.asScala.toMap
+  }
+  val expected = Map(
+    "encoding/<project>" -> "UTF-8"
+  ) 
+  if (settings != expected) error("Expected settings to be '%s', but was '%s'!".format(expected, settings))
+}
+
+TaskKey[Unit]("verify-scala-settings") <<= baseDirectory map { dir =>
   val settings = {
     val p = new Properties 
     p.load(new FileInputStream(dir / "sub/subb/.settings/org.scala-ide.sdt.core.prefs"))
