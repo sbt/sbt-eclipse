@@ -80,12 +80,6 @@ trait EclipsePlugin {
       "Use the sbt project id as the Eclipse project name?"
     )
 
-    @deprecated("Use classpathTransformerFactories instead!", "2.1.0")
-    val classpathEntryTransformerFactory: SettingKey[EclipseTransformerFactory[Seq[EclipseClasspathEntry] => Seq[EclipseClasspathEntry]]] = SettingKey(
-      prefix("classpathEntryTransformerFactory"),
-      "Creates a transformer for classpath entries."
-    )
-
     val classpathTransformerFactories: SettingKey[Seq[EclipseTransformerFactory[RewriteRule]]] = SettingKey(
       prefix("classpathTransformerFactory"),
       "Factories for a rewrite rule for the .classpath file."
