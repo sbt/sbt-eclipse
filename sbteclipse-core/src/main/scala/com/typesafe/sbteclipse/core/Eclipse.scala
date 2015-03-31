@@ -33,12 +33,16 @@ import java.util.Properties
 import sbt.{
   Attributed,
   Artifact,
+  BuildStructure,
   ClasspathDep,
   Classpaths,
   Command,
   Configuration,
   Configurations,
+  EvaluateTask,
   File,
+  Inc,
+  Incomplete,
   IO,
   Keys,
   ModuleID,
@@ -52,12 +56,13 @@ import sbt.{
   TaskKey,
   ThisBuild,
   UpdateReport,
+  Value,
   richFile
 }
 import sbt.complete.Parser
 import scala.xml.{ Node, PrettyPrinter }
 import scala.xml.transform.{ RewriteRule, RuleTransformer }
-import scalaz.{ Failure, NonEmptyList, Success }
+import scalaz.{ Equal, Failure, NonEmptyList, Success }
 import scalaz.Scalaz._
 import scalaz.effect._
 import scalaz.std.tuple._
@@ -678,6 +683,36 @@ private object Eclipse extends EclipseSDTConfig {
       fix(parts, "")
     } else filename
   }
+
+  implicit val fileEqual = new Equal[File] {
+    def equal(file1: File, file2: File): Boolean = file1 == file2
+  }
+
+  def id[A](a: A): A = a
+
+  def boolOpt(key: String): Parser[(String, Boolean)] = {
+    import sbt.complete.DefaultParsers._
+    (Space ~> key ~ ("=" ~> ("true" | "false"))) map { case (k, v) => k -> v.toBoolean }
+  }
+
+  /**
+   * @param key the fully qualified key
+   */
+  def setting[A](key: SettingKey[A], state: State): Validation[A] =
+    key get structure(state).data match {
+      case Some(a) => a.success
+      case None => "Undefined setting '%s'!".format(key.key).failureNel
+    }
+
+  def evaluateTask[A](key: TaskKey[A], ref: ProjectRef, state: State): Validation[A] =
+    EvaluateTask(structure(state), key, state, ref, EvaluateTask defaultConfig state) match {
+      case Some((_, Value(a))) => a.success
+      case Some((_, Inc(inc))) => "Error evaluating task '%s': %s".format(key.key, Incomplete.show(inc.tpe)).failureNel
+      case None => "Undefined task '%s' for '%s'!".format(key.key, ref.project).failureNel
+    }
+
+  def structure(state: State): BuildStructure = Project.extract(state).structure
+
 }
 
 private case class Content(
