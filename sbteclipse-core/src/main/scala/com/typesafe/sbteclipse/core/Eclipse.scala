@@ -60,7 +60,6 @@ import scala.xml.transform.{ RewriteRule, RuleTransformer }
 import scalaz.{ Failure, NonEmptyList, Success }
 import scalaz.Scalaz._
 import scalaz.effect._
-import scalaz.std.tuple._
 
 private object Eclipse extends EclipseSDTConfig {
   val SettingFormat = """-([^:]*):?(.*)""".r
@@ -437,10 +436,10 @@ private object Eclipse extends EclipseSDTConfig {
       else
         scalaz.Validation.success(Nil)
     List(
-      dirs(ValueSet(Unmanaged, Source), Keys.unmanagedSourceDirectories),
-      dirs(ValueSet(Unmanaged, Resource), Keys.unmanagedResourceDirectories),
-      dirs(ValueSet(Managed, Source), Keys.managedSourceDirectories),
-      dirs(ValueSet(Managed, Resource), Keys.managedResourceDirectories)
+      dirs(ValueSet(), Keys.unmanagedSourceDirectories),
+      dirs(ValueSet(), Keys.unmanagedResourceDirectories),
+      dirs(ValueSet(ManagedSrc), Keys.managedSourceDirectories),
+      dirs(ValueSet(ManagedResources), Keys.managedResourceDirectories)
     ) reduceLeft (_ +++ _)
   }
 

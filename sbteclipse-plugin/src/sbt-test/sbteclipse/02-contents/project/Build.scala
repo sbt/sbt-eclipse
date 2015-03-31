@@ -44,7 +44,6 @@ object Build extends Build {
         "biz.aQute" % "bndlib" % "1.50.0",
         "org.specs2" %% "specs2" % "2.1.1" % "test"
       ),
-      EclipseKeys.createSrc := EclipseCreateSrc.ValueSet(EclipseCreateSrc.Managed, EclipseCreateSrc.Resource),
       EclipseKeys.createSrc in Test := EclipseCreateSrc.ValueSet.empty,
       EclipseKeys.withSource := true
     )

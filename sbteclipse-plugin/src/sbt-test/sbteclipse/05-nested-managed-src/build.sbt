@@ -13,8 +13,6 @@ seq(ProtobufPlugin.protobufSettings: _*)
 
 seq(Twirl.settings: _*)
 
-EclipseKeys.createSrc := EclipseCreateSrc.All
-
 TaskKey[Unit]("verify-valid") <<= baseDirectory map { dir =>
   val classpath = XML.loadFile(dir / ".classpath")
   val srcManaged = """^target/scala-([0-9.]+)/src_managed/main$""".r
