@@ -18,30 +18,7 @@
 
 package com.typesafe.sbteclipse
 
-import java.util.Properties
-import sbt.{
-  Configuration,
-  Configurations,
-  Extracted,
-  EvaluateConfig,
-  EvaluateTask,
-  File,
-  Inc,
-  Incomplete,
-  Project,
-  ProjectRef,
-  Reference,
-  Result,
-  TaskKey,
-  SettingKey,
-  State,
-  Task,
-  Value
-}
-import sbt.Load.BuildStructure
-import sbt.complete.Parser
-import scalaz.{ Equal, NonEmptyList, Validation => ScalazValidation }
-import scalaz.Scalaz._
+import scalaz.NonEmptyList
 
 package object core {
 
@@ -49,33 +26,5 @@ package object core {
 
   val FileSep = System.getProperty("file.separator")
 
-  implicit val fileEqual = new Equal[File] {
-    def equal(file1: File, file2: File): Boolean = file1 == file2
-  }
-
-  def id[A](a: A): A = a
-
-  def boolOpt(key: String): Parser[(String, Boolean)] = {
-    import sbt.complete.DefaultParsers._
-    (Space ~> key ~ ("=" ~> ("true" | "false"))) map { case (k, v) => k -> v.toBoolean }
-  }
-
-  def setting[A](key: SettingKey[A], state: State): Validation[A] =
-    key get structure(state).data match {
-      case Some(a) => a.success
-      case None => "Undefined setting '%s'!".format(key.key).failNel
-    }
-
-  def evaluateTask[A](key: TaskKey[A], ref: ProjectRef, state: State): Validation[A] =
-    EvaluateTask(structure(state), key, state, ref, EvaluateTask defaultConfig state) match {
-      case Some((_, Value(a))) => a.success
-      case Some((_, Inc(inc))) => "Error evaluating task '%s': %s".format(key.key, Incomplete.show(inc.tpe)).failNel
-      case None => "Undefined task '%s' for '%s'!".format(key.key, ref.project).failNel
-    }
-
-  def extracted(state: State): Extracted = Project.extract(state)
-
-  def structure(state: State): BuildStructure = extracted(state).structure
-
-  type Validation[A] = ScalazValidation[NonEmptyList[String], A]
+  type Validation[A] = scalaz.Validation[NonEmptyList[String], A]
 }
