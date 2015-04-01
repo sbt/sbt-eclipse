@@ -21,7 +21,6 @@ package com.typesafe.sbteclipse.core
 import EclipsePlugin.{
   EclipseClasspathEntry,
   EclipseTransformerFactory,
-  EclipseClasspathEntryTransformerFactory,
   EclipseRewriteRuleTransformerFactory,
   EclipseCreateSrc,
   EclipseProjectFlavor,
@@ -123,17 +122,17 @@ private object Eclipse extends EclipseSDTConfig {
       val source = withSourceArg getOrElse withSource(ref, state)
       val javadoc = withJavadocArg getOrElse withJavadoc(ref, state)
       val bcontainers = withBundledScalaContainersArg getOrElse withBundledScalaContainers(ref, state)
-      val applic = classpathEntryTransformerFactory(ref, state).createTransformer(ref, state) |@|
+      val applic =
         (classpathTransformerFactories(ref, state).toList map (_.createTransformer(ref, state))).sequence[Validation, RewriteRule] |@|
-        (projectTransformerFactories(ref, state).toList map (_.createTransformer(ref, state))).sequence[Validation, RewriteRule] |@|
-        name(ref, state) |@|
-        buildDirectory(state) |@|
-        baseDirectory(ref, state) |@|
-        mapConfigurations(configs, config => srcDirectories(ref, createSrc(ref, state)(config), eclipseOutput(ref, state)(config), state)(config)) |@|
-        scalacOptions(ref, state) |@|
-        compileOrder(ref, state) |@|
-        mapConfigurations(removeExtendedConfigurations(configs), externalDependencies(ref, source, javadoc, bcontainers, state)) |@|
-        mapConfigurations(configs, projectDependencies(ref, project, state))
+          (projectTransformerFactories(ref, state).toList map (_.createTransformer(ref, state))).sequence[Validation, RewriteRule] |@|
+          name(ref, state) |@|
+          buildDirectory(state) |@|
+          baseDirectory(ref, state) |@|
+          mapConfigurations(configs, config => srcDirectories(ref, createSrc(ref, state)(config), eclipseOutput(ref, state)(config), state)(config)) |@|
+          scalacOptions(ref, state) |@|
+          compileOrder(ref, state) |@|
+          mapConfigurations(removeExtendedConfigurations(configs), externalDependencies(ref, source, javadoc, bcontainers, state)) |@|
+          mapConfigurations(configs, projectDependencies(ref, project, state))
       applic(
         handleProject(
           jreContainer(executionEnvironmentArg orElse executionEnvironment(ref, state)),
@@ -193,7 +192,6 @@ private object Eclipse extends EclipseSDTConfig {
     relativizeLibs: Boolean,
     builderAndNatures: (String, Seq[String]),
     state: State)(
-      classpathEntryTransformer: Seq[EclipseClasspathEntry] => Seq[EclipseClasspathEntry],
       classpathTransformers: Seq[RewriteRule],
       projectTransformers: Seq[RewriteRule],
       name: String,
@@ -212,7 +210,6 @@ private object Eclipse extends EclipseSDTConfig {
       localSrcDirectories = dirs._1
       linkedSrcDirectories = dirs._2
       cp <- classpath(
-        classpathEntryTransformer,
         buildDirectory,
         baseDirectory,
         relativizeLibs,
@@ -291,7 +288,6 @@ private object Eclipse extends EclipseSDTConfig {
   }
 
   def classpath(
-    classpathEntryTransformer: Seq[EclipseClasspathEntry] => Seq[EclipseClasspathEntry],
     buildDirectory: File,
     baseDirectory: File,
     relativizeLibs: Boolean,
@@ -321,7 +317,7 @@ private object Eclipse extends EclipseSDTConfig {
         (externalDependencies map libEntry(buildDirectory, baseDirectory, relativizeLibs, state)) ++
         (Seq(jreContainer) map EclipseClasspathEntry.Con) ++
         (Seq("bin") map EclipseClasspathEntry.Output)
-      <classpath>{ classpathEntryTransformer(entries) map (_.toXml) }</classpath>
+      <classpath>{ entries map (_.toXml) }</classpath>
     }
   }
 
@@ -574,12 +570,6 @@ private object Eclipse extends EclipseSDTConfig {
 
   def withBundledScalaContainers(ref: Reference, state: State): Boolean =
     setting(EclipseKeys.withBundledScalaContainers in ref, state).fold(_ => true, id)
-
-  def classpathEntryTransformerFactory(ref: Reference, state: State): EclipseTransformerFactory[Seq[EclipseClasspathEntry] => Seq[EclipseClasspathEntry]] =
-    setting(EclipseKeys.classpathEntryTransformerFactory in ref, state).fold(
-      _ => EclipseClasspathEntryTransformerFactory.Identity,
-      id
-    )
 
   def classpathTransformerFactories(ref: Reference, state: State): Seq[EclipseTransformerFactory[RewriteRule]] =
     if (!withBundledScalaContainers(ref, state))
