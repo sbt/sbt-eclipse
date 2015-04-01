@@ -105,7 +105,7 @@ object Build extends Build {
     "scala",
     new File("scala"),
     settings = Project.defaultSettings ++ Seq(
-      EclipseKeys.projectFlavor := EclipseProjectFlavor.Scala
+      EclipseKeys.projectFlavor := EclipseProjectFlavor.ScalaIDE
     )
   )
 
