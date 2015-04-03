@@ -45,7 +45,8 @@ trait EclipsePlugin {
     import EclipseKeys._
     Seq(
       commandName := "eclipse",
-      commands <+= (commandName)(Eclipse.eclipseCommand)
+      commands <+= (commandName)(Eclipse.eclipseCommand),
+      EclipseKeys.managedClassDirectories := Seq((EclipseKeys.classesManaged in sbt.Compile).value, (EclipseKeys.classesManaged in sbt.Test).value)
     ) ++ copyManagedSettings(sbt.Compile) ++ copyManagedSettings(sbt.Test)
   }
 
@@ -172,6 +173,11 @@ trait EclipsePlugin {
       "location where managed class files are copied after compile"
     )
 
+    lazy val managedClassDirectories: SettingKey[Seq[File]] = SettingKey(
+      prefix("managed-class-dirs"),
+      "locations where managed class files are copied after compile"
+    )
+
     lazy val generateClassesManaged: SettingKey[Boolean] = SettingKey(
       prefix("generate-classes-managed"),
       "If true we generate a managed classes."
@@ -254,7 +260,7 @@ trait EclipsePlugin {
     @deprecated("Always enabled", "4.0.0")
     val Unmanaged = Value
 
-    @deprecated("Use ManagedSrc and ManagedResources", "4.0.0")
+    @deprecated("Use ManagedSrc, ManagedResources, and ManagedClasses", "4.0.0")
     val Managed = Value
 
     @deprecated("Always enabled", "4.0.0")
@@ -266,6 +272,8 @@ trait EclipsePlugin {
     val ManagedSrc = Value
 
     val ManagedResources = Value
+
+    val ManagedClasses = Value
 
     val Default = ValueSet(ManagedSrc, ManagedResources)
 
