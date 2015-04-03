@@ -22,6 +22,7 @@ import sbt.{
   Configuration,
   Configurations,
   File,
+  Keys,
   Plugin,
   ProjectRef,
   ResolvedProject,
@@ -40,10 +41,6 @@ object EclipsePlugin extends EclipsePlugin
 
 trait EclipsePlugin {
 
-  // TODO - this should probably move into EclipseKeys
-  lazy val classesManaged = sbt.settingKey[File]("location where managed class files are copied after compile")
-  lazy val generateClassesManaged = sbt.settingKey[Boolean]("If true we generate a managed classes.")
-
   def eclipseSettings: Seq[Setting[_]] = {
     import EclipseKeys._
     Seq(
@@ -54,13 +51,13 @@ trait EclipsePlugin {
 
   def copyManagedSettings(scope: Configuration): Seq[Setting[_]] =
     Seq(
-      classesManaged in scope := {
+      EclipseKeys.classesManaged in scope := {
         import sbt._
         val classes = (Keys.classDirectory in scope).value
         classes.getParentFile / (classes.getName + "_managed")
       },
-      generateClassesManaged in scope := true,
-      sbt.Keys.compile in scope := copyManagedClasses(scope).value
+      EclipseKeys.generateClassesManaged in scope := true,
+      Keys.compile in scope := copyManagedClasses(scope).value
     )
 
   // Depends on compile and will ensure all classes being generated from source files in the
@@ -68,14 +65,14 @@ trait EclipsePlugin {
   def copyManagedClasses(scope: Configuration) =
     Def.task {
       import sbt._
-      val analysis = (sbt.Keys.compile in scope).value
-      if ((generateClassesManaged in scope).value) {
-        val classes = (sbt.Keys.classDirectory in scope).value
-        val srcManaged = (sbt.Keys.sourceManaged in scope).value
+      val analysis = (Keys.compile in scope).value
+      if ((EclipseKeys.generateClassesManaged in scope).value) {
+        val classes = (Keys.classDirectory in scope).value
+        val srcManaged = (Keys.sourceManaged in scope).value
 
         // Copy managed classes - only needed in Compile scope
         // This is done to ease integration with Eclipse, but it's doubtful as to how effective it is.
-        val managedClassesDirectory = (classesManaged in scope).value
+        val managedClassesDirectory = (EclipseKeys.classesManaged in scope).value
         val managedClasses = ((srcManaged ** "*.scala").get ++ (srcManaged ** "*.java").get).map { managedSourceFile =>
           analysis.relations.products(managedSourceFile)
         }.flatten pair rebase(classes, managedClassesDirectory)
@@ -168,6 +165,16 @@ trait EclipsePlugin {
     val skipProject: SettingKey[Boolean] = SettingKey(
       prefix("skipProject"),
       "Skip creating Eclipse files for a given project?"
+    )
+
+    lazy val classesManaged: SettingKey[File] = SettingKey(
+      prefix("classes-managed"),
+      "location where managed class files are copied after compile"
+    )
+
+    lazy val generateClassesManaged: SettingKey[Boolean] = SettingKey(
+      prefix("generate-classes-managed"),
+      "If true we generate a managed classes."
     )
 
     private def prefix(key: String) = "eclipse-" + key
