@@ -437,7 +437,8 @@ private object Eclipse extends EclipseSDTConfig {
       dirs(ValueSet(), Keys.unmanagedSourceDirectories),
       dirs(ValueSet(), Keys.unmanagedResourceDirectories),
       dirs(ValueSet(ManagedSrc), Keys.managedSourceDirectories),
-      dirs(ValueSet(ManagedResources), Keys.managedResourceDirectories)
+      dirs(ValueSet(ManagedResources), Keys.managedResourceDirectories),
+      dirs(ValueSet(ManagedClasses), EclipseKeys.managedClassDirectories)
     ) reduceLeft (_ +++ _)
   }
 

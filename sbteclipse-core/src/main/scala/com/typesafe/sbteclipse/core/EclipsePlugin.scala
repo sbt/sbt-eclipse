@@ -22,13 +22,15 @@ import sbt.{
   Configuration,
   Configurations,
   File,
+  Keys,
   Plugin,
   ProjectRef,
   ResolvedProject,
   Setting,
   SettingKey,
   State,
-  TaskKey
+  TaskKey,
+  Def
 }
 import sbt.Keys.{ baseDirectory, commands }
 import scala.util.control.Exception
@@ -43,9 +45,45 @@ trait EclipsePlugin {
     import EclipseKeys._
     Seq(
       commandName := "eclipse",
-      commands <+= (commandName)(Eclipse.eclipseCommand)
-    )
+      commands <+= (commandName)(Eclipse.eclipseCommand),
+      EclipseKeys.managedClassDirectories := Seq((EclipseKeys.classesManaged in sbt.Compile).value, (EclipseKeys.classesManaged in sbt.Test).value)
+    ) ++ copyManagedSettings(sbt.Compile) ++ copyManagedSettings(sbt.Test)
   }
+
+  def copyManagedSettings(scope: Configuration): Seq[Setting[_]] =
+    Seq(
+      EclipseKeys.classesManaged in scope := {
+        import sbt._
+        val classes = (Keys.classDirectory in scope).value
+        classes.getParentFile / (classes.getName + "_managed")
+      },
+      EclipseKeys.generateClassesManaged in scope := true,
+      Keys.compile in scope := copyManagedClasses(scope).value
+    )
+
+  // Depends on compile and will ensure all classes being generated from source files in the
+  // source_managed space are copied into a class_managed folder.
+  def copyManagedClasses(scope: Configuration) =
+    Def.task {
+      import sbt._
+      val analysis = (Keys.compile in scope).value
+      if ((EclipseKeys.generateClassesManaged in scope).value) {
+        val classes = (Keys.classDirectory in scope).value
+        val srcManaged = (Keys.sourceManaged in scope).value
+
+        // Copy managed classes - only needed in Compile scope
+        // This is done to ease integration with Eclipse, but it's doubtful as to how effective it is.
+        val managedClassesDirectory = (EclipseKeys.classesManaged in scope).value
+        val managedClasses = ((srcManaged ** "*.scala").get ++ (srcManaged ** "*.java").get).map { managedSourceFile =>
+          analysis.relations.products(managedSourceFile)
+        }.flatten pair rebase(classes, managedClassesDirectory)
+        // Copy modified class files
+        val managedSet = IO.copy(managedClasses)
+        // Remove deleted class files
+        (managedClassesDirectory ** "*.class").get.filterNot(managedSet.contains(_)).foreach(_.delete())
+      }
+      analysis
+    }
 
   object EclipseKeys {
     import EclipseOpts._
@@ -130,6 +168,21 @@ trait EclipsePlugin {
       "Skip creating Eclipse files for a given project?"
     )
 
+    lazy val classesManaged: SettingKey[File] = SettingKey(
+      prefix("classes-managed"),
+      "location where managed class files are copied after compile"
+    )
+
+    lazy val managedClassDirectories: SettingKey[Seq[File]] = SettingKey(
+      prefix("managed-class-dirs"),
+      "locations where managed class files are copied after compile"
+    )
+
+    lazy val generateClassesManaged: SettingKey[Boolean] = SettingKey(
+      prefix("generate-classes-managed"),
+      "If true we generate a managed classes."
+    )
+
     private def prefix(key: String) = "eclipse-" + key
   }
 
@@ -207,7 +260,7 @@ trait EclipsePlugin {
     @deprecated("Always enabled", "4.0.0")
     val Unmanaged = Value
 
-    @deprecated("Use ManagedSrc and ManagedResources", "4.0.0")
+    @deprecated("Use ManagedSrc, ManagedResources, and ManagedClasses", "4.0.0")
     val Managed = Value
 
     @deprecated("Always enabled", "4.0.0")
@@ -219,6 +272,8 @@ trait EclipsePlugin {
     val ManagedSrc = Value
 
     val ManagedResources = Value
+
+    val ManagedClasses = Value
 
     val Default = ValueSet(ManagedSrc, ManagedResources)
 
