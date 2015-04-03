@@ -57,7 +57,7 @@ trait EclipsePlugin {
         val classes = (Keys.classDirectory in scope).value
         classes.getParentFile / (classes.getName + "_managed")
       },
-      EclipseKeys.generateClassesManaged in scope := true,
+      EclipseKeys.generateClassesManaged in scope := EclipseKeys.createSrc.value contains EclipseCreateSrc.ManagedClasses,
       Keys.compile in scope := copyManagedClasses(scope).value
     )
 
