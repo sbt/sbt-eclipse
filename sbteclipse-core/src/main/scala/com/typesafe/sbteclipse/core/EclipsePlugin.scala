@@ -46,7 +46,19 @@ trait EclipsePlugin {
     Seq(
       commandName := "eclipse",
       commands <+= (commandName)(Eclipse.eclipseCommand),
-      EclipseKeys.managedClassDirectories := Seq((EclipseKeys.classesManaged in sbt.Compile).value, (EclipseKeys.classesManaged in sbt.Test).value)
+      EclipseKeys.managedClassDirectories := Seq((EclipseKeys.classesManaged in sbt.Compile).value, (EclipseKeys.classesManaged in sbt.Test).value),
+      EclipseKeys.executionEnvironment := None,
+      EclipseKeys.skipParents := true,
+      EclipseKeys.withSource := false,
+      EclipseKeys.withJavadoc := false,
+      EclipseKeys.projectTransformerFactories := Seq(EclipseRewriteRuleTransformerFactory.Identity),
+      EclipseKeys.configurations := Set(Configurations.Compile, Configurations.Test),
+      EclipseKeys.createSrc := EclipseCreateSrc.Default,
+      EclipseKeys.projectFlavor := EclipseProjectFlavor.ScalaIDE,
+      EclipseKeys.eclipseOutput := None,
+      EclipseKeys.preTasks := Seq(),
+      EclipseKeys.relativizeLibs := true,
+      EclipseKeys.skipProject := false
     ) ++ copyManagedSettings(sbt.Compile) ++ copyManagedSettings(sbt.Test)
   }
 

@@ -557,16 +557,16 @@ private object Eclipse extends EclipseSDTConfig {
   // Getting and transforming optional settings and task results
 
   def executionEnvironment(ref: Reference, state: State): Option[EclipseExecutionEnvironment.Value] =
-    setting(EclipseKeys.executionEnvironment in ref, state).fold(_ => None, id)
+    setting2(EclipseKeys.executionEnvironment in ref, state)
 
   def skipParents(ref: Reference, state: State): Boolean =
-    setting(EclipseKeys.skipParents in ref, state).fold(_ => true, id)
+    setting2(EclipseKeys.skipParents in ref, state)
 
   def withSource(ref: Reference, state: State): Boolean =
-    setting(EclipseKeys.withSource in ref, state).fold(_ => false, id)
+    setting2(EclipseKeys.withSource in ref, state)
 
   def withJavadoc(ref: Reference, state: State): Boolean =
-    setting(EclipseKeys.withJavadoc in ref, state).fold(_ => false, id)
+    setting2(EclipseKeys.withJavadoc in ref, state)
 
   def withBundledScalaContainers(ref: Reference, state: State): Boolean =
     setting(EclipseKeys.withBundledScalaContainers in ref, state).fold(_ => projectFlavor(ref, state) == EclipseProjectFlavor.ScalaIDE, id)
@@ -584,34 +584,28 @@ private object Eclipse extends EclipseSDTConfig {
       )
 
   def projectTransformerFactories(ref: Reference, state: State): Seq[EclipseTransformerFactory[RewriteRule]] =
-    setting(EclipseKeys.projectTransformerFactories in ref, state).fold(
-      _ => Seq(EclipseRewriteRuleTransformerFactory.Identity),
-      id
-    )
+    setting2(EclipseKeys.projectTransformerFactories in ref, state)
 
   def configurations(ref: Reference, state: State): Seq[Configuration] =
-    setting(EclipseKeys.configurations in ref, state).fold(
-      _ => Seq(Configurations.Compile, Configurations.Test),
-      _.toSeq
-    )
+    setting2(EclipseKeys.configurations in ref, state).toSeq
 
   def createSrc(ref: Reference, state: State)(configuration: Configuration): EclipseCreateSrc.ValueSet =
-    setting(EclipseKeys.createSrc in (ref, configuration), state).fold(_ => EclipseCreateSrc.Default, id)
+    setting2(EclipseKeys.createSrc in (ref, configuration), state)
 
   def projectFlavor(ref: Reference, state: State) =
-    setting(EclipseKeys.projectFlavor in ref, state).fold(_ => EclipseProjectFlavor.ScalaIDE, id)
+    setting2(EclipseKeys.projectFlavor in ref, state)
 
   def eclipseOutput(ref: ProjectRef, state: State)(config: Configuration): Option[String] =
-    setting(EclipseKeys.eclipseOutput in (ref, config), state).fold(_ => None, id)
+    setting2(EclipseKeys.eclipseOutput in (ref, config), state)
 
   def preTasks(ref: ProjectRef, state: State): Seq[(TaskKey[_], ProjectRef)] =
-    setting(EclipseKeys.preTasks in ref, state).fold(_ => Seq.empty, _.zipAll(Seq.empty, null, ref))
+    setting2(EclipseKeys.preTasks in ref, state).zipAll(Seq.empty, null, ref)
 
   def relativizeLibs(ref: ProjectRef, state: State): Boolean =
-    setting(EclipseKeys.relativizeLibs in ref, state).fold(_ => true, id)
+    setting2(EclipseKeys.relativizeLibs in ref, state)
 
   def skip(ref: ProjectRef, state: State): Boolean =
-    setting(EclipseKeys.skipProject in ref, state).fold(_ => false, id)
+    setting2(EclipseKeys.skipProject in ref, state)
 
   // IO
 
@@ -687,6 +681,17 @@ private object Eclipse extends EclipseSDTConfig {
       case Some(a) => a.success
       case None => "Undefined setting '%s'!".format(key.key).failureNel
     }
+
+  /**
+   * @param key the fully qualified key
+   */
+  def setting2[A](key: SettingKey[A], state: State): A = {
+    val opt: Option[A] = key get structure(state).data
+    opt match {
+      case Some(value) => value
+      case None => throw new IllegalStateException("Undefined setting '%s'!".format(key.key))
+    }
+  }
 
   def evaluateTask[A](key: TaskKey[A], ref: ProjectRef, state: State): Validation[A] =
     EvaluateTask(structure(state), key, state, ref, EvaluateTask defaultConfig state) match {
