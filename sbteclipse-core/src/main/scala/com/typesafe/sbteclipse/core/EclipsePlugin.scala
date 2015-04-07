@@ -41,25 +41,34 @@ object EclipsePlugin extends EclipsePlugin
 
 trait EclipsePlugin {
 
+  /** These settings are injected into individual projects. */
   def eclipseSettings: Seq[Setting[_]] = {
     import EclipseKeys._
     Seq(
       commandName := "eclipse",
       commands <+= (commandName)(Eclipse.eclipseCommand),
-      EclipseKeys.managedClassDirectories := Seq((EclipseKeys.classesManaged in sbt.Compile).value, (EclipseKeys.classesManaged in sbt.Test).value),
-      EclipseKeys.executionEnvironment := None,
-      EclipseKeys.skipParents := true,
-      EclipseKeys.withSource := false,
-      EclipseKeys.withJavadoc := false,
-      EclipseKeys.projectTransformerFactories := Seq(EclipseRewriteRuleTransformerFactory.Identity),
-      EclipseKeys.configurations := Set(Configurations.Compile, Configurations.Test),
-      EclipseKeys.createSrc := EclipseCreateSrc.Default,
-      EclipseKeys.projectFlavor := EclipseProjectFlavor.ScalaIDE,
-      EclipseKeys.eclipseOutput := None,
-      EclipseKeys.preTasks := Seq(),
-      EclipseKeys.relativizeLibs := true,
-      EclipseKeys.skipProject := false
+      managedClassDirectories := Seq((classesManaged in sbt.Compile).value, (classesManaged in sbt.Test).value),
+      executionEnvironment := None,
+      skipParents := true,
+      withSource := false,
+      withJavadoc := false,
+      projectTransformerFactories := Seq(EclipseRewriteRuleTransformerFactory.Identity),
+      configurations := Set(Configurations.Compile, Configurations.Test),
+      createSrc := EclipseCreateSrc.Default,
+      projectFlavor := EclipseProjectFlavor.ScalaIDE,
+      eclipseOutput := None,
+      preTasks := Seq(),
+      relativizeLibs := true,
+      skipProject := false
     ) ++ copyManagedSettings(sbt.Compile) ++ copyManagedSettings(sbt.Test)
+  }
+
+  /** These settings are injected into the "ThisBuild" scope of sbt, i.e. global acrosss projects. */
+  def buildEclipseSettings: Seq[Setting[_]] = {
+    import EclipseKeys._
+    Seq(
+      skipParents := true
+    )
   }
 
   def copyManagedSettings(scope: Configuration): Seq[Setting[_]] =

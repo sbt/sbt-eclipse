@@ -689,7 +689,7 @@ private object Eclipse extends EclipseSDTConfig {
     val opt: Option[A] = key get structure(state).data
     opt match {
       case Some(value) => value
-      case None => throw new IllegalStateException("Undefined setting '%s'!".format(key.key))
+      case None => throw new IllegalStateException("Undefined setting '%s in %s'!".format(key.key, key.scope))
     }
   }
 

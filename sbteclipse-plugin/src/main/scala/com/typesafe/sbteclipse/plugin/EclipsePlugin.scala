@@ -30,5 +30,6 @@ object EclipsePlugin extends AutoPlugin with CoreEclipsePlugin {
   val autoImport = CoreEclipsePlugin
 
   override def projectSettings: Seq[Setting[_]] = CoreEclipsePlugin.eclipseSettings
+  override def buildSettings: Seq[Setting[_]] = CoreEclipsePlugin.buildEclipseSettings
 
 }
