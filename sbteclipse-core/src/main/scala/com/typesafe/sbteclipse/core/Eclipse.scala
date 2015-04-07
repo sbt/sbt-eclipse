@@ -569,7 +569,7 @@ private object Eclipse extends EclipseSDTConfig {
     setting2(EclipseKeys.withJavadoc in ref, state)
 
   def withBundledScalaContainers(ref: Reference, state: State): Boolean =
-    setting(EclipseKeys.withBundledScalaContainers in ref, state).fold(_ => projectFlavor(ref, state) == EclipseProjectFlavor.ScalaIDE, id)
+    setting2(EclipseKeys.withBundledScalaContainers in ref, state)
 
   def classpathTransformerFactories(ref: Reference, state: State): Seq[EclipseTransformerFactory[RewriteRule]] =
     if (!withBundledScalaContainers(ref, state))
