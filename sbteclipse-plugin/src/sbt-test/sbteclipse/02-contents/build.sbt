@@ -37,6 +37,7 @@ TaskKey[Unit]("verify-project-xml-java") <<= baseDirectory map { dir =>
 
 TaskKey[Unit]("verify-project-xml-scala") <<= baseDirectory map { dir =>
   val projectDescription = XML.loadFile(dir / "scala" / ".project")
+  val classpath = XML.loadFile(dir / "scala" / ".classpath")
   // verifier method
   def verify[A](name: String, expected: A, actual: A) =
     if (actual != expected) error("Expected .project to contain %s '%s', but was '%s'!".format(name, expected, actual))
@@ -45,6 +46,8 @@ TaskKey[Unit]("verify-project-xml-scala") <<= baseDirectory map { dir =>
   // scala project nature
   verify("buildCommand", "org.scala-ide.sdt.core.scalabuilder", (projectDescription \ "buildSpec" \ "buildCommand" \ "name").text)
   verify("natures", Set("org.scala-ide.sdt.core.scalanature", "org.eclipse.jdt.core.javanature"), (projectDescription \ "natures" \ "nature").map(_.text).toSet)
+  if (!(classpath.child contains <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/>))
+    error("""Expected .classpath of scala project to contain <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/>: %s""" format classpath)
 }
 
 TaskKey[Unit]("verify-project-xml-subd") <<= baseDirectory map { dir =>
@@ -196,7 +199,7 @@ TaskKey[Unit]("verify-classpath-xml-subc") <<= baseDirectory map { dir =>
     error("""Expected .classpath of subc project to contain <classpathentry kind="lib" path="%s/lib_managed/jars/biz.aQute/bndlib/bndlib-1.50.0.jar" />: %s""".format(dir.getCanonicalPath, classpath))
   // classpath transformer
   if (!(classpath.child contains <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/>))
-    error("""Expected .classpath of root project to contain <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/> """)
+    error("""Expected .classpath of subc project to contain <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/> """)
   if (!(classpath.child contains <classpathentry kind="lib" path="libs/my.jar"/>))
     error("""Expected .classpath of subc project to contain <classpathentry kind="lib" path="libs/my.jar"/>!""")
   if (!(project.child contains <foo bar="baz"/>))
