@@ -53,7 +53,7 @@ trait EclipsePlugin {
       withSource := false,
       withJavadoc := false,
       projectFlavor := EclipseProjectFlavor.ScalaIDE,
-      withBundledScalaContainers := projectFlavor.value == EclipseProjectFlavor.ScalaIDE,
+      withBundledScalaContainers := projectFlavor.value.id == EclipseProjectFlavor.ScalaIDE.id,
       projectTransformerFactories := Seq(EclipseRewriteRuleTransformerFactory.Identity),
       configurations := Set(Configurations.Compile, Configurations.Test),
       createSrc := EclipseCreateSrc.Default,
