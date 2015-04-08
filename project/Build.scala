@@ -29,11 +29,15 @@ object Build extends Build {
     "sbteclipse-plugin",
     file("sbteclipse-plugin"),
     dependencies = Seq(sbteclipseCore),
-    settings = commonSettings
+    settings = commonSettings ++ Seq(
+      publishLocal := {
+        val depOn = (publishLocal in sbteclipseCore).value
+        publishLocal.value
+      }
+    )
   )
 
   def commonSettings =
-    Defaults.defaultSettings ++
     scalariformSettings ++
     scriptedSettings ++
     releaseSettings ++
@@ -64,7 +68,7 @@ object Build extends Build {
       publishArtifact in (Compile, packageDoc) := false,
       publishArtifact in (Compile, packageSrc) := false,
       // Uncomment the following line to get verbose output
-      // scriptedBufferLog := false,
+      scriptedBufferLog := false,
       scriptedLaunchOpts ++= List("-Dplugin.version=" + version.value)
     )
 }
