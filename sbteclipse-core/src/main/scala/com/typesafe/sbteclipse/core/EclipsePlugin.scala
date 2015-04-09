@@ -49,11 +49,13 @@ trait EclipsePlugin {
       commands <+= (commandName)(Eclipse.eclipseCommand),
       managedClassDirectories := Seq((classesManaged in sbt.Compile).value, (classesManaged in sbt.Test).value),
       executionEnvironment := None,
+      useProjectId := false,
       skipParents := true,
       withSource := false,
       withJavadoc := false,
       projectFlavor := EclipseProjectFlavor.ScalaIDE,
       withBundledScalaContainers := projectFlavor.value.id == EclipseProjectFlavor.ScalaIDE.id,
+      classpathTransformerFactories := defaultClasspathTransformerFactories(withBundledScalaContainers.value),
       projectTransformerFactories := Seq(EclipseRewriteRuleTransformerFactory.Identity),
       configurations := Set(Configurations.Compile, Configurations.Test),
       createSrc := EclipseCreateSrc.Default,
@@ -62,6 +64,13 @@ trait EclipsePlugin {
       relativizeLibs := true,
       skipProject := false
     ) ++ copyManagedSettings(sbt.Compile) ++ copyManagedSettings(sbt.Test)
+  }
+
+  def defaultClasspathTransformerFactories(withBundledScalaContainers: Boolean) = {
+    if (withBundledScalaContainers)
+      Seq(EclipseRewriteRuleTransformerFactory.ClasspathDefault)
+    else
+      Seq(EclipseRewriteRuleTransformerFactory.Identity)
   }
 
   /** These settings are injected into the "ThisBuild" scope of sbt, i.e. global acrosss projects. */

@@ -402,19 +402,19 @@ private object Eclipse extends EclipseSDTConfig {
   // Getting and transforming mandatory settings and task results
 
   def name(ref: Reference, state: State): Validation[String] =
-    if (setting(EclipseKeys.useProjectId in ref, state).fold(_ => false, id))
-      setting(Keys.thisProject in ref, state) map (_.id)
+    if (setting(EclipseKeys.useProjectId in ref, state))
+      settingValidation(Keys.thisProject in ref, state) map (_.id)
     else
-      setting(Keys.name in ref, state)
+      settingValidation(Keys.name in ref, state)
 
   def buildDirectory(state: State): Validation[File] =
-    setting(Keys.baseDirectory in ThisBuild, state)
+    settingValidation(Keys.baseDirectory in ThisBuild, state)
 
   def baseDirectory(ref: Reference, state: State): Validation[File] =
-    setting(Keys.baseDirectory in ref, state)
+    settingValidation(Keys.baseDirectory in ref, state)
 
   def target(ref: Reference, state: State): Validation[File] =
-    setting(Keys.target in ref, state)
+    settingValidation(Keys.target in ref, state)
 
   def srcDirectories(
     ref: Reference,
@@ -430,7 +430,7 @@ private object Eclipse extends EclipseSDTConfig {
 
     def dirs(values: ValueSet, key: SettingKey[Seq[File]]): Validation[List[(sbt.File, Option[java.io.File])]] =
       if (values subsetOf createSrc)
-        (setting(key in (ref, configuration), state) |@| classDirectory)((sds, cd) => sds.toList map (_ -> cd))
+        (settingValidation(key in (ref, configuration), state) |@| classDirectory)((sds, cd) => sds.toList map (_ -> cd))
       else
         scalaz.Validation.success(Nil)
     List(
@@ -457,7 +457,7 @@ private object Eclipse extends EclipseSDTConfig {
     )
 
   def compileOrder(ref: ProjectRef, state: State): Validation[Option[String]] =
-    setting(Keys.compileOrder in ref, state).map(order =>
+    settingValidation(Keys.compileOrder in ref, state).map(order =>
       if (order == xsbti.compile.CompileOrder.Mixed) None
       else Some(order.toString)
     )
@@ -533,7 +533,7 @@ private object Eclipse extends EclipseSDTConfig {
       configuration: Configuration): Validation[Seq[String]] = {
     val projectDependencies = project.dependencies collect {
       case dependency if isInConfiguration(configuration, ref, dependency, state) =>
-        setting(Keys.name in dependency.project, state)
+        settingValidation(Keys.name in dependency.project, state)
     }
     val projectDependenciesSeq = projectDependencies.toList.sequence
     state.log.debug("Project dependencies for configuration '%s': %s".format(configuration, projectDependenciesSeq))
@@ -557,55 +557,46 @@ private object Eclipse extends EclipseSDTConfig {
   // Getting and transforming optional settings and task results
 
   def executionEnvironment(ref: Reference, state: State): Option[EclipseExecutionEnvironment.Value] =
-    setting2(EclipseKeys.executionEnvironment in ref, state)
+    setting(EclipseKeys.executionEnvironment in ref, state)
 
   def skipParents(ref: Reference, state: State): Boolean =
-    setting2(EclipseKeys.skipParents in ref, state)
+    setting(EclipseKeys.skipParents in ref, state)
 
   def withSource(ref: Reference, state: State): Boolean =
-    setting2(EclipseKeys.withSource in ref, state)
+    setting(EclipseKeys.withSource in ref, state)
 
   def withJavadoc(ref: Reference, state: State): Boolean =
-    setting2(EclipseKeys.withJavadoc in ref, state)
+    setting(EclipseKeys.withJavadoc in ref, state)
 
   def withBundledScalaContainers(ref: Reference, state: State): Boolean =
-    setting2(EclipseKeys.withBundledScalaContainers in ref, state)
+    setting(EclipseKeys.withBundledScalaContainers in ref, state)
 
   def classpathTransformerFactories(ref: Reference, state: State): Seq[EclipseTransformerFactory[RewriteRule]] =
-    if (!withBundledScalaContainers(ref, state))
-      setting(EclipseKeys.classpathTransformerFactories in ref, state).fold(
-        _ => Seq(EclipseRewriteRuleTransformerFactory.Identity),
-        id
-      )
-    else
-      setting(EclipseKeys.classpathTransformerFactories in ref, state).fold(
-        _ => Seq(EclipseRewriteRuleTransformerFactory.ClasspathDefault),
-        EclipseRewriteRuleTransformerFactory.ClasspathDefault +: _
-      )
+    setting(EclipseKeys.classpathTransformerFactories in ref, state)
 
   def projectTransformerFactories(ref: Reference, state: State): Seq[EclipseTransformerFactory[RewriteRule]] =
-    setting2(EclipseKeys.projectTransformerFactories in ref, state)
+    setting(EclipseKeys.projectTransformerFactories in ref, state)
 
   def configurations(ref: Reference, state: State): Seq[Configuration] =
-    setting2(EclipseKeys.configurations in ref, state).toSeq
+    setting(EclipseKeys.configurations in ref, state).toSeq
 
   def createSrc(ref: Reference, state: State)(configuration: Configuration): EclipseCreateSrc.ValueSet =
-    setting2(EclipseKeys.createSrc in (ref, configuration), state)
+    setting(EclipseKeys.createSrc in (ref, configuration), state)
 
   def projectFlavor(ref: Reference, state: State) =
-    setting2(EclipseKeys.projectFlavor in ref, state)
+    setting(EclipseKeys.projectFlavor in ref, state)
 
   def eclipseOutput(ref: ProjectRef, state: State)(config: Configuration): Option[String] =
-    setting2(EclipseKeys.eclipseOutput in (ref, config), state)
+    setting(EclipseKeys.eclipseOutput in (ref, config), state)
 
   def preTasks(ref: ProjectRef, state: State): Seq[(TaskKey[_], ProjectRef)] =
-    setting2(EclipseKeys.preTasks in ref, state).zipAll(Seq.empty, null, ref)
+    setting(EclipseKeys.preTasks in ref, state).zipAll(Seq.empty, null, ref)
 
   def relativizeLibs(ref: ProjectRef, state: State): Boolean =
-    setting2(EclipseKeys.relativizeLibs in ref, state)
+    setting(EclipseKeys.relativizeLibs in ref, state)
 
   def skip(ref: ProjectRef, state: State): Boolean =
-    setting2(EclipseKeys.skipProject in ref, state)
+    setting(EclipseKeys.skipProject in ref, state)
 
   // IO
 
@@ -676,7 +667,7 @@ private object Eclipse extends EclipseSDTConfig {
   /**
    * @param key the fully qualified key
    */
-  def setting[A](key: SettingKey[A], state: State): Validation[A] =
+  def settingValidation[A](key: SettingKey[A], state: State): Validation[A] =
     key get structure(state).data match {
       case Some(a) => a.success
       case None => "Undefined setting '%s'!".format(key.key).failureNel
@@ -685,7 +676,7 @@ private object Eclipse extends EclipseSDTConfig {
   /**
    * @param key the fully qualified key
    */
-  def setting2[A](key: SettingKey[A], state: State): A = {
+  def setting[A](key: SettingKey[A], state: State): A = {
     val opt: Option[A] = key get structure(state).data
     opt match {
       case Some(value) => value

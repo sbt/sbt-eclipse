@@ -87,8 +87,8 @@ object Build extends Build {
         retrieveManaged := true,
         EclipseKeys.relativizeLibs := false,
         EclipseKeys.eclipseOutput := Some(".target"),
-        EclipseKeys.classpathTransformerFactories := Seq(transformNode("classpath", Append(Lib("libs/my.jar")))),
-        EclipseKeys.projectTransformerFactories := Seq(transformNode("projectDescription", Append(<foo bar="baz"/>)))
+        EclipseKeys.classpathTransformerFactories ++= Seq(transformNode("classpath", Append(Lib("libs/my.jar")))),
+        EclipseKeys.projectTransformerFactories ++= Seq(transformNode("projectDescription", Append(<foo bar="baz"/>)))
       )
     )
   }
