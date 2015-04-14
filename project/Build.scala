@@ -3,8 +3,13 @@ import sbt.Keys._
 import sbt.ScriptedPlugin._
 import sbtrelease.ReleasePlugin._
 import com.typesafe.sbt.SbtScalariform._
+import bintray.Plugin.bintrayPublishSettings
+import bintray.Keys._
+import com.typesafe.sbt.SbtGit._
 
 object Build extends Build {
+
+  val baseVersion = "4.0.0"
 
   lazy val root = Project(
     "sbteclipse",
@@ -38,18 +43,16 @@ object Build extends Build {
   )
 
   def commonSettings =
+    versionWithGit ++
     scalariformSettings ++
     scriptedSettings ++
     releaseSettings ++
+    bintrayPublishSettings ++
     Seq(
+      git.baseVersion := baseVersion,
       organization := "com.typesafe.sbteclipse",
       // version is defined in version.sbt in order to support sbt-release
       scalacOptions ++= Seq("-unchecked", "-deprecation"),
-      publishTo := {
-        val id = if (isSnapshot.value) "snapshots" else "releases"
-        val uri = "https://private-repo.typesafe.com/typesafe/ivy-" + id
-        Some(Resolver.url("typesafe-" + id, url(uri))(Resolver.ivyStylePatterns))
-      },
       sbtPlugin := true,
       publishMavenStyle := false,
       sbtVersion in GlobalScope := {
@@ -65,6 +68,9 @@ object Build extends Build {
       sbtDependency in GlobalScope := {
         (sbtDependency in GlobalScope).value.copy(revision = (sbtVersion in GlobalScope).value)
       },
+      publishMavenStyle := false,
+      bintrayOrganization in bintray := None,
+      repository in bintray := "sbt-plugins",
       publishArtifact in (Compile, packageDoc) := false,
       publishArtifact in (Compile, packageSrc) := false,
       // Uncomment the following line to get verbose output
