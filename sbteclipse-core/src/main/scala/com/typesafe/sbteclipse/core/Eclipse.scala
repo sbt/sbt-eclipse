@@ -42,7 +42,6 @@ import sbt.{
   File,
   Inc,
   Incomplete,
-  IO,
   Keys,
   ModuleID,
   ModuleReport,
@@ -61,9 +60,9 @@ import sbt.{
 import sbt.complete.Parser
 import scala.xml.{ Node, PrettyPrinter }
 import scala.xml.transform.{ RewriteRule, RuleTransformer }
-import scalaz.{ Equal, Failure, NonEmptyList, Success }
+import scalaz.{ Equal, NonEmptyList }
 import scalaz.Scalaz._
-import scalaz.effect._
+import scalaz.effect.IO
 
 private object Eclipse extends EclipseSDTConfig {
   val SettingFormat = """-([^:]*):?(.*)""".r
@@ -373,8 +372,8 @@ private object Eclipse extends EclipseSDTConfig {
       lib: Lib): EclipseClasspathEntry.Lib = {
     def path(file: File) = {
       val relativizedBase =
-        if (buildDirectory === baseDirectory) Some(".") else IO.relativize(buildDirectory, baseDirectory)
-      val relativizedFile = IO.relativize(buildDirectory, file)
+        if (buildDirectory === baseDirectory) Some(".") else sbt.IO.relativize(buildDirectory, baseDirectory)
+      val relativizedFile = sbt.IO.relativize(buildDirectory, file)
       val relativized = (relativizedBase |@| relativizedFile)((base, file) =>
         "%s%s%s".format(
           base split FileSepPattern map (part => if (part != ".") ".." else part) mkString FileSep,
@@ -635,10 +634,10 @@ private object Eclipse extends EclipseSDTConfig {
     relativizeOpt(baseDirectory, file).get
 
   def relativizeOpt(baseDirectory: File, file: File): Option[String] =
-    IO.relativize(baseDirectory, normalize(file))
+    sbt.IO.relativize(baseDirectory, normalize(file))
 
   def normalize(file: File): File =
-    new java.io.File(normalizeName(file.getAbsolutePath))
+    new File(normalizeName(file.getAbsolutePath))
 
   def normalizeName(filename: String): String = {
     if (filename contains "..") {
