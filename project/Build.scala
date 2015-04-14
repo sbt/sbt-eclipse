@@ -69,8 +69,10 @@ object Build extends Build {
         (sbtDependency in GlobalScope).value.copy(revision = (sbtVersion in GlobalScope).value)
       },
       publishMavenStyle := false,
-      bintrayOrganization in bintray := None,
-      repository in bintray := "sbt-plugins",
+      bintrayOrganization in bintray := Some("sbt"),
+      name in bintray := "sbteclipse",
+      repository in bintray := "sbt-plugin-releases",
+      licenses += ("Apache-2.0", url("https://www.apache.org/licenses/LICENSE-2.0.html")),
       publishArtifact in (Compile, packageDoc) := false,
       publishArtifact in (Compile, packageSrc) := false,
       // Uncomment the following line to get verbose output
