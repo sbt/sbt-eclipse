@@ -12,6 +12,14 @@ For sbt 0.13 and up
   - the global file (for version 0.13 and up) at *~/.sbt/0.13/plugins/plugins.sbt*
   - the project-specific file at *PROJECT_DIR/project/plugins.sbt*
 
+For the latest beta version:
+
+::
+
+  addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "4.0.0-RC1")
+
+For the stable version:
+
 ::
 
   addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "3.0.0")
