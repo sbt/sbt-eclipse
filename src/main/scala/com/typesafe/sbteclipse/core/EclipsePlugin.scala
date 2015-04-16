@@ -37,9 +37,7 @@ import scala.util.control.Exception
 import scala.xml.{ Attribute, Elem, MetaData, Node, NodeSeq, Null, Text }
 import scala.xml.transform.RewriteRule
 
-object EclipsePlugin extends EclipsePlugin
-
-trait EclipsePlugin {
+object EclipsePlugin {
 
   /** These settings are injected into individual projects. */
   def eclipseSettings: Seq[Setting[_]] = {
