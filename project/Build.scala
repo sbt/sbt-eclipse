@@ -9,36 +9,15 @@ import com.typesafe.sbt.SbtGit._
 
 object Build extends Build {
 
-  val baseVersion = "4.0.0"
+  val baseVersion = "5.0.0"
 
   lazy val root = Project(
-    "sbteclipse",
+    "sbteclipse-plugin",
     file("."),
-    aggregate = Seq(sbteclipseCore, sbteclipsePlugin),
-    settings = commonSettings ++ Seq(
-      publishArtifact := false
-    )
-  )
-
-  lazy val sbteclipseCore = Project(
-    "sbteclipse-core",
-    file("sbteclipse-core"),
     settings = commonSettings ++ Seq(
       libraryDependencies ++= Seq(
-       "org.scalaz" %% "scalaz-core"   % "7.1.0",
-       "org.scalaz" %% "scalaz-effect" % "7.1.0")
-    )
-  )
-
-  lazy val sbteclipsePlugin = Project(
-    "sbteclipse-plugin",
-    file("sbteclipse-plugin"),
-    dependencies = Seq(sbteclipseCore),
-    settings = commonSettings ++ Seq(
-      publishLocal := {
-        val depOn = (publishLocal in sbteclipseCore).value
-        publishLocal.value
-      }
+        "org.scalaz" %% "scalaz-core"   % "7.1.0",
+        "org.scalaz" %% "scalaz-effect" % "7.1.0")
     )
   )
 
