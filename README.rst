@@ -7,7 +7,7 @@ Plugin for `sbt`_ to create `Eclipse`_ project definitions. Please see the `Docu
 For sbt 0.13 and up
 ---------------------
 
-- Add sbteclipse to your plugin definition file. You can use either:
+- Add sbteclipse to your plugin definition file(create one if doesn't exist). You can use either:
 
   - the global file (for version 0.13 and up) at *~/.sbt/0.13/plugins/plugins.sbt*
   - the project-specific file at *PROJECT_DIR/project/plugins.sbt*
