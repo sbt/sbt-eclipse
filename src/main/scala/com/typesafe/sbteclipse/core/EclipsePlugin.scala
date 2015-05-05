@@ -98,7 +98,7 @@ object EclipsePlugin {
       val analysis = (Keys.compile in scope).value
       if ((EclipseKeys.generateClassesManaged in scope).value) {
         val classes = (Keys.classDirectory in scope).value
-        val srcManaged = (Keys.sourceManaged in scope).value
+        val srcManaged = (Keys.managedSourceDirectories in scope).value
 
         // Copy managed classes - only needed in Compile scope
         // This is done to ease integration with Eclipse, but it's doubtful as to how effective it is.
