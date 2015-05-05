@@ -436,8 +436,7 @@ private object Eclipse extends EclipseSDTConfig {
       dirs(ValueSet(), Keys.unmanagedSourceDirectories),
       dirs(ValueSet(), Keys.unmanagedResourceDirectories),
       dirs(ValueSet(ManagedSrc), Keys.managedSourceDirectories),
-      dirs(ValueSet(ManagedResources), Keys.managedResourceDirectories),
-      dirs(ValueSet(ManagedClasses), EclipseKeys.managedClassDirectories)
+      dirs(ValueSet(ManagedResources), Keys.managedResourceDirectories)
     ) reduceLeft (_ +++ _)
   }
 
@@ -488,10 +487,15 @@ private object Eclipse extends EclipseSDTConfig {
     def moduleFileToArtifactFile(binaries: Map[ModuleID, File], sources: Map[ModuleID, File], javadocs: Map[ModuleID, File]) =
       for ((moduleId, binaryFile) <- binaries)
         yield binaryFile -> Lib(binaryFile)(sources get moduleId)(javadocs get moduleId)
-    def libs(files: Seq[Attributed[File]], moduleFiles: Map[File, Lib]) =
-      files.files map { file => moduleFiles.get(file).getOrElse(Lib(file)(None)(None)) }
-    val externalDependencyClasspath = evalTask(Keys.externalDependencyClasspath)
-    val moduleFiles = {
+    def libs(files: Seq[Attributed[File]], moduleFiles: Map[File, Lib]): Seq[Lib] = {
+      var result: Seq[Lib] = files.files map { file => moduleFiles.get(file).getOrElse(Lib(file)(None)(None)) }
+      if (createSrc(ref, state)(configuration).contains(EclipseCreateSrc.ManagedClasses)) {
+        result = result ++ managedClassDirectories(ref, state)(configuration).filter(_.exists).map(Lib(_)(None)(None))
+      }
+      result
+    }
+    val externalDependencyClasspath: Validation[sbt.Keys.Classpath] = evalTask(Keys.externalDependencyClasspath)
+    val moduleFiles: Validation[Map[File, Lib]] = {
       lazy val classifierModuleReports = moduleReports(Keys.updateClassifiers)
 
       def classifierModuleToFile(classifier: Option[String]) = {
@@ -581,6 +585,9 @@ private object Eclipse extends EclipseSDTConfig {
 
   def createSrc(ref: Reference, state: State)(configuration: Configuration): EclipseCreateSrc.ValueSet =
     setting(EclipseKeys.createSrc in (ref, configuration), state)
+
+  def managedClassDirectories(ref: Reference, state: State)(configuration: Configuration): Seq[sbt.File] =
+    setting(EclipseKeys.managedClassDirectories in (ref, configuration), state)
 
   def projectFlavor(ref: Reference, state: State) =
     setting(EclipseKeys.projectFlavor in ref, state)
