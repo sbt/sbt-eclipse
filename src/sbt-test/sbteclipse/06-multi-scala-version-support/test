@@ -1,0 +1,5 @@
+> clean
+> compile
+> eclipse skip-parents=false
+> verify-scala-settings-suba
+> verify-scala-settings-subb

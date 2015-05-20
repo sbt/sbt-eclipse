@@ -63,6 +63,7 @@ import scala.xml.transform.{ RewriteRule, RuleTransformer }
 import scalaz.{ Equal, NonEmptyList }
 import scalaz.Scalaz._
 import scalaz.effect.IO
+import com.typesafe.sbteclipse.core.util.ScalaVersion
 
 private object Eclipse extends EclipseSDTConfig {
   val SettingFormat = """-([^:]*):?(.*)""".r
@@ -440,19 +441,14 @@ private object Eclipse extends EclipseSDTConfig {
     ) reduceLeft (_ +++ _)
   }
 
-  def scalacOptions(ref: ProjectRef, state: State): Validation[Seq[(String, String)]] =
+  def scalacOptions(ref: ProjectRef, state: State): Validation[Seq[(String, String)]] = {
     // Here we have to look at scalacOptions *for compilation*, vs. the ones used for testing.
     // We have to pick one set, and this should be the most complete set.
-    evaluateTask(Keys.scalacOptions in sbt.Compile, ref, state) map (options =>
-      if (options.isEmpty)
-        Nil
-      else {
-        fromScalacToSDT(options) match {
-          case Seq() => Seq()
-          case options => ("scala.compiler.useProjectSettings" -> "true") +: options
-        }
-      }
-    )
+    (evaluateTask(Keys.scalacOptions in sbt.Compile, ref, state) |@| settingValidation(Keys.scalaVersion in ref, state)) { (options, version) =>
+      val ideSettings = fromScalacToSDT(options)
+      ScalaVersion.parse(version).settingsFrom(ideSettings.toMap).toSeq
+    } map { options => if (options.nonEmpty) ("scala.compiler.useProjectSettings" -> "true") +: options else options }
+  }
 
   def compileOrder(ref: ProjectRef, state: State): Validation[Option[String]] =
     settingValidation(Keys.compileOrder in ref, state).map(order =>
