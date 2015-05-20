@@ -1,0 +1,5 @@
+-Dfile.encoding=UTF8
+-Xms3072M
+-Xmx3072M
+-XX:MaxPermSize=3072M
+-XX:+CMSClassUnloadingEnabled
