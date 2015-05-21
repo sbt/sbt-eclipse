@@ -51,9 +51,8 @@ object EclipsePlugin {
       skipParents := true,
       withSource := false,
       withJavadoc := false,
-      projectFlavor := EclipseProjectFlavor.ScalaIDE,
-      withBundledScalaContainers := projectFlavor.value.id == EclipseProjectFlavor.ScalaIDE.id,
-      classpathTransformerFactories := defaultClasspathTransformerFactories(withBundledScalaContainers.value),
+      projectFlavor := EclipseProjectFlavor.Autodetect,
+      classpathTransformerFactories := Seq.empty[EclipseTransformerFactory[RewriteRule]],
       projectTransformerFactories := Seq(EclipseRewriteRuleTransformerFactory.Identity),
       configurations := Set(Configurations.Compile, Configurations.Test),
       createSrc := EclipseCreateSrc.Default,
@@ -62,13 +61,6 @@ object EclipsePlugin {
       relativizeLibs := true,
       skipProject := false
     ) ++ copyManagedSettings(sbt.Compile) ++ copyManagedSettings(sbt.Test)
-  }
-
-  def defaultClasspathTransformerFactories(withBundledScalaContainers: Boolean) = {
-    if (withBundledScalaContainers)
-      Seq(EclipseRewriteRuleTransformerFactory.ClasspathDefault)
-    else
-      Seq(EclipseRewriteRuleTransformerFactory.Identity)
   }
 
   /** These settings are injected into the "ThisBuild" scope of sbt, i.e. global acrosss projects. */
@@ -135,11 +127,6 @@ object EclipsePlugin {
     val withJavadoc: SettingKey[Boolean] = SettingKey(
       prefix(WithJavadoc),
       "Download and link javadoc for library dependencies?"
-    )
-
-    val withBundledScalaContainers: SettingKey[Boolean] = SettingKey(
-      prefix(WithBundledScalaContainers),
-      "Let the generated project use the bundled Scala library of the ScalaIDE plugin"
     )
 
     val useProjectId: SettingKey[Boolean] = SettingKey(
@@ -310,14 +297,66 @@ object EclipsePlugin {
     val All = Default
   }
 
-  object EclipseProjectFlavor extends Enumeration {
+  object EclipseProjectFlavor {
+    import scalaz.{ Success, Failure }
+    import scalaz.Scalaz.{ state => _, _ }
+    abstract class Value {
+      def resolved(ref: ProjectRef, state: State): Value = this
+      def scalacOptions(ref: ProjectRef, state: State): Validation[Seq[(String, String)]]
+      def defaultClasspathTransformerFactories: Seq[EclipseTransformerFactory[RewriteRule]]
+    }
+    case object Java extends Value {
+      def scalacOptions(ref: ProjectRef, state: State): Validation[Seq[(String, String)]] = Success(Seq.empty)
+      def defaultClasspathTransformerFactories: Seq[EclipseTransformerFactory[RewriteRule]] = Seq.empty
+    }
+    case object ScalaIDE extends Value {
+      def scalacOptions(ref: ProjectRef, state: State): Validation[Seq[(String, String)]] = {
+        // Here we have to look at scalacOptions *for compilation*, vs. the ones used for testing.
+        // We have to pick one set, and this should be the most complete set.
+        (Eclipse.evaluateTask(Keys.scalacOptions in sbt.Compile, ref, state) |@| Eclipse.settingValidation(Keys.scalaVersion in ref, state)) { (options, version) =>
+          val ideSettings = Eclipse.fromScalacToSDT(options)
+          util.ScalaVersion.parse(version).settingsFrom(ideSettings.toMap).toSeq
+        } map { options => if (options.nonEmpty) ("scala.compiler.useProjectSettings" -> "true") +: options else options }
+      }
 
-    val ScalaIDE = Value
+      def defaultClasspathTransformerFactories: Seq[EclipseTransformerFactory[RewriteRule]] =
+        Seq(EclipseRewriteRuleTransformerFactory.ClasspathDefault) // replace scala lib/compiler jars with scala container bundled in scala-ide
+    }
+
+    case object Autodetect extends Value {
+      override def resolved(ref: ProjectRef, state: State): Value = {
+        lazy val projectName = Eclipse.setting(Keys.name in ref, state)
+        state.log.debug(s"Project $projectName has $this Eclipse flavor.")
+        // Considering both the compile and test classpath, because if either of the two depends on the scala-library, then we need to return ScalaIDE as the resolved flavor.
+        val classpath = (Eclipse.evaluateTask(Keys.fullClasspath in sbt.Compile, ref, state) |@| Eclipse.evaluateTask(Keys.fullClasspath in sbt.Test, ref, state)) { (compileCp, testCp) =>
+          compileCp ++ testCp
+        }
+        classpath match {
+          case Failure(f) =>
+            state.log.debug(s"Failed to build classpath for $projectName. Error was: $f")
+            this
+          case Success(classpath) =>
+            state.log.debug {
+              s"Classpath entries for project $projectName:" +
+                classpath.map(_.data.getName).mkString("\n\t> ", "\n\t> ", "")
+            }
+            val isScalaLibInClasspath = classpath.exists(_.data.getName.matches("""scala-library(-\S+)?.jar"""))
+            if (isScalaLibInClasspath) {
+              state.log.debug("Found scala library in classpath.")
+              EclipseProjectFlavor.ScalaIDE
+            } else EclipseProjectFlavor.Java
+        }
+      }
+
+      def scalacOptions(ref: ProjectRef, state: State): Validation[Seq[(String, String)]] = resolved(ref, state).scalacOptions(ref, state)
+
+      // This method should never be called. Rather, you should first call `resolved`, and only then `defaultClasspathTransformerFactories`
+      def defaultClasspathTransformerFactories: Seq[EclipseTransformerFactory[RewriteRule]] =
+        throw new IllegalStateException(s"This may be a bug. Please report it at $IssueTracker.")
+    }
 
     @deprecated("Use ScalaIDE", "4.0.0")
     val Scala = ScalaIDE
-
-    val Java = Value
   }
 
   trait EclipseTransformerFactory[A] {

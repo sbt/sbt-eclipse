@@ -27,4 +27,6 @@ package object core {
   val FileSep = System.getProperty("file.separator")
 
   type Validation[A] = scalaz.Validation[NonEmptyList[String], A]
+
+  val IssueTracker = "https://github.com/typesafehub/sbteclipse/issues"
 }
