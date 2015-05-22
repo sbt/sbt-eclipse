@@ -8,4 +8,4 @@ cache:
   directories:
   - $HOME/.ivy2
 script:
-  - sbt scripted
+  - sbt -jvm-opts .travis/jvmopts scripted
