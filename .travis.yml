@@ -7,5 +7,9 @@ jdk:
 cache:
   directories:
   - $HOME/.ivy2
+before_script:
+ - "echo $JAVA_OPTS"
+ - "export JAVA_OPTS=-XX:MaxPermSize=384m -Xms512m -Xmx1536m -Xss2m -XX:ReservedCodeCacheSize=256m -XX:+TieredCompilation -XX:+CMSClassUnloadingEnabled -XX:+UseConcMarkSweepGC"
+ - "echo $JAVA_OPTS"
 script:
   - sbt -jvm-opts .travis/jvmopts scripted
