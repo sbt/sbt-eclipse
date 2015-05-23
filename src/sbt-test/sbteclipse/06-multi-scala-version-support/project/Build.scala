@@ -13,7 +13,7 @@ object Build extends Build {
     "suba",
     new File("suba"),
     settings = Project.defaultSettings ++ Seq(
-      scalaVersion := "2.10.4"
+      scalaVersion := "2.10.3"
     )
   )
   
@@ -21,7 +21,7 @@ object Build extends Build {
     "subb",
     new File("subb"),
     settings = Project.defaultSettings ++ Seq(
-      scalaVersion := "2.11.4"
+      scalaVersion := "2.11.3"
     )
   )
   
