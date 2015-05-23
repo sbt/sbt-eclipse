@@ -2,5 +2,5 @@
 -Xms512M
 -Xmx1536M
 -Xss6M
--XX:MaxPermSize=1024M
+-XX:MaxPermSize=1536M
 -XX:ReservedCodeCacheSize=256M
