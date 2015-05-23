@@ -225,7 +225,8 @@ TaskKey[Unit]("verify-scala-settings") <<= baseDirectory map { dir =>
     p.asScala.toMap
   }
   val expected = Map(
-    "scala.compiler.additionalParams" -> """-Xprompt""",
+    "scala.compiler.additionalParams" -> """-Xprompt -Xsource:2.10 -Ymacro-expand:none""",
+    "scala.compiler.installation" -> "2.10",
     "verbose" -> "true",
     "deprecation" -> "true",
     "Xelide-below" -> "1000",
