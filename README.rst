@@ -1,7 +1,7 @@
 sbteclipse |Build Status|
 =========================
 
-Plugin for `sbt`_ to create `Eclipse`_ project definitions. Please see the `Documentation`_ for information about installing and using sbteclipse. Information about mailing lists, contribution policy and license can be found below.
+Plugin for `sbt`_ to create `Eclipse`_ project definitions. Please see the `Documentation`_ for information about installing and using sbteclipse. Information about contribution policy and license can be found below.
 
 
 For sbt 0.13 and up
