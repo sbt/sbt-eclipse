@@ -87,7 +87,7 @@ private object Eclipse extends EclipseSDTConfig {
 
   def parser: Parser[Seq[(String, Any)]] = {
     import EclipseOpts._
-    (executionEnvironmentOpt | boolOpt(SkipParents) | boolOpt(WithSource) | boolOpt(WithJavadoc) | boolOpt(WithBundledScalaContainers)).*
+    (executionEnvironmentOpt | boolOpt(SkipParents) | boolOpt(WithSource) | boolOpt(WithJavadoc)).*
   }
 
   def executionEnvironmentOpt: Parser[(String, EclipseExecutionEnvironment.Value)] = {
@@ -124,6 +124,7 @@ private object Eclipse extends EclipseSDTConfig {
       val configs = configurations(ref, state)
       val source = withSourceArg getOrElse withSource(ref, state)
       val javadoc = withJavadocArg getOrElse withJavadoc(ref, state)
+      val flavor = projectFlavor(ref, state)
       val applic =
         (classpathTransformerFactories(ref, state).toList map (_.createTransformer(ref, state))).sequence[Validation, RewriteRule] |@|
           (projectTransformerFactories(ref, state).toList map (_.createTransformer(ref, state))).sequence[Validation, RewriteRule] |@|
@@ -131,7 +132,7 @@ private object Eclipse extends EclipseSDTConfig {
           buildDirectory(state) |@|
           baseDirectory(ref, state) |@|
           mapConfigurations(configs, config => srcDirectories(ref, createSrc(ref, state)(config), eclipseOutput(ref, state)(config), state)(config)) |@|
-          scalacOptions(ref, state) |@|
+          flavor.scalacOptions(ref, state) |@|
           compileOrder(ref, state) |@|
           mapConfigurations(removeExtendedConfigurations(configs), externalDependencies(ref, source, javadoc, state)) |@|
           mapConfigurations(configs, projectDependencies(ref, project, state))
@@ -140,7 +141,7 @@ private object Eclipse extends EclipseSDTConfig {
           jreContainer(executionEnvironmentArg orElse executionEnvironment(ref, state)),
           preTasks(ref, state),
           relativizeLibs(ref, state),
-          builderAndNatures(projectFlavor(ref, state)),
+          builderAndNatures(flavor),
           state
         )
       )
@@ -209,8 +210,7 @@ private object Eclipse extends EclipseSDTConfig {
       n <- io(name)
       dirs <- splitSrcDirectories(srcDirectories, baseDirectory)
       // Note - Io does not have filter... hence this ugly
-      localSrcDirectories = dirs._1
-      linkedSrcDirectories = dirs._2
+      (localSrcDirectories, linkedSrcDirectories) = dirs
       cp <- classpath(
         buildDirectory,
         baseDirectory,
@@ -393,8 +393,8 @@ private object Eclipse extends EclipseSDTConfig {
       case None => JreContainer
     }
 
-  def builderAndNatures(projectFlavor: EclipseProjectFlavor.Value) =
-    if (projectFlavor.id == EclipseProjectFlavor.ScalaIDE.id)
+  def builderAndNatures(projectFlavor: EclipseProjectFlavor.Value): (String, Seq[String]) =
+    if (projectFlavor == EclipseProjectFlavor.ScalaIDE)
       ScalaBuilder -> Seq(ScalaNature, JavaNature)
     else
       JavaBuilder -> Seq(JavaNature)
@@ -439,15 +439,6 @@ private object Eclipse extends EclipseSDTConfig {
       dirs(ValueSet(ManagedSrc), Keys.managedSourceDirectories),
       dirs(ValueSet(ManagedResources), Keys.managedResourceDirectories)
     ) reduceLeft (_ +++ _)
-  }
-
-  def scalacOptions(ref: ProjectRef, state: State): Validation[Seq[(String, String)]] = {
-    // Here we have to look at scalacOptions *for compilation*, vs. the ones used for testing.
-    // We have to pick one set, and this should be the most complete set.
-    (evaluateTask(Keys.scalacOptions in sbt.Compile, ref, state) |@| settingValidation(Keys.scalaVersion in ref, state)) { (options, version) =>
-      val ideSettings = fromScalacToSDT(options)
-      ScalaVersion.parse(version).settingsFrom(ideSettings.toMap).toSeq
-    } map { options => if (options.nonEmpty) ("scala.compiler.useProjectSettings" -> "true") +: options else options }
   }
 
   def compileOrder(ref: ProjectRef, state: State): Validation[Option[String]] =
@@ -567,11 +558,8 @@ private object Eclipse extends EclipseSDTConfig {
   def withJavadoc(ref: Reference, state: State): Boolean =
     setting(EclipseKeys.withJavadoc in ref, state)
 
-  def withBundledScalaContainers(ref: Reference, state: State): Boolean =
-    setting(EclipseKeys.withBundledScalaContainers in ref, state)
-
-  def classpathTransformerFactories(ref: Reference, state: State): Seq[EclipseTransformerFactory[RewriteRule]] =
-    setting(EclipseKeys.classpathTransformerFactories in ref, state)
+  def classpathTransformerFactories(ref: ProjectRef, state: State): Seq[EclipseTransformerFactory[RewriteRule]] =
+    projectFlavor(ref, state).defaultClasspathTransformerFactories ++ setting(EclipseKeys.classpathTransformerFactories in ref, state)
 
   def projectTransformerFactories(ref: Reference, state: State): Seq[EclipseTransformerFactory[RewriteRule]] =
     setting(EclipseKeys.projectTransformerFactories in ref, state)
@@ -585,8 +573,8 @@ private object Eclipse extends EclipseSDTConfig {
   def managedClassDirectories(ref: Reference, state: State)(configuration: Configuration): Seq[sbt.File] =
     setting(EclipseKeys.managedClassDirectories in (ref, configuration), state)
 
-  def projectFlavor(ref: Reference, state: State) =
-    setting(EclipseKeys.projectFlavor in ref, state)
+  def projectFlavor(ref: ProjectRef, state: State): EclipseProjectFlavor.Value =
+    setting(EclipseKeys.projectFlavor in ref, state).resolved(ref, state)
 
   def eclipseOutput(ref: ProjectRef, state: State)(config: Configuration): Option[String] =
     setting(EclipseKeys.eclipseOutput in (ref, config), state)
@@ -655,7 +643,7 @@ private object Eclipse extends EclipseSDTConfig {
     } else filename
   }
 
-  implicit val fileEqual = new Equal[File] {
+  implicit val fileEqual: Equal[File] = new Equal[File] {
     def equal(file1: File, file2: File): Boolean = file1 == file2
   }
 
@@ -678,12 +666,8 @@ private object Eclipse extends EclipseSDTConfig {
   /**
    * @param key the fully qualified key
    */
-  def setting[A](key: SettingKey[A], state: State): A = {
-    val opt: Option[A] = key get structure(state).data
-    opt match {
-      case Some(value) => value
-      case None => throw new IllegalStateException("Undefined setting '%s in %s'!".format(key.key, key.scope))
-    }
+  def setting[A](key: SettingKey[A], state: State): A = settingValidation(key, state).getOrElse {
+    throw new IllegalStateException("Undefined setting '%s in %s'!".format(key.key, key.scope))
   }
 
   def evaluateTask[A](key: TaskKey[A], ref: ProjectRef, state: State): Validation[A] =
