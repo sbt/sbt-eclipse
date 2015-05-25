@@ -8,4 +8,4 @@ cache:
   directories:
   - $HOME/.ivy2
 script:
-  - sbt ++$TRAVIS_SCALA_VERSION -jvm-opts .travis/jvmopts scripted
+  - sbt scripted
