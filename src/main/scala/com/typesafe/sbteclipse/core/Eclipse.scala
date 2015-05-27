@@ -655,7 +655,7 @@ private object Eclipse extends EclipseSDTConfig {
     } else filename
   }
 
-  implicit val fileEqual = new Equal[File] {
+  implicit val fileEqual: Equal[File] = new Equal[File] {
     def equal(file1: File, file2: File): Boolean = file1 == file2
   }
 
@@ -670,7 +670,7 @@ private object Eclipse extends EclipseSDTConfig {
    * @param key the fully qualified key
    */
   def settingValidation[A](key: SettingKey[A], state: State): Validation[A] =
-    key get structure(state).data match {
+    key.get(structure(state).data) match {
       case Some(a) => a.success
       case None => "Undefined setting '%s'!".format(key.key).failureNel
     }
@@ -678,12 +678,8 @@ private object Eclipse extends EclipseSDTConfig {
   /**
    * @param key the fully qualified key
    */
-  def setting[A](key: SettingKey[A], state: State): A = {
-    val opt: Option[A] = key get structure(state).data
-    opt match {
-      case Some(value) => value
-      case None => throw new IllegalStateException("Undefined setting '%s in %s'!".format(key.key, key.scope))
-    }
+  def setting[A](key: SettingKey[A], state: State): A = key.get(structure(state).data).getOrElse {
+    throw new IllegalStateException("Undefined setting '%s in %s'!".format(key.key, key.scope))
   }
 
   def evaluateTask[A](key: TaskKey[A], ref: ProjectRef, state: State): Validation[A] =
