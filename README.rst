@@ -12,17 +12,11 @@ For sbt 0.13 and up
   - the global file (for version 0.13 and up) at *~/.sbt/0.13/plugins/plugins.sbt*
   - the project-specific file at *PROJECT_DIR/project/plugins.sbt*
 
-For the latest beta version:
+For the latest version:
 
 ::
 
-  addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "4.0.0-RC2")
-
-For the stable version:
-
-::
-
-  addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "3.0.0")
+  addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "4.0.0")
 
 - In sbt use the command *eclipse* to create Eclipse project files
 
@@ -31,21 +25,6 @@ For the stable version:
   > eclipse
 
 - In Eclipse use the *Import Wizard* to import *Existing Projects into Workspace*
-
-For sbt 0.12 and earlier
-------------------------
-
-- Add sbteclipse to the old global file at *~/.sbt/plugins/plugins.sbt* or to the project-specific file (see above).
-
-- Use an earlier version of sbteclipse:
-
-=============  ====================
- sbt version    sbteclipse version
-=============  ====================
-0.12           2.1.2
-0.11.3         2.1.1
-0.11.2         2.0.0
-=============  ====================
 
 Contribution policy
 -------------------
