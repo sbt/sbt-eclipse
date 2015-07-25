@@ -46,7 +46,6 @@ object EclipsePlugin {
       commandName := "eclipse",
       commands <+= (commandName)(Eclipse.eclipseCommand),
       managedClassDirectories := Seq((classesManaged in sbt.Compile).value, (classesManaged in sbt.Test).value),
-      skipParents := true,
       preTasks := Seq(),
       classpathTransformerFactories := defaultClasspathTransformerFactories(withBundledScalaContainers.value),
       projectTransformerFactories := Seq(EclipseRewriteRuleTransformerFactory.Identity),
