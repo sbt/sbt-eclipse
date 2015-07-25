@@ -79,6 +79,11 @@ object EclipsePlugin {
     )
   }
 
+  def globalEclipseSettings: Seq[Setting[_]] = {
+    import EclipseKeys._
+    Seq()
+  }
+
   def copyManagedSettings(scope: Configuration): Seq[Setting[_]] =
     Seq(
       EclipseKeys.classesManaged in scope := {

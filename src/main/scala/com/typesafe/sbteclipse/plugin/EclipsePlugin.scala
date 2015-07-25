@@ -32,6 +32,7 @@ object EclipsePlugin extends AutoPlugin {
   val autoImport: EclipseCorePlugin.type = EclipseCorePlugin
   override def projectSettings: Seq[Setting[_]] = EclipseCorePlugin.eclipseSettings
   override def buildSettings: Seq[Setting[_]] = EclipseCorePlugin.buildEclipseSettings
+  override def globalSettings: Seq[Setting[_]] = EclipseCorePlugin.globalEclipseSettings
   // Alias for existing things.
   val EclipseKeys = EclipseCorePlugin.EclipseKeys
   val EclipseProjectFlavor = EclipseCorePlugin.EclipseProjectFlavor
