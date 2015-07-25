@@ -46,21 +46,11 @@ object EclipsePlugin {
       commandName := "eclipse",
       commands <+= (commandName)(Eclipse.eclipseCommand),
       managedClassDirectories := Seq((classesManaged in sbt.Compile).value, (classesManaged in sbt.Test).value),
-      executionEnvironment := None,
-      useProjectId := false,
       skipParents := true,
-      withSource := false,
-      withJavadoc := false,
-      projectFlavor := EclipseProjectFlavor.ScalaIDE,
       withBundledScalaContainers := projectFlavor.value.id == EclipseProjectFlavor.ScalaIDE.id,
       classpathTransformerFactories := defaultClasspathTransformerFactories(withBundledScalaContainers.value),
       projectTransformerFactories := Seq(EclipseRewriteRuleTransformerFactory.Identity),
-      configurations := Set(Configurations.Compile, Configurations.Test),
-      createSrc := EclipseCreateSrc.Default,
-      eclipseOutput := None,
-      preTasks := Seq(),
-      relativizeLibs := true,
-      skipProject := false
+      configurations := Set(Configurations.Compile, Configurations.Test)
     ) ++ copyManagedSettings(sbt.Compile) ++ copyManagedSettings(sbt.Test)
   }
 
@@ -81,7 +71,18 @@ object EclipsePlugin {
 
   def globalEclipseSettings: Seq[Setting[_]] = {
     import EclipseKeys._
-    Seq()
+    Seq(
+      executionEnvironment := None,
+      useProjectId := false,
+      withSource := false,
+      withJavadoc := false,
+      projectFlavor := EclipseProjectFlavor.ScalaIDE,
+      createSrc := EclipseCreateSrc.Default,
+      eclipseOutput := None,
+      preTasks := Seq(),
+      relativizeLibs := true,
+      skipProject := false
+    )
   }
 
   def copyManagedSettings(scope: Configuration): Seq[Setting[_]] =
