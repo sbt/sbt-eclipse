@@ -9,7 +9,7 @@ import com.typesafe.sbt.SbtGit._
 
 object Build extends Build {
 
-  val baseVersion = "4.0.0"
+  val baseVersion = "4.0.1"
 
   lazy val root = Project(
     "sbteclipse-plugin",
