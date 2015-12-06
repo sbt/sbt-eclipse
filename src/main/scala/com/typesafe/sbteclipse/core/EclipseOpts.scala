@@ -28,6 +28,10 @@ private object EclipseOpts {
 
   val WithJavadoc = "with-javadoc"
 
+  val WithUserSetSource = "with-user-set-source"
+
+  val WithUserSetJavadoc = "with-user-set-javadoc"
+
   val UseProjectId = "use-project-id"
 
   val WithBundledScalaContainers = "with-bundled-scala-containers"
