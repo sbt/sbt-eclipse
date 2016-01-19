@@ -10,6 +10,11 @@ import com.typesafe.sbt.SbtGit._
 object Build extends Build {
 
   val baseVersion = "4.0.0"
+  val maxMetaspaceSize = if (util.Properties.isJavaAtLeast("1.8")) {
+    "-XX:MaxMetaspaceSize=384m"
+  } else {
+    "-XX:MaxPermSize=384m"
+  }
 
   lazy val root = Project(
     "sbteclipse-plugin",
@@ -57,6 +62,7 @@ object Build extends Build {
       publishArtifact in (Compile, packageSrc) := false,
       // Uncomment the following line to get verbose output
       scriptedBufferLog := false,
-      scriptedLaunchOpts ++= List("-Dplugin.version=" + version.value)
+      scriptedLaunchOpts ++= List(maxMetaspaceSize, "-Dplugin.version=" + version.value)
     )
 }
+
