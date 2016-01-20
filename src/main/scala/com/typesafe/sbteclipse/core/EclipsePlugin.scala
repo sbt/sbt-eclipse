@@ -75,7 +75,11 @@ object EclipsePlugin {
   def buildEclipseSettings: Seq[Setting[_]] = {
     import EclipseKeys._
     Seq(
-      skipParents := true
+      skipParents := true,
+      // Typically, this will be overridden for each project by the project level default of false. However, if a
+      // project disables the EclipsePlugin, the project level default won't be set, and so it will fall back to this
+      // build level setting, which means the project will be skipped.
+      skipProject := true
     )
   }
 
