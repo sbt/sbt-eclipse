@@ -87,7 +87,7 @@ private object Eclipse extends EclipseSDTConfig {
 
   def parser: Parser[Seq[(String, Any)]] = {
     import EclipseOpts._
-    (executionEnvironmentOpt | boolOpt(SkipParents) | boolOpt(WithSource) | boolOpt(WithJavadoc) | boolOpt(WithBundledScalaContainers)).*
+    (executionEnvironmentOpt | boolOpt(SkipParents) | boolOpt(WithSource) | boolOpt(WithJavadoc) | boolOpt(WithUserSetSource) | boolOpt(WithUserSetJavadoc) | boolOpt(WithBundledScalaContainers)).*
   }
 
   def executionEnvironmentOpt: Parser[(String, EclipseExecutionEnvironment.Value)] = {
@@ -107,6 +107,8 @@ private object Eclipse extends EclipseSDTConfig {
       (args get SkipParents).asInstanceOf[Option[Boolean]] getOrElse skipParents(ThisBuild, state),
       (args get WithSource).asInstanceOf[Option[Boolean]],
       (args get WithJavadoc).asInstanceOf[Option[Boolean]],
+      (args get WithUserSetSource).asInstanceOf[Option[Boolean]],
+      (args get WithUserSetJavadoc).asInstanceOf[Option[Boolean]],
       state
     ).fold(onFailure(state), onSuccess(state))
   }
@@ -116,6 +118,8 @@ private object Eclipse extends EclipseSDTConfig {
     skipParents: Boolean,
     withSourceArg: Option[Boolean],
     withJavadocArg: Option[Boolean],
+    withUserSetSourceArg: Option[Boolean],
+    withUserSetJavadocArg: Option[Boolean],
     state: State): Validation[IO[Seq[String]]] = {
     val effects = for {
       ref <- structure(state).allProjectRefs
@@ -124,6 +128,8 @@ private object Eclipse extends EclipseSDTConfig {
       val configs = configurations(ref, state)
       val source = withSourceArg getOrElse withSource(ref, state)
       val javadoc = withJavadocArg getOrElse withJavadoc(ref, state)
+      val userSetSource = withUserSetSourceArg getOrElse withUserSetSource(ref, state)
+      val userSetJavadoc = withUserSetJavadocArg getOrElse withUserSetJavadoc(ref, state)
       val applic =
         (classpathTransformerFactories(ref, state).toList map (_.createTransformer(ref, state))).sequence[Validation, RewriteRule] |@|
           (projectTransformerFactories(ref, state).toList map (_.createTransformer(ref, state))).sequence[Validation, RewriteRule] |@|
@@ -133,7 +139,7 @@ private object Eclipse extends EclipseSDTConfig {
           mapConfigurations(configs, config => srcDirectories(ref, createSrc(ref, state)(config), eclipseOutput(ref, state)(config), state)(config)) |@|
           scalacOptions(ref, state) |@|
           compileOrder(ref, state) |@|
-          mapConfigurations(removeExtendedConfigurations(configs), externalDependencies(ref, source, javadoc, state)) |@|
+          mapConfigurations(removeExtendedConfigurations(configs), externalDependencies(ref, source, javadoc, userSetSource, userSetJavadoc, state)) |@|
           mapConfigurations(configs, projectDependencies(ref, project, state))
       applic(
         handleProject(
@@ -460,6 +466,8 @@ private object Eclipse extends EclipseSDTConfig {
     ref: ProjectRef,
     withSource: Boolean,
     withJavadoc: Boolean,
+    withUserSetSource: Boolean,
+    withUserSetJavadoc: Boolean,
     state: State)(
       configuration: Configuration): Validation[Seq[Lib]] = {
     def evalTask[A](key: TaskKey[A]) = evaluateTask(key in configuration, ref, state)
@@ -492,11 +500,12 @@ private object Eclipse extends EclipseSDTConfig {
     }
     val externalDependencyClasspath: Validation[sbt.Keys.Classpath] = evalTask(Keys.externalDependencyClasspath)
     val moduleFiles: Validation[Map[File, Lib]] = {
+      lazy val updateModuleReports = moduleReports(Keys.update)
       lazy val classifierModuleReports = moduleReports(Keys.updateClassifiers)
 
-      def classifierModuleToFile(classifier: Option[String]) = {
+      def classifierModuleToFile(moduleReports: Validation[Seq[ModuleReport]], classifier: Option[String]) = {
         if (classifier.isDefined)
-          moduleToFile(classifierModuleReports, (artifact, _) => artifact.classifier === classifier)
+          moduleToFile(moduleReports, (artifact, _) => artifact.classifier === classifier)
         else
           Map[ModuleID, File]().success
       }
@@ -504,21 +513,37 @@ private object Eclipse extends EclipseSDTConfig {
       val sources = if (withSource) Some("sources") else None
       val javadoc = if (withJavadoc) Some("javadoc") else None
 
-      sources |+| javadoc match {
-        case Some(_) => {
-          val binaryModuleToFile = moduleToFile(moduleReports(Keys.update))
+      val userSetSources = if (withUserSetSource) Some("sources") else None
+      val userSetJavadoc = if (withUserSetJavadoc) Some("javadoc") else None
 
-          (binaryModuleToFile |@| classifierModuleToFile(sources) |@| classifierModuleToFile(javadoc))(moduleFileToArtifactFile)
+      sources |+| javadoc match {
+        case Some(_) =>
+          (
+            moduleToFile(updateModuleReports) |@|
+            classifierModuleToFile(classifierModuleReports, sources) |@|
+            classifierModuleToFile(classifierModuleReports, javadoc)
+          )(moduleFileToArtifactFile)
+        case None => {
+          userSetSources |+| userSetJavadoc match {
+            case Some(_) =>
+              (
+                moduleToFile(updateModuleReports) |@|
+                classifierModuleToFile(updateModuleReports, userSetSources) |@|
+                classifierModuleToFile(updateModuleReports, userSetJavadoc)
+              )(moduleFileToArtifactFile)
+            case None => Map[File, Lib]().success
+          }
         }
-        case None => Map[File, Lib]().success
       }
     }
     val externalDependencies = (externalDependencyClasspath |@| moduleFiles)(libs)
     state.log.debug(
-      "External dependencies for configuration '%s' and withSource '%s' and withJavadoc '%s': %s".format(
+      "External dependencies for configuration '%s' and withSource '%s' and withJavadoc '%s' and withUserSetSource '%s' and withUserSetJavadoc '%s': %s".format(
         configuration,
         withSource,
         withJavadoc,
+        withUserSetSource,
+        withUserSetJavadoc,
         externalDependencies
       )
     )
@@ -566,6 +591,12 @@ private object Eclipse extends EclipseSDTConfig {
 
   def withJavadoc(ref: Reference, state: State): Boolean =
     setting(EclipseKeys.withJavadoc in ref, state)
+
+  def withUserSetSource(ref: Reference, state: State): Boolean =
+    setting(EclipseKeys.withUserSetSource in ref, state)
+
+  def withUserSetJavadoc(ref: Reference, state: State): Boolean =
+    setting(EclipseKeys.withUserSetJavadoc in ref, state)
 
   def withBundledScalaContainers(ref: Reference, state: State): Boolean =
     setting(EclipseKeys.withBundledScalaContainers in ref, state)

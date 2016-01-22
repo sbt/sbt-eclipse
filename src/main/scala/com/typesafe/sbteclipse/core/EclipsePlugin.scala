@@ -51,6 +51,8 @@ object EclipsePlugin {
       skipParents := true,
       withSource := false,
       withJavadoc := false,
+      withUserSetSource := false,
+      withUserSetJavadoc := false,
       projectFlavor := EclipseProjectFlavor.ScalaIDE,
       withBundledScalaContainers := projectFlavor.value.id == EclipseProjectFlavor.ScalaIDE.id,
       classpathTransformerFactories := defaultClasspathTransformerFactories(withBundledScalaContainers.value),
@@ -139,6 +141,16 @@ object EclipsePlugin {
     val withJavadoc: SettingKey[Boolean] = SettingKey(
       prefix(WithJavadoc),
       "Download and link javadoc for library dependencies?"
+    )
+
+    val withUserSetSource: SettingKey[Boolean] = SettingKey(
+      prefix(WithUserSetSource),
+      "Link sources for library dependencies annotated by 'withSource'?"
+    )
+
+    val withUserSetJavadoc: SettingKey[Boolean] = SettingKey(
+      prefix(WithUserSetJavadoc),
+      "Link javadocs for library dependencies annotated by 'withJavadoc'?"
     )
 
     val withBundledScalaContainers: SettingKey[Boolean] = SettingKey(
