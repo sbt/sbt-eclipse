@@ -46,21 +46,11 @@ object EclipsePlugin {
       commandName := "eclipse",
       commands <+= (commandName)(Eclipse.eclipseCommand),
       managedClassDirectories := Seq((classesManaged in sbt.Compile).value, (classesManaged in sbt.Test).value),
-      executionEnvironment := None,
-      useProjectId := false,
-      skipParents := true,
-      withSource := false,
-      withJavadoc := false,
-      projectFlavor := EclipseProjectFlavor.ScalaIDE,
-      withBundledScalaContainers := projectFlavor.value.id == EclipseProjectFlavor.ScalaIDE.id,
+      preTasks := Seq(),
+      skipProject := false,
       classpathTransformerFactories := defaultClasspathTransformerFactories(withBundledScalaContainers.value),
       projectTransformerFactories := Seq(EclipseRewriteRuleTransformerFactory.Identity),
-      configurations := Set(Configurations.Compile, Configurations.Test),
-      createSrc := EclipseCreateSrc.Default,
-      eclipseOutput := None,
-      preTasks := Seq(),
-      relativizeLibs := true,
-      skipProject := false
+      configurations := Set(Configurations.Compile, Configurations.Test)
     ) ++ copyManagedSettings(sbt.Compile) ++ copyManagedSettings(sbt.Test)
   }
 
@@ -80,6 +70,21 @@ object EclipsePlugin {
       // project disables the EclipsePlugin, the project level default won't be set, and so it will fall back to this
       // build level setting, which means the project will be skipped.
       skipProject := true
+    )
+  }
+
+  def globalEclipseSettings: Seq[Setting[_]] = {
+    import EclipseKeys._
+    Seq(
+      executionEnvironment := None,
+      useProjectId := false,
+      withSource := false,
+      withJavadoc := false,
+      withBundledScalaContainers := projectFlavor.value.id == EclipseProjectFlavor.ScalaIDE.id,
+      projectFlavor := EclipseProjectFlavor.ScalaIDE,
+      createSrc := EclipseCreateSrc.Default,
+      eclipseOutput := None,
+      relativizeLibs := true
     )
   }
 
