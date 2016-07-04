@@ -161,7 +161,7 @@ private object Eclipse extends EclipseSDTConfig {
 
   def onFailure(state: State)(errors: NonEmptyList[String]): State = {
     state.log.error(
-      "Could not create Eclipse project files:%s%s".format(NewLine, errors.list mkString NewLine)
+      "Could not create Eclipse project files:%s%s".format(NewLine, List(errors.list).mkString(NewLine))
     )
     state
   }
