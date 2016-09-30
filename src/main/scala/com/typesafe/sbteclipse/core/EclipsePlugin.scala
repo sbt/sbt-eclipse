@@ -101,6 +101,10 @@ object EclipsePlugin {
 
   // Depends on compile and will ensure all classes being generated from source files in the
   // source_managed space are copied into a class_managed folder.
+  // This feature was added for Play Framework. Users wanted to be able to use Play Java without installing Scala IDE.
+  // Play Java generates some Scala files (e.g. via the routes compiler and Twirl compiler) and Eclipse doesn't know how
+  // to handle these if you put them in a source folder without Scala IDE installed. The workaround added here is to not
+  // add the scala managed sources to the classpath, but rather to add the compiled classes to the classpath instead.
   def copyManagedClasses(scope: Configuration) =
     Def.task {
       import sbt._
