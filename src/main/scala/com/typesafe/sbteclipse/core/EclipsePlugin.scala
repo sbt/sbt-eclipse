@@ -78,8 +78,8 @@ object EclipsePlugin {
     Seq(
       executionEnvironment := None,
       useProjectId := false,
-      withSource := false,
-      withJavadoc := false,
+      withSource := true,
+      withJavadoc := true,
       withBundledScalaContainers := projectFlavor.value.id == EclipseProjectFlavor.ScalaIDE.id,
       projectFlavor := EclipseProjectFlavor.ScalaIDE,
       createSrc := EclipseCreateSrc.Default,

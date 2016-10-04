@@ -1,6 +1,6 @@
 import scala.xml.XML
 
-EclipseKeys.withSource := true
+EclipseKeys.withJavadoc := false
 
 organization := "com.typesafe.sbteclipse"
 

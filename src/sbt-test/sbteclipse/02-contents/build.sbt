@@ -4,6 +4,8 @@ import scala.collection.JavaConverters._
 import scala.xml.XML
 
 EclipseKeys.skipParents in ThisBuild := false
+EclipseKeys.withSource in ThisBuild := false
+EclipseKeys.withJavadoc in ThisBuild := false
 
 organization := "com.typesafe.sbteclipse"
 
