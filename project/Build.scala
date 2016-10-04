@@ -45,9 +45,9 @@ object Build extends Build {
       },
       scalaVersion := {
         (sbtVersion in GlobalScope).value match {
-          case sbt013 if sbt013.startsWith("0.13.") => "2.10.5"
+          case sbt013 if sbt013.startsWith("0.13.") => "2.10.6"
           case sbt012 if sbt012.startsWith("0.12.") => "2.9.3"
-          case _ => "2.9.3"
+          case _ => "2.10.6"
         }
       },
       sbtDependency in GlobalScope := {
