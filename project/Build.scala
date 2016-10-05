@@ -1,7 +1,6 @@
 import sbt._
 import sbt.Keys._
 import sbt.ScriptedPlugin._
-import sbtrelease.ReleasePlugin._
 import com.typesafe.sbt.SbtScalariform._
 import bintray.BintrayPlugin.bintrayPublishSettings
 import bintray.BintrayKeys._
@@ -31,7 +30,7 @@ object Build extends Build {
     versionWithGit ++
     scalariformSettings ++
     scriptedSettings ++
-    releaseSettings ++
+    sbtrelease.ReleasePlugin.projectSettings ++
     bintrayPublishSettings ++
     Seq(
       git.baseVersion := baseVersion,
