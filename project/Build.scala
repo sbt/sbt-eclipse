@@ -3,8 +3,8 @@ import sbt.Keys._
 import sbt.ScriptedPlugin._
 import sbtrelease.ReleasePlugin._
 import com.typesafe.sbt.SbtScalariform._
-import bintray.Plugin.bintrayPublishSettings
-import bintray.Keys._
+import bintray.BintrayPlugin.bintrayPublishSettings
+import bintray.BintrayKeys._
 import com.typesafe.sbt.SbtGit._
 
 object Build extends Build {
@@ -54,9 +54,9 @@ object Build extends Build {
         (sbtDependency in GlobalScope).value.copy(revision = (sbtVersion in GlobalScope).value)
       },
       publishMavenStyle := false,
-      bintrayOrganization in bintray := Some("sbt"),
-      name in bintray := "sbteclipse",
-      repository in bintray := "sbt-plugin-releases",
+      bintrayOrganization := Some("sbt"),
+      bintrayPackage := "sbteclipse",
+      bintrayRepository := "sbt-plugin-releases",
       licenses += ("Apache-2.0", url("https://www.apache.org/licenses/LICENSE-2.0.html")),
       publishArtifact in (Compile, packageDoc) := false,
       publishArtifact in (Compile, packageSrc) := false,
