@@ -53,7 +53,8 @@ private trait EclipseSDTConfig {
     TakesArg("Yrecursion"),
     Flag("Yself-in-annots"),
     ColonSeparated("Ystruct-dispatch"),
-    Flag("Ywarn-dead-code"))
+    Flag("Ywarn-dead-code")
+  )
 
   private sealed trait SDTOption {
     def name: String

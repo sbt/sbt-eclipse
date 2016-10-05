@@ -18,9 +18,9 @@
 
 package com.typesafe.sbteclipse.plugin
 
-import sbt.{Setting, AutoPlugin}
+import sbt.{ Setting, AutoPlugin }
 
-import com.typesafe.sbteclipse.core.{EclipsePlugin=>EclipseCorePlugin}
+import com.typesafe.sbteclipse.core.{ EclipsePlugin => EclipseCorePlugin }
 
 import scala.xml.Node
 

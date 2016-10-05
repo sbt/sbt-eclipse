@@ -258,25 +258,21 @@ object EclipsePlugin {
     case class Src(path: String, output: Option[String], excludes: Seq[String] = Nil) extends EclipseClasspathEntry {
       override def toXml = {
         val classpathentry = output.foldLeft(<classpathentry kind="src" path={ path }/>)((xml, sp) =>
-          xml % Attribute("output", Text(sp), Null)
-        )
+          xml % Attribute("output", Text(sp), Null))
 
         val excluding = excludes.reduceOption(_ + "|" + _)
         excluding.foldLeft(classpathentry)((xml, excluding) =>
-          xml % Attribute("excluding", Text(excluding), Null)
-        )
+          xml % Attribute("excluding", Text(excluding), Null))
       }
     }
 
     case class Lib(path: String, sourcePath: Option[String] = None, javadocPath: Option[String] = None) extends EclipseClasspathEntry {
       override def toXml = {
         val classpathentry = sourcePath.foldLeft(<classpathentry kind="lib" path={ path }/>)((xml, sp) =>
-          xml % Attribute("sourcepath", Text(sp), Null)
-        )
+          xml % Attribute("sourcepath", Text(sp), Null))
 
         javadocPath.foldLeft(classpathentry)((xml, jp) =>
-          xml.copy(child = <attributes><attribute name="javadoc_location" value={ "jar:file:" + jp + "!/" }/></attributes>)
-        )
+          xml.copy(child = <attributes><attribute name="javadoc_location" value={ "jar:file:" + jp + "!/" }/></attributes>))
       }
     }
 
@@ -343,7 +339,8 @@ object EclipsePlugin {
       import scalaz.Scalaz._
       override def createTransformer(
         ref: ProjectRef,
-        state: State): Validation[Seq[EclipseClasspathEntry] => Seq[EclipseClasspathEntry]] = {
+        state: State
+      ): Validation[Seq[EclipseClasspathEntry] => Seq[EclipseClasspathEntry]] = {
         val transformer = (entries: Seq[EclipseClasspathEntry]) => entries
         transformer.success
       }
@@ -431,7 +428,8 @@ object EclipsePlugin {
 
   case class ChildTransformer(
       parentName: String,
-      transformation: Seq[Node] => Seq[Node]) extends EclipseTransformerFactory[RewriteRule] {
+      transformation: Seq[Node] => Seq[Node]
+  ) extends EclipseTransformerFactory[RewriteRule] {
 
     import scalaz.Scalaz._
 
