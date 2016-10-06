@@ -48,6 +48,7 @@ object EclipsePlugin {
       managedClassDirectories := Seq((classesManaged in sbt.Compile).value, (classesManaged in sbt.Test).value),
       preTasks := Seq(),
       skipProject := false,
+      withBundledScalaContainers := projectFlavor.value.id == EclipseProjectFlavor.ScalaIDE.id,
       classpathTransformerFactories := defaultClasspathTransformerFactories(withBundledScalaContainers.value),
       projectTransformerFactories := Seq(EclipseRewriteRuleTransformerFactory.Identity),
       configurations := Set(Configurations.Compile, Configurations.Test)
@@ -80,7 +81,6 @@ object EclipsePlugin {
       useProjectId := false,
       withSource := true,
       withJavadoc := true,
-      withBundledScalaContainers := projectFlavor.value.id == EclipseProjectFlavor.ScalaIDE.id,
       projectFlavor := EclipseProjectFlavor.ScalaIDE,
       createSrc := EclipseCreateSrc.Default,
       eclipseOutput := None,

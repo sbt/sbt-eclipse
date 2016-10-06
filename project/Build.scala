@@ -8,7 +8,7 @@ import com.typesafe.sbt.SbtGit._
 
 object Build extends Build {
 
-  val baseVersion = "5.0.0"
+  val baseVersion = "5.0.1"
   val maxMetaspaceSize = if (util.Properties.isJavaAtLeast("1.8")) {
     "-XX:MaxMetaspaceSize=384m"
   } else {

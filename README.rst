@@ -44,3 +44,8 @@ This code is open source software licensed under the `Apache 2.0 License`_. Feel
 .. _`Typesafe Contributor License Agreement`: http://www.typesafe.com/contribute/cla
 .. |Build Status| image:: https://travis-ci.org/typesafehub/sbteclipse.png?branch=master
                         :target: https://travis-ci.org/typesafehub/sbteclipse
+
+Releases
+-------------------
+
+Maintainers must run `git tag` to tag a release. The release can then be pushed to bintray with `sbt publish`.
