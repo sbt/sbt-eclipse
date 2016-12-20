@@ -497,7 +497,7 @@ private object Eclipse extends EclipseSDTConfig {
     def libs(files: Seq[Attributed[File]], moduleFiles: Map[File, Lib]): Seq[Lib] = {
       var result: Seq[Lib] = files.files map { file => moduleFiles.get(file).getOrElse(Lib(file)(None)(None)) }
       if (createSrc(ref, state)(configuration).contains(EclipseCreateSrc.ManagedClasses)) {
-        result = result ++ managedClassDirectories(ref, state)(configuration).filter(_.exists).map(Lib(_)(None)(None))
+        result = result ++ managedClassDirectories(ref, state)(configuration).map(Lib(_)(None)(None))
       }
       result
     }
