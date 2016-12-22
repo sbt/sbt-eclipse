@@ -122,6 +122,7 @@ private object Eclipse extends EclipseSDTConfig {
       ref <- structure(state).allProjectRefs
       project <- Project.getProject(ref, structure(state)) if !skip(ref, project, skipParents, state)
     } yield {
+      executePreTasks(preTasks(ref, state), state) // has to be called before externalDependencies() so all folders and classes exist already (in case we have a compile task in preTasks)
       val configs = configurations(ref, state)
       val source = withSourceArg getOrElse withSource(ref, state)
       val javadoc = withJavadocArg getOrElse withJavadoc(ref, state)
@@ -139,7 +140,6 @@ private object Eclipse extends EclipseSDTConfig {
       applic(
         handleProject(
           jreContainer(executionEnvironmentArg orElse executionEnvironment(ref, state)),
-          preTasks(ref, state),
           relativizeLibs(ref, state),
           builderAndNatures(projectFlavor(ref, state)),
           state
@@ -192,7 +192,6 @@ private object Eclipse extends EclipseSDTConfig {
 
   def handleProject(
     jreContainer: String,
-    preTasks: Seq[(TaskKey[_], ProjectRef)],
     relativizeLibs: Boolean,
     builderAndNatures: (String, Seq[String]),
     state: State
@@ -209,7 +208,6 @@ private object Eclipse extends EclipseSDTConfig {
     projectDependencies: Seq[String]
   ): IO[String] = {
     for {
-      _ <- executePreTasks(preTasks, state)
       n <- io(name)
       dirs <- splitSrcDirectories(srcDirectories, baseDirectory)
       // Note - Io does not have filter... hence this ugly
@@ -233,8 +231,8 @@ private object Eclipse extends EclipseSDTConfig {
     } yield n
   }
 
-  def executePreTasks(preTasks: Seq[(TaskKey[_], ProjectRef)], state: State): IO[Unit] =
-    io(for ((preTask, ref) <- preTasks) evaluateTask(preTask, ref, state))
+  def executePreTasks(preTasks: Seq[(TaskKey[_], ProjectRef)], state: State): Unit =
+    for ((preTask, ref) <- preTasks) evaluateTask(preTask, ref, state)
 
   def projectXml(name: String, builderAndNatures: (String, Seq[String]), linkedSrcDirectories: Seq[(File, Option[String], File, Option[String])]): Node = {
     val sourceLinks = linkedSrcDirectories.flatMap {
