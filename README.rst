@@ -37,7 +37,7 @@ License
 
 This code is open source software licensed under the `Apache 2.0 License`_. Feel free to use it accordingly.
 
-.. _`sbt`: http://github.com/harrah/xsbt/
+.. _`sbt`: https://github.com/sbt/sbt
 .. _`Eclipse`: http://www.eclipse.org/
 .. _`Documentation`: http://github.com/typesafehub/sbteclipse/wiki/
 .. _`Apache 2.0 License`: http://www.apache.org/licenses/LICENSE-2.0.html
