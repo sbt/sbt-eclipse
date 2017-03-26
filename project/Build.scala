@@ -8,7 +8,7 @@ import com.typesafe.sbt.SbtGit._
 
 object Build extends Build {
 
-  val baseVersion = "5.1.0"
+  val baseVersion = "5.1.1-SNAPSHOT"
   val maxMetaspaceSize = if (util.Properties.isJavaAtLeast("1.8")) {
     "-XX:MaxMetaspaceSize=384m"
   } else {
@@ -20,9 +20,9 @@ object Build extends Build {
     file("."),
     settings = commonSettings ++ Seq(
       libraryDependencies ++= Seq(
-        "org.scalaz"    %% "scalaz-core"   % "7.2.7",
-        "org.scalaz"    %% "scalaz-effect" % "7.2.7",
-        "org.scalatest" %% "scalatest"     % "2.2.1" % "test")
+        "org.scalaz"    %% "scalaz-core"   % "7.2.8",
+        "org.scalaz"    %% "scalaz-effect" % "7.2.8",
+        "org.scalatest" %% "scalatest"     % "2.2.6" % "test")
     )
   )
 
