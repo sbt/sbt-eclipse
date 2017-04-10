@@ -119,6 +119,9 @@ object EclipsePlugin {
         val managedClasses = ((srcManaged ** "*.scala").get ++ (srcManaged ** "*.java").get).map { managedSourceFile =>
           analysis.relations.products(managedSourceFile)
         }.flatten pair rebase(classes, managedClassesDirectory)
+        // Always create folder to make sure it exists - even if (or better: in case that) there are no class files to copy
+        // Otherwise Eclipse will complain it's missing the folder (because it gets added in .classpath).
+        IO.createDirectory(managedClassesDirectory)
         // Copy modified class files
         val managedSet = IO.copy(managedClasses)
         // Remove deleted class files
