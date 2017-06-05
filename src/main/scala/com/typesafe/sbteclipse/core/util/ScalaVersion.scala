@@ -33,7 +33,7 @@ private[core] object ScalaVersion {
         val key = "scala.compiler.additionalParams"
         val newValue = (currentSettings.getOrElse(key, "") + " -Xsource:2.10 -Ymacro-expand:none").trim()
         currentSettings + (key -> newValue) + ("scala.compiler.installation" -> "2.10")
-      } else currentSettings
+      } else currentSettings + ("scala.compiler.installation" -> s"$era.$major")
     }
   }
 }
