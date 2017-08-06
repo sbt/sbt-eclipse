@@ -36,6 +36,7 @@ import sbt.Keys.{ baseDirectory, commands }
 import scala.util.control.Exception
 import scala.xml.{ Attribute, Elem, MetaData, Node, NodeSeq, Null, Text }
 import scala.xml.transform.RewriteRule
+import scala.language.implicitConversions
 
 object EclipsePlugin {
 
@@ -44,7 +45,7 @@ object EclipsePlugin {
     import EclipseKeys._
     Seq(
       commandName := "eclipse",
-      commands <+= (commandName)(Eclipse.eclipseCommand),
+      commands += { Eclipse.eclipseCommand(commandName.value) },
       managedClassDirectories := Seq((classesManaged in sbt.Compile).value, (classesManaged in sbt.Test).value),
       preTasks := Seq(),
       skipProject := false,
@@ -363,11 +364,11 @@ object EclipsePlugin {
 
       override def transform(node: Node): Seq[Node] = node match {
         case Elem(pf, CpEntry, attrs, scope, child @ _*) if isScalaLibrary(attrs) =>
-          Elem(pf, CpEntry, container(ScalaContainer), scope)
+          Elem(pf, CpEntry, container(ScalaContainer), scope, child.isEmpty)
         case Elem(pf, CpEntry, attrs, scope, child @ _*) if isScalaReflect(attrs) =>
           NodeSeq.Empty
         case Elem(pf, CpEntry, attrs, scope, child @ _*) if isScalaCompiler(attrs) =>
-          Elem(pf, CpEntry, container(ScalaCompilerContainer), scope)
+          Elem(pf, CpEntry, container(ScalaCompilerContainer), scope, child.isEmpty)
         case other =>
           other
       }
@@ -441,7 +442,7 @@ object EclipsePlugin {
       override def transform(node: Node): Seq[Node] = node match {
         case Elem(pf, el, attrs, scope, children @ _*) if (el == parentName) => {
           val newChildren = transformation(children)
-          Elem(pf, el, attrs, scope, newChildren: _*)
+          Elem(pf, el, attrs, scope, children.isEmpty, newChildren: _*)
         }
         case other => other
       }
