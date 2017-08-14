@@ -1,0 +1,14 @@
+$ mkdir target/scala-2.12.3/src_managed/main
+> eclipse skip-parents=false
+> verifyProjectXml
+> verifyProjectXmlJava
+> verifyProjectXmlScala
+> verifyProjectXmlSubd
+> verifyProjectXmlSube
+> verifyClasspathXmlRoot
+> verifyClasspathXmlSub
+> verifyClasspathXmlSuba
+> verifyClasspathXmlSubb
+> verifyClasspathXmlSubc
+> verifyJavaSettings
+> verifyScalaSettings

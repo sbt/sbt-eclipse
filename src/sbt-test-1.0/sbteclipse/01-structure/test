@@ -1,0 +1,55 @@
+# Default settings (skip-parents=true)
+$ exec find . -path "*.classpath*" -delete
+$ exec find . -path "*.project*" -delete
+$ exec find . -path "*.settings*" -delete
+$ exec find . -path "*/touch-pre-task" -delete
+> eclipse
+$ absent .classpath
+$ absent .project
+$ absent .settings
+$ absent touch-pre-task
+$ absent sub/.classpath
+$ absent sub/.project
+$ absent sub/.settings
+$ absent sub/touch-pre-task
+$ exists sub/suba/.classpath
+$ exists sub/suba/.project
+$ exists sub/suba/.settings
+$ exists sub/suba/.settings/org.eclipse.core.resources.prefs
+$ exists sub/subb/.classpath
+$ exists sub/subb/.project
+$ exists sub/subb/.settings/org.eclipse.core.resources.prefs
+$ exists sub/subb/.settings/org.scala-ide.sdt.core.prefs
+$ exists sub/subb/touch-pre-task
+$ absent sub/subc/.classpath
+$ absent sub/subc/.project
+$ absent sub/subc/.settings
+$ absent sub/subc/touch-pre-task
+
+# skip-parents=false
+$ exec find . -path "*.classpath*" -delete
+$ exec find . -path "*.project*" -delete
+$ exec find . -path "*/.settings*" -delete
+> eclipse skip-parents=false
+$ exists .classpath
+$ exists .project
+$ exists .settings
+$ absent touch-pre-task
+$ exists sub/.classpath
+$ exists sub/.project
+$ exists sub/.settings
+$ exists sub/.settings/org.eclipse.core.resources.prefs
+$ absent sub/touch-pre-task
+$ exists sub/suba/.classpath
+$ exists sub/suba/.project
+$ exists sub/suba/.settings
+$ exists sub/suba/.settings/org.eclipse.core.resources.prefs
+$ exists sub/subb/.classpath
+$ exists sub/subb/.project
+$ exists sub/subb/.settings/org.eclipse.core.resources.prefs
+$ exists sub/subb/.settings/org.scala-ide.sdt.core.prefs
+$ exists sub/subb/touch-pre-task
+$ absent sub/subc/.classpath
+$ absent sub/subc/.project
+$ absent sub/subc/.settings
+$ absent sub/subc/touch-pre-task

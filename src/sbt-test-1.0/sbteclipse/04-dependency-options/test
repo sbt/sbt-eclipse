@@ -1,0 +1,5 @@
+> eclipse skip-parents=false
+> verifyClasspathXmlSuba
+> verifyClasspathXmlSubb
+> verifyClasspathXmlSubc
+> verifyClasspathXmlSubd
