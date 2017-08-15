@@ -57,14 +57,6 @@ def commonSettings = {
     licenses += ("Apache-2.0", url("https://www.apache.org/licenses/LICENSE-2.0.html")),
     publishArtifact in (Compile, packageDoc) := false,
     publishArtifact in (Compile, packageSrc) := false,
-    sbtTestDirectory := {
-      val currentSbtVersion = (sbtVersion in pluginCrossBuild).value
-      CrossVersion.partialVersion(currentSbtVersion) match {
-        case Some((0, 13)) => sourceDirectory.value / "sbt-test-0.13"
-        case Some((1, _))  => sourceDirectory.value / "sbt-test-1.0"
-        case _             => sys.error(s"Unsupported sbt version: $currentSbtVersion")
-      }
-    },
     scriptedBufferLog := false,
     scriptedLaunchOpts ++= Seq(maxMetaspaceSize, "-Dplugin.version=" + version.value)
   )

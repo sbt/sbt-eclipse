@@ -1,3 +1,0 @@
-> eclipse
-$ exists a/.classpath
--$ exists b/.classpath
