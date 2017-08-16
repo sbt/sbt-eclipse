@@ -6,8 +6,5 @@
   else addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % pluginVersion)
 }
 
-addSbtPlugin("com.github.gseitz" % "sbt-protobuf" % "0.3.2")
-
-resolvers += "spray repo" at "http://repo.spray.io"
-
-addSbtPlugin("io.spray" % "sbt-twirl" % "0.7.0")
+addSbtPlugin("com.github.gseitz" % "sbt-protobuf" % "0.6.2")
+addSbtPlugin("com.typesafe.sbt" % "sbt-twirl" % "1.3.4")

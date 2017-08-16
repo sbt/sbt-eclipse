@@ -693,12 +693,14 @@ private object Eclipse extends EclipseSDTConfig {
     throw new IllegalStateException("Undefined setting '%s in %s'!".format(key.key, key.scope))
   }
 
-  def evaluateTask[A](key: TaskKey[A], ref: ProjectRef, state: State): Validation[A] =
-    EvaluateTask(structure(state), key, state, ref, EvaluateTask defaultConfig state) match {
+  def evaluateTask[A](key: TaskKey[A], ref: ProjectRef, state: State): Validation[A] = {
+    val taskConfig = EvaluateTask.extractedTaskConfig(Project.extract(state), structure(state), state)
+    EvaluateTask(structure(state), key, state, ref, taskConfig) match {
       case Some((_, Value(a))) => a.success
       case Some((_, Inc(inc))) => "Error evaluating task '%s': %s".format(key.key, Incomplete.show(inc.tpe)).failureNel
       case None => "Undefined task '%s' for '%s'!".format(key.key, ref.project).failureNel
     }
+  }
 
   def structure(state: State): BuildStructure = Project.extract(state).structure
 

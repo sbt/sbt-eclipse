@@ -1,5 +1,6 @@
 import scala.xml.XML
 import sbtprotobuf.ProtobufPlugin
+import sys.error
 
 organization := "com.typesafe.sbteclipse"
 
@@ -7,13 +8,15 @@ name := "sbteclipse-test"
 
 version := "1.2.3"
 
-libraryDependencies += "com.google.protobuf" % "protobuf-java" % "2.5.0"
+libraryDependencies += "com.google.protobuf" % "protobuf-java" % "3.3.1"
 
+enablePlugins(ProtobufPlugin)
 seq(ProtobufPlugin.protobufSettings: _*)
 
 seq(Twirl.settings: _*)
 
-TaskKey[Unit]("verify-valid") <<= baseDirectory map { dir =>
+TaskKey[Unit]("verify-valid") := {
+  val dir = baseDirectory.value
   val classpath = XML.loadFile(dir / ".classpath")
   val srcManaged = """^target/scala-([0-9.]+)/src_managed/main$""".r
   val managedSrcRoot = (classpath \ "classpathentry") find (node => node.attributes("path").exists(_.text.matches(srcManaged.toString)))

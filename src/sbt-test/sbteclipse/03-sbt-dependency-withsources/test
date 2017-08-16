@@ -1,4 +1,2 @@
-> clean
-> compile
 > eclipse skip-parents=false
-> verify-classpath-xml
+> verifyClasspathXml
