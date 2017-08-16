@@ -107,8 +107,7 @@ private object Eclipse extends EclipseSDTConfig {
       (args get SkipParents).asInstanceOf[Option[Boolean]] getOrElse skipParents(ThisBuild, state),
       (args get WithSource).asInstanceOf[Option[Boolean]],
       (args get WithJavadoc).asInstanceOf[Option[Boolean]],
-      state
-    ).fold(onFailure(state), onSuccess(state))
+      state).fold(onFailure(state), onSuccess(state))
   }
 
   def handleProjects(
@@ -116,8 +115,7 @@ private object Eclipse extends EclipseSDTConfig {
     skipParents: Boolean,
     withSourceArg: Option[Boolean],
     withJavadocArg: Option[Boolean],
-    state: State
-  ): Validation[IO[Seq[String]]] = {
+    state: State): Validation[IO[Seq[String]]] = {
     val effects = for {
       ref <- structure(state).allProjectRefs
       project <- Project.getProject(ref, structure(state)) if !skip(ref, project, skipParents, state)
@@ -142,9 +140,7 @@ private object Eclipse extends EclipseSDTConfig {
           jreContainer(executionEnvironmentArg orElse executionEnvironment(ref, state)),
           relativizeLibs(ref, state),
           builderAndNatures(projectFlavor(ref, state)),
-          state
-        )
-      )
+          state))
     }
     effects.toList.sequence[Validation, IO[String]].map((list: List[IO[String]]) => list.toStream.sequence.map(_.toList))
   }
@@ -162,8 +158,7 @@ private object Eclipse extends EclipseSDTConfig {
 
   def onFailure(state: State)(errors: NonEmptyList[String]): State = {
     state.log.error(
-      "Could not create Eclipse project files:%s%s".format(NewLine, List(errors.list).mkString(NewLine))
-    )
+      "Could not create Eclipse project files:%s%s".format(NewLine, List(errors.list).mkString(NewLine)))
     state
   }
 
@@ -175,9 +170,7 @@ private object Eclipse extends EclipseSDTConfig {
       state.log.info(
         "Successfully created Eclipse project files for project(s):%s%s".format(
           NewLine,
-          names mkString NewLine
-        )
-      )
+          names mkString NewLine))
     state
   }
 
@@ -186,16 +179,14 @@ private object Eclipse extends EclipseSDTConfig {
 
   def mapConfigurations[A](
     configurations: Seq[Configuration],
-    f: Configuration => Validation[Seq[A]]
-  ): Validation[Seq[A]] =
+    f: Configuration => Validation[Seq[A]]): Validation[Seq[A]] =
     (configurations map f).toList.sequence map (_.flatten.distinct)
 
   def handleProject(
     jreContainer: String,
     relativizeLibs: Boolean,
     builderAndNatures: (String, Seq[String]),
-    state: State
-  )(
+    state: State)(
     classpathTransformers: Seq[RewriteRule],
     projectTransformers: Seq[RewriteRule],
     name: String,
@@ -205,8 +196,7 @@ private object Eclipse extends EclipseSDTConfig {
     scalacOptions: Seq[(String, String)],
     compileOrder: Option[String],
     externalDependencies: Seq[Lib],
-    projectDependencies: Seq[String]
-  ): IO[String] = {
+    projectDependencies: Seq[String]): IO[String] = {
     for {
       n <- io(name)
       dirs <- splitSrcDirectories(srcDirectories, baseDirectory)
@@ -222,8 +212,7 @@ private object Eclipse extends EclipseSDTConfig {
         externalDependencies,
         projectDependencies,
         jreContainer,
-        state
-      )
+        state)
       _ <- saveXml(baseDirectory / ".project", new RuleTransformer(projectTransformers: _*)(projectXml(name, builderAndNatures, linkedSrcDirectories)))
       _ <- saveXml(baseDirectory / ".classpath", new RuleTransformer(classpathTransformers: _*)(cp))
       _ <- saveProperties(baseDirectory / ".settings" / "org.eclipse.core.resources.prefs", Seq(("encoding/<project>" -> "UTF-8")))
@@ -300,8 +289,7 @@ private object Eclipse extends EclipseSDTConfig {
     externalDependencies: Seq[Lib],
     projectDependencies: Seq[String],
     jreContainer: String,
-    state: State
-  ): IO[Node] = {
+    state: State): IO[Node] = {
     val srcEntriesIoSeq =
       for {
         (dir, output) <- srcDirectories
@@ -343,16 +331,14 @@ private object Eclipse extends EclipseSDTConfig {
     pathName: Option[String],
     output: Option[File],
     outputName: Option[String],
-    state: State
-  ): IO[EclipseClasspathEntry.Src] =
+    state: State): IO[EclipseClasspathEntry.Src] =
     io {
       EclipseClasspathEntry.Src(
         pathName.getOrElse(relativize(baseDirectory, pathDir)),
         outputName match {
           case Some(outputName) => Some(outputName)
           case None => output.map(relativize(baseDirectory, _))
-        }
-      )
+        })
     }
 
   def srcEntry(
@@ -360,24 +346,20 @@ private object Eclipse extends EclipseSDTConfig {
     srcDirectory: File,
     classDirectory: Option[File],
     excludes: Seq[String],
-    state: State
-  ): IO[EclipseClasspathEntry.Src] =
+    state: State): IO[EclipseClasspathEntry.Src] =
     io {
       EclipseClasspathEntry.Src(
         relativize(baseDirectory, srcDirectory),
         classDirectory.map(relativize(baseDirectory, _)),
-        excludes
-      )
+        excludes)
     }
 
   def libEntry(
     buildDirectory: File,
     baseDirectory: File,
     relativizeLibs: Boolean,
-    state: State
-  )(
-    lib: Lib
-  ): EclipseClasspathEntry.Lib = {
+    state: State)(
+    lib: Lib): EclipseClasspathEntry.Lib = {
     def path(file: File) = {
       val relativizedBase =
         if (buildDirectory === baseDirectory) Some(".") else sbt.IO.relativize(buildDirectory, baseDirectory)
@@ -386,8 +368,7 @@ private object Eclipse extends EclipseSDTConfig {
         "%s%s%s".format(
           base split FileSepPattern map (part => if (part != ".") ".." else part) mkString FileSep,
           FileSep,
-          file
-        ))
+          file))
       if (relativizeLibs) relativized getOrElse file.getAbsolutePath else file.getAbsolutePath
     }
     EclipseClasspathEntry.Lib(path(lib.binary), lib.source map path, lib.javadoc map path)
@@ -426,10 +407,8 @@ private object Eclipse extends EclipseSDTConfig {
     ref: Reference,
     createSrc: EclipseCreateSrc.ValueSet,
     eclipseOutput: Option[String],
-    state: State
-  )(
-    configuration: Configuration
-  ): Validation[Seq[(File, Option[File])]] = {
+    state: State)(
+    configuration: Configuration): Validation[Seq[(File, Option[File])]] = {
     import EclipseCreateSrc._
     val classDirectory: Validation[Option[File]] = eclipseOutput match {
       case Some(name) => baseDirectory(ref, state) map { dir => Some(new File(dir, name)) }
@@ -445,8 +424,7 @@ private object Eclipse extends EclipseSDTConfig {
       dirs(ValueSet(), Keys.unmanagedSourceDirectories),
       dirs(ValueSet(), Keys.unmanagedResourceDirectories),
       dirs(ValueSet(ManagedSrc), Keys.managedSourceDirectories),
-      dirs(ValueSet(ManagedResources), Keys.managedResourceDirectories)
-    ) reduceLeft (_ +++ _)
+      dirs(ValueSet(ManagedResources), Keys.managedResourceDirectories)) reduceLeft (_ +++ _)
   }
 
   def scalacOptions(ref: ProjectRef, state: State): Validation[Seq[(String, String)]] = {
@@ -467,10 +445,8 @@ private object Eclipse extends EclipseSDTConfig {
     ref: ProjectRef,
     withSource: Boolean,
     withJavadoc: Boolean,
-    state: State
-  )(
-    configuration: Configuration
-  ): Validation[Seq[Lib]] = {
+    state: State)(
+    configuration: Configuration): Validation[Seq[Lib]] = {
     def evalTask[A](key: TaskKey[A]) = evaluateTask(key in configuration, ref, state)
     def moduleReports(key: TaskKey[UpdateReport]) =
       evalTask(key) map { updateReport =>
@@ -528,19 +504,15 @@ private object Eclipse extends EclipseSDTConfig {
         configuration,
         withSource,
         withJavadoc,
-        externalDependencies
-      )
-    )
+        externalDependencies))
     externalDependencies
   }
 
   def projectDependencies(
     ref: ProjectRef,
     project: ResolvedProject,
-    state: State
-  )(
-    configuration: Configuration
-  ): Validation[Seq[String]] = {
+    state: State)(
+    configuration: Configuration): Validation[Seq[String]] = {
     val projectDependencies = project.dependencies collect {
       case dependency if isInConfiguration(configuration, ref, dependency, state) =>
         settingValidation(Keys.name in dependency.project, state)
@@ -554,14 +526,12 @@ private object Eclipse extends EclipseSDTConfig {
     configuration: Configuration,
     ref: ProjectRef,
     dependency: ClasspathDep[ProjectRef],
-    state: State
-  ): Boolean = {
+    state: State): Boolean = {
     val map = Classpaths.mapped(
       dependency.configuration,
       Configurations.names(Classpaths.getConfigurations(ref, structure(state).data).toVector),
       Configurations.names(Classpaths.getConfigurations(dependency.project, structure(state).data).toVector),
-      "compile", "*->compile"
-    )
+      "compile", "*->compile")
     !map(configuration.name).isEmpty
   }
 
@@ -711,7 +681,6 @@ private case class Content(
   dir: File,
   project: Node,
   classpath: Node,
-  scalacOptions: Seq[(String, String)]
-)
+  scalacOptions: Seq[(String, String)])
 
 private case class Lib(binary: File)(val source: Option[File])(val javadoc: Option[File])

@@ -52,8 +52,7 @@ object EclipsePlugin {
       withBundledScalaContainers := projectFlavor.value.id == EclipseProjectFlavor.ScalaIDE.id,
       classpathTransformerFactories := defaultClasspathTransformerFactories(withBundledScalaContainers.value),
       projectTransformerFactories := Seq(EclipseRewriteRuleTransformerFactory.Identity),
-      configurations := Set(Configurations.Compile, Configurations.Test)
-    ) ++ copyManagedSettings(sbt.Compile) ++ copyManagedSettings(sbt.Test)
+      configurations := Set(Configurations.Compile, Configurations.Test)) ++ copyManagedSettings(sbt.Compile) ++ copyManagedSettings(sbt.Test)
   }
 
   def defaultClasspathTransformerFactories(withBundledScalaContainers: Boolean) = {
@@ -71,8 +70,7 @@ object EclipsePlugin {
       // Typically, this will be overridden for each project by the project level default of false. However, if a
       // project disables the EclipsePlugin, the project level default won't be set, and so it will fall back to this
       // build level setting, which means the project will be skipped.
-      skipProject := true
-    )
+      skipProject := true)
   }
 
   def globalEclipseSettings: Seq[Setting[_]] = {
@@ -85,8 +83,7 @@ object EclipsePlugin {
       projectFlavor := EclipseProjectFlavor.ScalaIDE,
       createSrc := EclipseCreateSrc.Default,
       eclipseOutput := None,
-      relativizeLibs := true
-    )
+      relativizeLibs := true)
   }
 
   def copyManagedSettings(scope: Configuration): Seq[Setting[_]] =
@@ -97,8 +94,7 @@ object EclipsePlugin {
         classes.getParentFile / (classes.getName + "_managed")
       },
       EclipseKeys.generateClassesManaged in scope := EclipseKeys.createSrc.value contains EclipseCreateSrc.ManagedClasses,
-      Keys.compile in scope := copyManagedClasses(scope).value
-    )
+      Keys.compile in scope := copyManagedClasses(scope).value)
 
   // Depends on compile and will ensure all classes being generated from source files in the
   // source_managed space are copied into a class_managed folder.
@@ -133,98 +129,79 @@ object EclipsePlugin {
 
     val executionEnvironment: SettingKey[Option[EclipseExecutionEnvironment.Value]] = SettingKey(
       prefix(ExecutionEnvironment),
-      "The optional Eclipse execution environment."
-    )
+      "The optional Eclipse execution environment.")
 
     val skipParents: SettingKey[Boolean] = SettingKey(
       prefix(SkipParents),
-      "Skip creating Eclipse files for parent project?"
-    )
+      "Skip creating Eclipse files for parent project?")
 
     val withSource: SettingKey[Boolean] = SettingKey(
       prefix(WithSource),
-      "Download and link sources for library dependencies?"
-    )
+      "Download and link sources for library dependencies?")
 
     val withJavadoc: SettingKey[Boolean] = SettingKey(
       prefix(WithJavadoc),
-      "Download and link javadoc for library dependencies?"
-    )
+      "Download and link javadoc for library dependencies?")
 
     val withBundledScalaContainers: SettingKey[Boolean] = SettingKey(
       prefix(WithBundledScalaContainers),
-      "Let the generated project use the bundled Scala library of the ScalaIDE plugin"
-    )
+      "Let the generated project use the bundled Scala library of the ScalaIDE plugin")
 
     val useProjectId: SettingKey[Boolean] = SettingKey(
       prefix(UseProjectId),
-      "Use the sbt project id as the Eclipse project name?"
-    )
+      "Use the sbt project id as the Eclipse project name?")
 
     val classpathTransformerFactories: SettingKey[Seq[EclipseTransformerFactory[RewriteRule]]] = SettingKey(
       prefix("classpathTransformerFactory"),
-      "Factories for a rewrite rule for the .classpath file."
-    )
+      "Factories for a rewrite rule for the .classpath file.")
 
     val projectTransformerFactories: SettingKey[Seq[EclipseTransformerFactory[RewriteRule]]] = SettingKey(
       prefix("projectTransformerFactory"),
-      "Factories for a rewrite rule for the .project file."
-    )
+      "Factories for a rewrite rule for the .project file.")
 
     val commandName: SettingKey[String] = SettingKey(
       prefix("command-name"),
-      "The name of the command."
-    )
+      "The name of the command.")
 
     val configurations: SettingKey[Set[Configuration]] = SettingKey(
       prefix("configurations"),
-      "The configurations to take into account."
-    )
+      "The configurations to take into account.")
 
     val createSrc: SettingKey[EclipseCreateSrc.ValueSet] = SettingKey(
       prefix("create-src"),
-      "The source kinds to be included."
-    )
+      "The source kinds to be included.")
 
     val projectFlavor: SettingKey[EclipseProjectFlavor.Value] = SettingKey(
       prefix("project-flavor"),
-      "The flavor of project (Scala or Java) to build."
-    )
+      "The flavor of project (Scala or Java) to build.")
 
     val eclipseOutput: SettingKey[Option[String]] = SettingKey(
       prefix("eclipse-output"),
-      "The optional output for Eclipse."
-    )
+      "The optional output for Eclipse.")
 
     val preTasks: SettingKey[Seq[TaskKey[_]]] = SettingKey(
       prefix("pre-tasks"),
-      "The tasks to be evaluated prior to creating the Eclipse project definition."
-    )
+      "The tasks to be evaluated prior to creating the Eclipse project definition.")
 
     val relativizeLibs: SettingKey[Boolean] = SettingKey(
       prefix("relativize-libs"),
-      "Relativize the paths to the libraries?"
-    )
+      "Relativize the paths to the libraries?")
 
     val skipProject: SettingKey[Boolean] = SettingKey(
       prefix("skipProject"),
-      "Skip creating Eclipse files for a given project?"
-    )
+      "Skip creating Eclipse files for a given project?")
 
     lazy val classesManaged: SettingKey[File] = SettingKey(
       prefix("classes-managed"),
-      "location where managed class files are copied after compile"
-    )
+      "location where managed class files are copied after compile")
 
     lazy val managedClassDirectories: SettingKey[Seq[File]] = SettingKey(
       prefix("managed-class-dirs"),
-      "locations where managed class files are copied after compile"
-    )
+      "locations where managed class files are copied after compile")
 
     lazy val generateClassesManaged: SettingKey[Boolean] = SettingKey(
       prefix("generate-classes-managed"),
-      "If true we generate a managed classes."
-    )
+      "If true we generate a managed classes.")
 
     private def prefix(key: String) = "eclipse-" + key
   }
@@ -340,8 +317,7 @@ object EclipsePlugin {
       import scalaz.Scalaz._
       override def createTransformer(
         ref: ProjectRef,
-        state: State
-      ): Validation[Seq[EclipseClasspathEntry] => Seq[EclipseClasspathEntry]] = {
+        state: State): Validation[Seq[EclipseClasspathEntry] => Seq[EclipseClasspathEntry]] = {
         val transformer = (entries: Seq[EclipseClasspathEntry]) => entries
         transformer.success
       }
@@ -428,9 +404,8 @@ object EclipsePlugin {
     new ChildTransformer(parentName, transform)
 
   case class ChildTransformer(
-      parentName: String,
-      transformation: Seq[Node] => Seq[Node]
-  ) extends EclipseTransformerFactory[RewriteRule] {
+    parentName: String,
+    transformation: Seq[Node] => Seq[Node]) extends EclipseTransformerFactory[RewriteRule] {
 
     import scalaz.Scalaz._
 
