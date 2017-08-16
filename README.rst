@@ -16,7 +16,7 @@ For the latest version:
 
 ::
 
-  addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "5.1.0")
+  addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "5.2.0")
 
 - In sbt use the command *eclipse* to create Eclipse project files
 
@@ -48,4 +48,4 @@ This code is open source software licensed under the `Apache 2.0 License`_. Feel
 Releases
 -------------------
 
-Maintainers must run `git tag` to tag a release. The release can then be pushed to bintray with `sbt publish`.
+Maintainers must run `git tag` to tag a release. The release can then be pushed to bintray with `sbt ^publish`.
