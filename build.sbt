@@ -3,7 +3,7 @@ import _root_.bintray.BintrayPlugin.bintrayPublishSettings
 
 crossSbtVersions := Seq("1.0.0", "0.13.16")
 
-val baseVersion = "5.2.0"
+val baseVersion = "5.2.1"
 
 val maxMetaspaceSize = if (util.Properties.isJavaAtLeast("1.8")) {
   "-XX:MaxMetaspaceSize=384m"
