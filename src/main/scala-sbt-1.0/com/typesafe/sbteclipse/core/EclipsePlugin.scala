@@ -105,6 +105,7 @@ object EclipsePlugin {
   def copyManagedClasses(scope: Configuration) =
     Def.taskDyn {
       import sbt._
+      val analysis = (Keys.compile in scope).value
       if ((EclipseKeys.generateClassesManaged in scope).value) {
         val classes = (Keys.classDirectory in scope).value
         val srcManaged = (Keys.managedSourceDirectories in scope).value
@@ -129,7 +130,7 @@ object EclipsePlugin {
         // Remove deleted class files
         (managedClassesDirectory ** "*.class").get.filterNot(managedSet.contains(_)).foreach(_.delete())
       }
-      Keys.compile in scope
+      Def.task(analysis)
     }
 
   object EclipseKeys {
