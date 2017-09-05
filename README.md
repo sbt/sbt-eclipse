@@ -18,7 +18,7 @@ For the latest version:
 
 - In sbt use the command `eclipse` to create Eclipse project files
 
-    > eclipse
+    &gt; eclipse
 
 - In Eclipse use the *Import Wizard* to import *Existing Projects into Workspace*
 
