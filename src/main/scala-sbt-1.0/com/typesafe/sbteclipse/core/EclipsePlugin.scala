@@ -109,21 +109,12 @@ object EclipsePlugin {
       if ((EclipseKeys.generateClassesManaged in scope).value) {
         val classes = (Keys.classDirectory in scope).value
         val srcManaged = (Keys.managedSourceDirectories in scope).value
-        val compileTargets = {
-          import scala.collection.JavaConverters._
-          (Keys.compile in scope).value.readCompilations.getAllCompilations.toList.flatMap(x =>
-            x.getOutput.getMultipleOutput.asScala.
-              map(_.toList.map(_.getOutputDirectory)).
-              getOrElse(
-                x.getOutput.getSingleOutput.asScala.toList))
-        }.flatMap(_.listFiles)
 
         // Copy managed classes - only needed in Compile scope
         // This is done to ease integration with Eclipse, but it's doubtful as to how effective it is.
         val managedClassesDirectory = (EclipseKeys.classesManaged in scope).value
         val managedClasses = ((srcManaged ** "*.scala").get ++ (srcManaged ** "*.java").get).map { managedSourceFile =>
-          compileTargets.filter(
-            _.getName.startsWith(managedSourceFile.getName))
+          analysis.asInstanceOf[sbt.internal.inc.Analysis].relations.products(managedSourceFile)
         }.flatten pair rebase(classes, managedClassesDirectory)
         // Copy modified class files
         val managedSet = IO.copy(managedClasses)
