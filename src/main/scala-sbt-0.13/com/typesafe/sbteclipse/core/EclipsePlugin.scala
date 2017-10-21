@@ -23,7 +23,6 @@ import sbt.{
   Configurations,
   File,
   Keys,
-  Plugin,
   ProjectRef,
   ResolvedProject,
   Setting,
