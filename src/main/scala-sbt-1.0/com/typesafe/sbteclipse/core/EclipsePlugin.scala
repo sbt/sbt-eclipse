@@ -103,7 +103,7 @@ object EclipsePlugin {
   // to handle these if you put them in a source folder without Scala IDE installed. The workaround added here is to not
   // add the scala managed sources to the classpath, but rather to add the compiled classes to the classpath instead.
   def copyManagedClasses(scope: Configuration) =
-    Def.taskDyn {
+    Def.task {
       import sbt._
       val analysis = (Keys.compile in scope).value
       if ((EclipseKeys.generateClassesManaged in scope).value) {
@@ -121,7 +121,7 @@ object EclipsePlugin {
         // Remove deleted class files
         (managedClassesDirectory ** "*.class").get.filterNot(managedSet.contains(_)).foreach(_.delete())
       }
-      Def.task(analysis)
+      analysis
     }
 
   object EclipseKeys {
