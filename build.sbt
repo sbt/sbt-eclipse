@@ -1,7 +1,7 @@
 import sbt.ScriptedPlugin._
 import _root_.bintray.BintrayPlugin.bintrayPublishSettings
 
-crossSbtVersions := Seq("1.0.0", "0.13.16")
+crossSbtVersions := Seq("1.0.2", "0.13.16")
 
 val baseVersion = "5.2.3-SNAPSHOT"
 
@@ -42,9 +42,9 @@ def commonSettings = {
     ),
     scalaVersion := {
       (sbtVersion in GlobalScope).value match {
-        case sbt10  if sbt10.startsWith("1.0") => "2.12.3"
+        case sbt10  if sbt10.startsWith("1.0") => "2.12.4"
         case sbt013 if sbt013.startsWith("0.13.") => "2.10.6"
-        case _ => "2.12.3"
+        case _ => "2.12.4"
       }
     },
     sbtDependency in GlobalScope := {

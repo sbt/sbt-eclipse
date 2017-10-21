@@ -15,6 +15,6 @@ lazy val subb =
   Project("subb", new File("subb")).
   settings(
     Defaults.coreDefaultSettings ++ Seq(
-      scalaVersion := "2.12.3"
+      scalaVersion := "2.12.4"
     )
   )

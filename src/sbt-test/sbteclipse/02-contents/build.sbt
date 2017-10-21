@@ -15,7 +15,7 @@ lazy val root =
       unmanagedSourceDirectories in Compile += { baseDirectory(new File(_, "src/main/scala")).value },
       unmanagedSourceDirectories in Test += { baseDirectory(new File(_, "src/test/scala")).value },
       libraryDependencies ++= Seq(
-        "org.scala-lang" % "scala-compiler" % "2.12.3",
+        "org.scala-lang" % "scala-compiler" % "2.12.4",
         "biz.aQute.bnd" % "biz.aQute.bndlib" % "3.4.0"
       ),
       retrieveManaged := true
