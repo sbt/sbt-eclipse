@@ -1,7 +1,7 @@
 import sbt.ScriptedPlugin._
 import _root_.bintray.BintrayPlugin.bintrayPublishSettings
 
-crossSbtVersions := Seq("1.0.0", "0.13.16")
+crossSbtVersions := Seq("1.0.2", "0.13.16")
 
 val baseVersion = "5.2.3-SNAPSHOT"
 
