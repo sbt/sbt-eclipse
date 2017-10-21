@@ -42,9 +42,9 @@ def commonSettings = {
     ),
     scalaVersion := {
       (sbtVersion in GlobalScope).value match {
-        case sbt10  if sbt10.startsWith("1.0") => "2.12.3"
+        case sbt10  if sbt10.startsWith("1.0") => "2.12.4"
         case sbt013 if sbt013.startsWith("0.13.") => "2.10.6"
-        case _ => "2.12.3"
+        case _ => "2.12.4"
       }
     },
     sbtDependency in GlobalScope := {
