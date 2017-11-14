@@ -1,3 +1,3 @@
 object Sub {
-  def sub = "sub" 
+  def sub = "sub"
 }

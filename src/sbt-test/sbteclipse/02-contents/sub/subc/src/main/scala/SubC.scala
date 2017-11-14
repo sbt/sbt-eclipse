@@ -1,3 +1,3 @@
 object SubC {
-  def subC = "subC" 
+  def subC = "subC"
 }

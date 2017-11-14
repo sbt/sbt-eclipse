@@ -1,6 +1,7 @@
 package com.typesafe.sbteclipse.core
 
 import collection.breakOut
+import scala.language.postfixOps
 
 private trait EclipseSDTConfig {
   def fromScalacToSDT(options: Seq[String]): Seq[(String, String)] =

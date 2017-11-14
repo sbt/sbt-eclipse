@@ -1,9 +1,6 @@
-import java.io.FileInputStream
-import java.util.Properties
-import scala.collection.JavaConverters._
-import scala.xml.XML
-
 EclipseKeys.skipParents in ThisBuild := false
+EclipseKeys.withSource in ThisBuild := false
+EclipseKeys.withJavadoc in ThisBuild := false
 
 organization := "com.typesafe.sbteclipse"
 
@@ -11,227 +8,124 @@ name := "sbteclipse-test"
 
 version := "1.2.3"
 
-TaskKey[Unit]("verify-project-xml") <<= baseDirectory map { dir =>
-  val projectDescription = XML.loadFile(dir / ".project")
-  // verifier method
-  def verify[A](name: String, expected: A, actual: A) =
-    if (actual != expected) error("Expected .project to contain %s '%s', but was '%s'!".format(name, expected, actual))
-  // project name
-  verify("name", "sbteclipse-test",  (projectDescription \ "name").text)
-  // scala project nature
-  verify("buildCommand", "org.scala-ide.sdt.core.scalabuilder", (projectDescription \ "buildSpec" \ "buildCommand" \ "name").text)
-  verify("natures", Set("org.scala-ide.sdt.core.scalanature", "org.eclipse.jdt.core.javanature"), (projectDescription \ "natures" \ "nature").map(_.text).toSet)
+lazy val root =
+  Project("root", new File(".")).
+  settings(
+    Defaults.coreDefaultSettings ++ Seq(
+      unmanagedSourceDirectories in Compile += { baseDirectory(new File(_, "src/main/scala")).value },
+      unmanagedSourceDirectories in Test += { baseDirectory(new File(_, "src/test/scala")).value },
+      libraryDependencies ++= Seq(
+        "org.scala-lang" % "scala-compiler" % "2.12.4",
+        "biz.aQute.bnd" % "biz.aQute.bndlib" % "3.4.0"
+      ),
+      retrieveManaged := true
+    )
+  ).
+  aggregate(sub, javaProject, scalaProject)
+
+lazy val sub: Project =
+  Project("sub", new File("sub")).
+  settings(
+    Defaults.coreDefaultSettings ++ Seq(
+      libraryDependencies ++= Seq(
+        "biz.aQute.bnd" % "biz.aQute.bndlib" % "3.4.0",
+        "javax.servlet" % "servlet-api" % "2.5",
+        "javax.servlet" % "servlet-api" % "2.5" % "provided"
+      ),
+      retrieveManaged := true,
+      EclipseKeys.executionEnvironment := Some(EclipseExecutionEnvironment.JavaSE16),
+      EclipseKeys.withSource := true
+    )
+  ).
+  aggregate(suba, subb, subc, subd, sube)
+
+lazy val suba =
+  Project("suba", new File("sub/suba")).
+  settings(
+    Defaults.coreDefaultSettings ++ Seq(
+      libraryDependencies ++= Seq(
+        "ch.qos.logback" % "logback-classic" % "1.0.1",
+        "biz.aQute.bnd" % "biz.aQute.bndlib" % "3.4.0",
+        "org.specs2" % "specs2-core_2.12" % "3.9.4" % "test"
+      ),
+      EclipseKeys.createSrc in Test := EclipseCreateSrc.ValueSet.empty,
+      EclipseKeys.withSource := true
+    )
+  )
+
+lazy val subb =
+  Project("subb", new File("sub/subb")).
+  configs(Configurations.IntegrationTest).
+  settings(
+    Defaults.coreDefaultSettings ++ Defaults.itSettings ++ Seq(
+      libraryDependencies ++= Seq(
+        "biz.aQute.bnd" % "biz.aQute.bndlib" % "3.4.0",
+        "junit" % "junit" % "4.7" % "it"
+      ),
+      retrieveManaged := true,
+      scalacOptions := Seq(
+        "-Xelide-below", "1000",
+        "-verbose",
+        "-Xprompt",
+        "-deprecation",
+        "-unchecked"),
+      EclipseKeys.configurations := Set(Configurations.Compile, Configurations.IntegrationTest)
+    )
+  ).
+  dependsOn(suba, suba % "test->compile", subc % "test->test")
+
+lazy val subc = {
+  import com.typesafe.sbteclipse.core.Validation
+  import scala.xml._
+  import scala.xml.transform.RewriteRule
+  import scalaz.Scalaz._
+  import EclipseClasspathEntry.Lib
+  import DefaultTransforms._
+
+  Project("subc", new File("sub/subc")).
+  settings(
+    Defaults.coreDefaultSettings ++ Seq(
+      libraryDependencies ++= Seq(
+        "biz.aQute.bnd" % "biz.aQute.bndlib" % "3.4.0"
+      ),
+      retrieveManaged := true,
+      EclipseKeys.relativizeLibs := false,
+      EclipseKeys.eclipseOutput := Some(".target"),
+      EclipseKeys.classpathTransformerFactories ++= Seq(transformNode("classpath", Append(Lib("libs/my.jar")))),
+      EclipseKeys.projectTransformerFactories ++= Seq(transformNode("projectDescription", Append(<foo bar="baz"/>)))
+    )
+  )
 }
 
-TaskKey[Unit]("verify-project-xml-java") <<= baseDirectory map { dir =>
-  val projectDescription = XML.loadFile(dir / "java" / ".project")
-  // verifier method
-  def verify[A](name: String, expected: A, actual: A) =
-    if (actual != expected) error("Expected .project to contain %s '%s', but was '%s'!".format(name, expected, actual))
-  // project name
-  verify("name", "java",  (projectDescription \ "name").text)
-  // java project nature
-  verify("buildCommand", "org.eclipse.jdt.core.javabuilder", (projectDescription \ "buildSpec" \ "buildCommand" \ "name").text)
-  verify("natures", "org.eclipse.jdt.core.javanature", (projectDescription \ "natures" \ "nature").text)
-}
+lazy val javaProject =
+  Project("java", new File("java")).
+  settings(
+    Defaults.coreDefaultSettings ++ Seq(
+      EclipseKeys.projectFlavor := EclipseProjectFlavor.Java
+    )
+  )
 
-TaskKey[Unit]("verify-project-xml-scala") <<= baseDirectory map { dir =>
-  val projectDescription = XML.loadFile(dir / "scala" / ".project")
-  val classpath = XML.loadFile(dir / "scala" / ".classpath")
-  // verifier method
-  def verify[A](name: String, expected: A, actual: A) =
-    if (actual != expected) error("Expected .project to contain %s '%s', but was '%s'!".format(name, expected, actual))
-  // project name
-  verify("name", "scala",  (projectDescription \ "name").text)
-  // scala project nature
-  verify("buildCommand", "org.scala-ide.sdt.core.scalabuilder", (projectDescription \ "buildSpec" \ "buildCommand" \ "name").text)
-  verify("natures", Set("org.scala-ide.sdt.core.scalanature", "org.eclipse.jdt.core.javanature"), (projectDescription \ "natures" \ "nature").map(_.text).toSet)
-  if (!(classpath.child contains <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/>))
-    error("""Expected .classpath of scala project to contain <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/>: %s""" format classpath)
-}
+lazy val scalaProject =
+  Project("scala", new File("scala")).
+  settings(
+    Defaults.coreDefaultSettings ++ Seq(
+      EclipseKeys.projectFlavor := EclipseProjectFlavor.ScalaIDE
+    )
+  )
 
-TaskKey[Unit]("verify-project-xml-subd") <<= baseDirectory map { dir =>
-  val projectDescription = XML.loadFile(dir / "sub" / "subd" / ".project")
-  val name = (projectDescription \ "name").text
-  if (name != "subd-id")
-    error("Expected .project to contain name '%s', but was '%s'!".format("subd-id", name))
-}
+lazy val subd =
+  Project("subd-id", new File("sub/subd")).
+  settings(
+    Defaults.coreDefaultSettings ++ Seq(
+      name := "subd",
+      EclipseKeys.useProjectId := true
+    )
+  )
 
-TaskKey[Unit]("verify-project-xml-sube") <<= baseDirectory map { dir =>
-  val projectDescription = XML.loadFile(dir / "sub" / "sube" / ".project")
-  val name = (projectDescription \ "name").text
-  if (name != "sube")
-    error("Expected .project to contain name '%s', but was '%s'!".format("sube", name))
-}
-
-TaskKey[Unit]("verify-classpath-xml-root") <<= baseDirectory map { dir =>
-  val classpath = XML.loadFile(dir / ".classpath")
-  if ((classpath \ "classpathentry") != (classpath \ "classpathentry").distinct)
-    error("Expected .classpath of root project not to contain duplicate entries: %s" format classpath)
-  // src entries
-  if (!(classpath.child contains <classpathentry kind="src" path="src/main/scala" />))
-    error("""Expected .classpath of root project to contain <classpathentry kind="src" path="src/main/scala" /> """)
-  if (!(classpath.child contains <classpathentry kind="src" path="src/main/java" />))
-    error("""Expected .classpath of root project to contain <classpathentry kind="src" path="src/main/java" /> """)
-  if (!(classpath.child contains <classpathentry kind="src" path="src/test/scala" />))
-    error("""Expected .classpath of root project to contain <classpathentry kind="src" path="src/test/scala" /> """)
-  if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "src/test/java") 
-    error("""Not expected .classpath of root project to contain <classpathentry kind="..." path="src/test/java" output="..." /> """)
-  if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "src/main/resources") 
-    error("""Not expected .classpath of root project to contain <classpathentry kind="..." path="src/main/resources" output="..." /> """)
-  if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "src/test/resources") 
-    error("""Not expected .classpath of root project to contain <classpathentry kind="..." path="src/test/resources" output="..." /> """)
-  if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "target/scala-2.10/src_managed/main") 
-    error("""Not expected .classpath of root project to contain <classpathentry kind="..." path="...src_managed/main" output="..." /> """)
-  if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "target/scala-2.10/src_managed/test") 
-    error("""Not expected .classpath of root project to contain <classpathentry kind="..." path="...src_managed/test" output="..." /> """)
-  if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "target/scala-2.10/resource_managed/main") 
-    error("""Not expected .classpath of root project to contain <classpathentry kind="..." path="...resource_managed/main" output="..." /> """)
-  if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "target/scala-2.10/resource_managed/test") 
-    error("""Not expected .classpath of root project to contain <classpathentry kind="..." path="...resource_managed/test" output="..." /> """)
-  // lib entries without sources
-  if (!(classpath.child contains <classpathentry kind="lib" path="./lib_managed/jars/biz.aQute/bndlib/bndlib-1.50.0.jar" />))
-    error("""Expected .classpath of subb project to contain <classpathentry kind="lib" path="./lib_managed/jars/biz.aQute/bndlib/bndlib-1.50.0.jar" />: %s""" format classpath)
-  // other entries
-  if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "scala-library.jar")
-    error("""Not expected .classpath of root project to contain <classpathentry path="...scala-library.jar" ... /> """)
-  if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "scala-compiler.jar")
-    error("""Not expected .classpath of root project to contain <classpathentry path="...scala-compiler.jar" ... /> """)
-  if (!(classpath.child contains <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/>))
-    error("""Expected .classpath of root project to contain <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/> """)
-  if (!(classpath.child contains <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_COMPILER_CONTAINER"/>))
-    error("""Expected .classpath of root project to contain <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_COMPILER_CONTAINER"/> """)
-  if (!(classpath.child contains <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>))
-    error("""Expected .classpath of root project to contain <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/> """)
-  if (!(classpath.child contains <classpathentry kind="output" path="bin"/>))
-    error("""Expected .classpath of root project to contain <classpathentry kind="output" path="bin"/> """)
-}
-
-TaskKey[Unit]("verify-classpath-xml-sub") <<= baseDirectory map { dir =>
-  val home = System.getProperty("user.home")
-  val classpath = XML.loadFile(dir / "sub" / ".classpath")
-  if ((classpath \ "classpathentry") != (classpath \ "classpathentry").distinct)
-    error("Expected .classpath of sub project not to contain duplicate entries: %s" format classpath)
-  // lib entries with sources
-  if (!(classpath.child contains <classpathentry kind="lib" path="../lib_managed/jars/biz.aQute/bndlib/bndlib-1.50.0.jar" sourcepath="../lib_managed/srcs/biz.aQute/bndlib/bndlib-1.50.0-sources.jar" />))
-    error("""Expected .classpath of subb project to contain <classpathentry kind="lib" path="../lib_managed/jars/biz.aQute/bndlib/bndlib-1.50.0.jar" sourcepath="../lib_managed/srcs/biz.aQute/bndlib/bndlib-1.50.0-sources.jar" />: %s""" format classpath)
-  // other entries
-  if (!(classpath.child contains <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>))
-    error("""Expected .classpath of root project to contain <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>: %s""" format classpath)
-}
-
-TaskKey[Unit]("verify-classpath-xml-suba") <<= baseDirectory map { dir =>
-  val home = System.getProperty("user.home")
-  val classpath = XML.loadFile(dir / "sub" / "suba" / ".classpath")
-  if ((classpath \ "classpathentry") != (classpath \ "classpathentry").distinct)
-    error("Expected .classpath of suba project not to contain duplicate entries: %s" format classpath)
-  // src entries
-  if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "target/scala-2.10/resource_managed/main") 
-    error("""Not expected .classpath of suba project to contain <classpathentry kind="..." path="...resource_managed/main" output="..." />: %s """ format classpath)
-  if ((classpath.child contains <classpathentry kind="src" path="target/scala-2.10/resource_managed/test" />))
-    error("""Not expected .classpath of suba project to contain <classpathentry kind="src" path="target/scala-2.10/resource_managed/test" />: %s """ format classpath)
-  if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "target/scala-2.10/src_managed/main") 
-    error("""Not expected .classpath of suba project to contain <classpathentry kind="..." path="...src_managed/main" output="..." />: %s """ format classpath)
-  if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "target/scala-2.10/src_managed/test") 
-    error("""Not expected .classpath of suba project to contain <classpathentry kind="..." path="...src_managed/test" output="..." />: %s """ format classpath)
-  if (!(classpath.child contains <classpathentry kind="src" path="src/main/scala" />))
-    error("""Expected .classpath of suba project to contain <classpathentry kind="..." path="src/main/scala" />: %s """ format classpath)
-  if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "src/main/java") 
-    error("""Not expected .classpath of suba project to contain <classpathentry kind="..." path="src/main/java" output="..." />: %s """ format classpath)
-  if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "src/main/resources") 
-    error("""Not expected .classpath of suba project to contain <classpathentry kind="..." path="src/main/resources" output="..." />: %s """ format classpath)
-  if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "src/test/scala") 
-    error("""Not expected .classpath of suba project to contain <classpathentry kind="..." path="src/test/scala" output="..." />: %s """ format classpath)
-  if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "src/test/java") 
-    error("""Not expected .classpath of suba project to contain <classpathentry kind="..." path="src/test/java" output="..." />: %s """ format classpath)
-  if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "src/test/resources") 
-    error("""Not expected .classpath of suba project to contain <classpathentry kind="..." path="src/test/resources" output="..." />: %s """ format classpath)
-  if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "src/it/scala") 
-    error("""Not expected .classpath of suba project to contain <classpathentry kind="..." path="src/it/scala" output="..." />: %s """ format classpath)
-  if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "src/it/java") 
-    error("""Not expected .classpath of suba project to contain <classpathentry kind="..." path="src/it/java" output="..." />: %s """ format classpath)
-  if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "src/it/resources") 
-    error("""Not expected .classpath of suba project to contain <classpathentry kind="..." path="src/it/resources" output="..." />: %s """ format classpath)
-  // lib entries with sources
-  if (!(classpath.child contains <classpathentry kind="lib" path={ home + "/.ivy2/cache/ch.qos.logback/logback-classic/jars/logback-classic-1.0.1.jar" } sourcepath={ home + "/.ivy2/cache/ch.qos.logback/logback-classic/srcs/logback-classic-1.0.1-sources.jar" } />))
-    error("""Expected .classpath of suba project to contain <classpathentry kind="lib" path={ home + "/.ivy2/cache/ch.qos.logback/logback-classic/jars/logback-classic-1.0.1.jar" } sourcepath={ home + "/.ivy2/cache/ch.qos.logback/logback-classic/srcs/logback-classic-1.0.1-sources.jar" } />: %s""" format classpath)
-  if (!(classpath.child contains <classpathentry kind="lib" path={ home + "/.ivy2/cache/biz.aQute/bndlib/jars/bndlib-1.50.0.jar" } sourcepath={ home + "/.ivy2/cache/biz.aQute/bndlib/srcs/bndlib-1.50.0-sources.jar" } />))
-    error("""Expected .classpath of suba project to contain <classpathentry kind="lib" path={ home + "/.ivy2/cache/biz.aQute/bndlib/jars/bndlib-1.50.0.jar" } sourcepath={ home + "/.ivy2/cache/biz.aQute/bndlib/srcs/bndlib-1.50.0-sources.jar" } />: %s""" format classpath)
-  if (!(classpath.child contains <classpathentry kind="lib" path={ home + "/.ivy2/cache/org.specs2/specs2_2.10/jars/specs2_2.10-2.1.1.jar" } sourcepath={ home + "/.ivy2/cache/org.specs2/specs2_2.10/srcs/specs2_2.10-2.1.1-sources.jar" } />))
-    error("""Expected .classpath of suba project to contain <classpathentry kind="lib" path={ home + "/.ivy2/cache/org.specs2/specs2_2.10/jars/specs2_2.10-2.1.1.jar" } sourcepath={ home + "/.ivy2/cache/org.specs2/specs2_2.10/srcs/specs2_2.10-2.1.1-sources.jar" } />: %s""" format classpath)
-}
-
-TaskKey[Unit]("verify-classpath-xml-subb") <<= baseDirectory map { dir =>
-  val classpath = XML.loadFile(dir / "sub" / "subb" / ".classpath")
-  if ((classpath \ "classpathentry") != (classpath \ "classpathentry").distinct)
-    error("Expected .classpath of subb project not to contain duplicate entries: %s" format classpath)
-    // src entries
-  if (!(classpath.child contains <classpathentry kind="src" path="src/it/scala" />))
-    error("""Expected .classpath of subb project to contain <classpathentry kind="src" path="src/it/scala" />: %s""" format classpath)
-  if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "src/test/scala") 
-    error("""Not expected .classpath of root project to contain <classpathentry kind="..." path="src/test/scala" output="..." /> """)
-  // lib entries without sources
-  if (!(classpath.child contains <classpathentry kind="lib" path="../../lib_managed/jars/ch.qos.logback/logback-classic/logback-classic-1.0.1.jar" />))
-    error("""Expected .classpath of subb project to contain <classpathentry kind="lib" path="../../lib_managed/jars/ch.qos.logback/logback-classic/logback-classic-1.0.1.jar" />: %s""" format classpath)
-  if (!(classpath.child contains <classpathentry kind="lib" path="../../lib_managed/jars/biz.aQute/bndlib/bndlib-1.50.0.jar" />))
-    error("""Expected .classpath of subb project to contain <classpathentry kind="lib" path="../../lib_managed/jars/biz.aQute/bndlib/bndlib-1.50.0.jar" />: %s""" format classpath)
-  if (!(classpath.child contains <classpathentry kind="lib" path="../../lib_managed/jars/junit/junit/junit-4.7.jar" />))
-    error("""Expected .classpath of subb project to contain <classpathentry kind="lib" path="../../lib_managed/jars/junit/junit/junit-4.7.jar" />: %s""" format classpath)
-  if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "specs2_2.10") 
-    error("""Not expected .classpath of subb project to contain <classpathentry kind="..." path="...specs2_2.10..." output="..." /> """)
-  // project dependencies
-  if (!(classpath.child contains <classpathentry kind="src" path="/suba" exported="true" combineaccessrules="false" />))
-    error("""Expected .classpath of subb project to contain <classpathentry kind="src" path="/suba" exported="true" combineaccessrules="false" />: %s""" format classpath)
-  if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "/subc")
-    error("""Not expected .classpath of subb project to contain <classpathentry kind="..." path="...subc..." output="..." /> """)
-}
-
-TaskKey[Unit]("verify-classpath-xml-subc") <<= baseDirectory map { dir =>
-  val classpath = XML.loadFile(dir / "sub" / "subc" / ".classpath")
-  val project = XML.loadFile(dir / "sub" / "subc" / ".project")
-  if ((classpath \ "classpathentry") != (classpath \ "classpathentry").distinct)
-    error("Expected .classpath of subc project not to contain duplicate entries: %s" format classpath)
-  // src entries
-  if (!(classpath.child contains <classpathentry kind="src" path="src/main/scala" output=".target" />))
-    error("""Expected .classpath of subc project to contain <classpathentry kind="src" path="src/main/scala" output=".target" /> """)
-  // lib entries with absolute paths
-  if (!(classpath.child contains <classpathentry kind="lib" path={ "%s/lib_managed/jars/biz.aQute/bndlib/bndlib-1.50.0.jar".format(dir.getCanonicalPath) } />))
-    error("""Expected .classpath of subc project to contain <classpathentry kind="lib" path="%s/lib_managed/jars/biz.aQute/bndlib/bndlib-1.50.0.jar" />: %s""".format(dir.getCanonicalPath, classpath))
-  // classpath transformer
-  if (!(classpath.child contains <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/>))
-    error("""Expected .classpath of subc project to contain <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/> """)
-  if (!(classpath.child contains <classpathentry kind="lib" path="libs/my.jar"/>))
-    error("""Expected .classpath of subc project to contain <classpathentry kind="lib" path="libs/my.jar"/>!""")
-  if (!(project.child contains <foo bar="baz"/>))
-    error("""Expected .project of subc project to contain <foo bar="baz"/>!""")
-}
-
-TaskKey[Unit]("verify-java-settings") <<= baseDirectory map { dir =>
-  val settings = {
-    val p = new Properties 
-    p.load(new FileInputStream(dir / "sub/subb/.settings/org.eclipse.core.resources.prefs"))
-    p.asScala.toMap
-  }
-  val expected = Map(
-    "encoding/<project>" -> "UTF-8"
-  ) 
-  if (settings != expected) error("Expected settings to be '%s', but was '%s'!".format(expected, settings))
-}
-
-TaskKey[Unit]("verify-scala-settings") <<= baseDirectory map { dir =>
-  val settings = {
-    val p = new Properties 
-    p.load(new FileInputStream(dir / "sub/subb/.settings/org.scala-ide.sdt.core.prefs"))
-    p.asScala.toMap
-  }
-  val expected = Map(
-    "scala.compiler.additionalParams" -> """-Xprompt -Xsource:2.10 -Ymacro-expand:none""",
-    "scala.compiler.installation" -> "2.10",
-    "verbose" -> "true",
-    "deprecation" -> "true",
-    "Xelide-below" -> "1000",
-    "unchecked" -> "true",
-    "scala.compiler.useProjectSettings" -> "true"
-  ) 
-  if (settings != expected) error("Expected settings to be '%s', but was '%s'!".format(expected, settings))
-}
+lazy val sube =
+  Project("sube-id", new File("sub/sube")).
+  settings(
+    Defaults.coreDefaultSettings ++ Seq(
+      name := "sube"
+    )
+  )

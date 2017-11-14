@@ -1,16 +1,14 @@
-> clean
-> compile
-$ mkdir target/scala-2.9.1/src_managed/main
+$ mkdir target/scala-2.12.4/src_managed/main
 > eclipse skip-parents=false
-> verify-project-xml
-> verify-project-xml-java
-> verify-project-xml-scala
-> verify-project-xml-subd
-> verify-project-xml-sube
-> verify-classpath-xml-root
-> verify-classpath-xml-sub
-> verify-classpath-xml-suba
-> verify-classpath-xml-subb
-> verify-classpath-xml-subc
-> verify-java-settings
-> verify-scala-settings
+> verifyProjectXml
+> verifyProjectXmlJava
+> verifyProjectXmlScala
+> verifyProjectXmlSubd
+> verifyProjectXmlSube
+> verifyClasspathXmlRoot
+> verifyClasspathXmlSub
+> verifyClasspathXmlSuba
+> verifyClasspathXmlSubb
+> verifyClasspathXmlSubc
+> verifyJavaSettings
+> verifyScalaSettings
