@@ -24,3 +24,6 @@ out/
 
 # Mac
 .DS_Store
+
+# Vim
+*.swp

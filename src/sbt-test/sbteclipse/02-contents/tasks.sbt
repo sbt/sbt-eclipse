@@ -208,6 +208,8 @@ TaskKey[Unit]("verify-classpath-xml-subc") := {
     error("""Expected .classpath of subc project to contain <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/> """)
   if (!(classpath.child contains <classpathentry kind="lib" path="libs/my.jar"/>))
     error("""Expected .classpath of subc project to contain <classpathentry kind="lib" path="libs/my.jar"/>!""")
+  if (!(classpath.child contains <classpathentry kind="output" path=".target" />))
+    error("""Expected .classpath of subc project to contain <classpathentry kind="output" path=".target" /> """)
   if (!(project.child contains <foo bar="baz"/>))
     error("""Expected .project of subc project to contain <foo bar="baz"/>!""")
 }
