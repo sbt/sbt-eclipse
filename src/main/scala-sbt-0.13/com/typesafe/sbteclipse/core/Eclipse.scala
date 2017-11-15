@@ -305,14 +305,14 @@ private object Eclipse extends EclipseSDTConfig {
       srcEntries <- srcEntriesIoSeq.toList.sequence;
       linkEntries <- srcLinkEntriesIoSeq.toList.sequence
     ) yield {
-      val eodirs: Seq[String] = for {
+      val eclipseOutputDirs: Seq[String] = for {
         (fa: File, ta: Option[File]) <- srcDirectories
-        eopath = ta match {
+        eclipseOutputPath = ta match {
           case Some(dd) => relativize(baseDirectory, dd).toString
           case None => ""
         }
-      } yield eopath
-      val classDirectory = eodirs.filter { _.nonEmpty }.distinct match {
+      } yield eclipseOutputPath
+      val classDirectory = eclipseOutputDirs.filter { _.nonEmpty }.distinct match {
         case dir :: _ => dir
         case _ => "bin" // this is the eclipse default
       }
