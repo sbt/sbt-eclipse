@@ -436,9 +436,9 @@ private object Eclipse extends EclipseSDTConfig {
   def scalacOptions(ref: ProjectRef, state: State): Validation[Seq[(String, String)]] = {
     // Here we have to look at scalacOptions *for compilation*, vs. the ones used for testing.
     // We have to pick one set, and this should be the most complete set.
-    (evaluateTask(Keys.scalacOptions in sbt.Compile, ref, state) |@| settingValidation(Keys.scalaVersion in ref, state)) { (options, version) =>
+    (evaluateTask(Keys.scalacOptions in sbt.Compile, ref, state) |@| settingValidation(EclipseKeys.defaultScalaInstallation in ref, state) |@| settingValidation(Keys.scalaVersion in ref, state)) { (options, installation, version) =>
       val ideSettings = fromScalacToSDT(options)
-      ScalaVersion.parse(version).settingsFrom(ideSettings.toMap).toSeq
+      ScalaVersion.parse(installation, version).settingsFrom(ideSettings.toMap).toSeq
     } map { options => if (options.nonEmpty) ("scala.compiler.useProjectSettings" -> "true") +: options else options }
   }
 
