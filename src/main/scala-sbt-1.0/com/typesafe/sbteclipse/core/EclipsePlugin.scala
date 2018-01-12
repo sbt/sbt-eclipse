@@ -50,6 +50,7 @@ object EclipsePlugin {
       preTasks := Seq(),
       skipProject := false,
       withBundledScalaContainers := projectFlavor.value.id == EclipseProjectFlavor.ScalaIDE.id,
+      defaultScalaInstallation := "2.12",
       classpathTransformerFactories := defaultClasspathTransformerFactories(withBundledScalaContainers.value),
       projectTransformerFactories := Seq(EclipseRewriteRuleTransformerFactory.Identity),
       configurations := Set(Configurations.Compile, Configurations.Test)) ++ copyManagedSettings(sbt.Compile) ++ copyManagedSettings(sbt.Test)
@@ -147,6 +148,10 @@ object EclipsePlugin {
       prefix(WithBundledScalaContainers),
       "Let the generated project use the bundled Scala library of the ScalaIDE plugin")
 
+    val defaultScalaInstallation: SettingKey[String] = SettingKey(
+      prefix(DefaultScalaInstallation),
+      """The default Scala installation configured in the ScalaIDE workspace, e.g. "2.12" for ScalaIDE 4.7.0, "2.11" for ScalaIDE 4.5.0 """)    
+      
     val useProjectId: SettingKey[Boolean] = SettingKey(
       prefix(UseProjectId),
       "Use the sbt project id as the Eclipse project name?")
