@@ -150,8 +150,8 @@ object EclipsePlugin {
 
     val defaultScalaInstallation: SettingKey[String] = SettingKey(
       prefix(DefaultScalaInstallation),
-      """The default Scala installation configured in the ScalaIDE workspace, e.g. "2.12" for ScalaIDE 4.7.0, "2.11" for ScalaIDE 4.5.0 """)    
-      
+      """The default Scala installation configured in the ScalaIDE workspace, e.g. "2.12" for ScalaIDE 4.7.0, "2.11" for ScalaIDE 4.5.0 """)
+
     val useProjectId: SettingKey[Boolean] = SettingKey(
       prefix(UseProjectId),
       "Use the sbt project id as the Eclipse project name?")

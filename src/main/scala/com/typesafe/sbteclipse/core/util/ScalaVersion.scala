@@ -14,7 +14,7 @@ private[core] object ScalaVersion {
   private val installationRegex = """(\d+)\.(\d+)""".r
   private val versionRegex = """(\d+)\.(\d+)\.(\d+)(-\S+)?""".r
 
-  def parse(installation: String, version: String): ScalaVersion = (installation, version) match {
+  def parse(installationVersion: String, projectVersion: String): ScalaVersion = (installationVersion, projectVersion) match {
     case (installationRegex(eraDefault, majorDefault), versionRegex(era, major, minor, qualifier)) =>
       // if qualifier exists (i.e., is not null), drop the leading '-'
       val qual = Option(qualifier).map(_.tail)
