@@ -31,18 +31,18 @@ Since Scala IDE 4.0 multiple scala versions are supported in a single eclipse wo
 
 **For sbteclipse 5.2.5 and up**
 
-Given
+Given `Xi.Yi` is the default Scala installation version of your Scala IDE, and `Xp.Yp.Zp` is the targetted scala version of your project, you add following in your sbt build file:
   ```
-  EclipseKeys.defaultScalaInstallation := "xD.yD" // "2.12" is the default
-  ScalaVersion := "x.y.z"
+  EclipseKeys.defaultScalaInstallation := "Xi.Yi" // "2.12" is the default
+  ScalaVersion := "Xp.Yp.Zp"
   ```
-In case `x.y` < `xD.yD`, the lower `scala.compiler.installation` is configured at project level.
+In case `Xp.Yp` < `Xi.Yi`, the lower `scala.compiler.installation` is configured at project level.
 
 When you're using ScalaIDE-4.6.0 up to 4.7._ (until a new major scala version is the default), and x.y.z matches with one of the pre-installed scala compilers in the IDE, it should work fine out of the box.  
 
 **For sbteclipse 4.0. up to 5.2.4**
 
-In case `x.y` = `2.10`, the lower `scala.compiler.installation` is configured at project level.
+In case `Xp.Yp` = `2.10`, the lower `scala.compiler.installation` is configured at project level.
 
 When you're using ScalaIDE-4.0 up to 4.5._, and x.y.z matches with one of the pre-installed scala compilers in the IDE, it should work fine out of the box.  
 
