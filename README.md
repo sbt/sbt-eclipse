@@ -1,7 +1,7 @@
 sbteclipse [![Build Status](https://travis-ci.org/typesafehub/sbteclipse.svg?branch=master)](https://travis-ci.org/typesafehub/sbteclipse)
 =========================
 
-Plugin for [sbt](https://github.com/sbt/sbt) to create [Eclipse](http://www.eclipse.org/) project definitions. Please see the [Documentation](http://github.com/typesafehub/sbteclipse/wiki/) for information about installing and using sbteclipse. Information about contribution policy and license can be found below.
+Plugin for [sbt](https://github.com/sbt/sbt) to create [Eclipse](http://www.eclipse.org/) project definitions. Please see below for installation details and the [Documentation](http://github.com/typesafehub/sbteclipse/wiki/) for information about configuring sbteclipse. Information about contribution policy and license can be found below.
 
 
 For sbt 0.13 and up
