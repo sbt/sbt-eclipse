@@ -22,30 +22,6 @@ For the latest version:
 
 - In Eclipse use the *Import Wizard* to import *Existing Projects into Workspace*
 
-
-
-Multi ScalaVersion support
--------------------
-
-Since Scala IDE 4.0 multiple scala versions are supported in a single eclipse workspace. The Scala IDE uses by default the highest supported scala version, 2.11 since Scala IDE 4.0 and 2.12 since Scala IDE 4.6. The default can be overwritten at workspace level or at project level. The latter is stored in the file `.settings/org.scala-ide.sdt.core.prefs`. This file can be generated with sbteclipse. 
-
-**For sbteclipse 5.2.5 and up**
-
-Given `Xi.Yi` is the default Scala installation version of your Scala IDE, and `Xp.Yp.Zp` is the targetted scala version of your project, you add following in your sbt build file:
-  ```
-  EclipseKeys.defaultScalaInstallation := "Xi.Yi" // "2.12" is the default
-  ScalaVersion := "Xp.Yp.Zp"
-  ```
-In case `Xp.Yp` < `Xi.Yi`, the lower `scala.compiler.installation` is configured at project level.
-
-When you're using ScalaIDE-4.6.0 up to 4.7._ (until a new major scala version is the default), and x.y.z matches with one of the pre-installed scala compilers in the IDE, it should work fine out of the box.  
-
-**For sbteclipse 4.0. up to 5.2.4**
-
-In case `Xp.Yp` = `2.10`, the lower `scala.compiler.installation` is configured at project level.
-
-When you're using ScalaIDE-4.0 up to 4.5._, and x.y.z matches with one of the pre-installed scala compilers in the IDE, it should work fine out of the box.  
-
 Contribution policy
 -------------------
 
