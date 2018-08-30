@@ -9,7 +9,7 @@ For sbt 0.13 and up
 
 - Add sbteclipse to your plugin definition file (or create one if doesn't exist). You can use either:
 
-  - the global file (for version 0.13 and up) at *~/.sbt/0.13/plugins/plugins.sbt*
+  - the global file (for version 0.13 and up) at *~/.sbt/SBT_VERSION/plugins/plugins.sbt*
   - the project-specific file at *PROJECT_DIR/project/plugins.sbt*
 
 For the latest version:
