@@ -3,18 +3,21 @@ sbteclipse [![Build Status](https://travis-ci.org/sbt/sbteclipse.svg?branch=mast
 
 Plugin for [sbt](https://github.com/sbt/sbt) to create [Eclipse](http://www.eclipse.org/) project definitions. Please see below for installation details and the [Documentation](http://github.com/sbt/sbteclipse/wiki/) for information about configuring sbteclipse. Information about contribution policy and license can be found below.
 
-
-For sbt 0.13 and up
+Installation and Basic Usage
 ---------------------
 
-- Add sbteclipse to your plugin definition file (or create one if doesn't exist). You can use either:
+- Open your plugin definition file (or create one if doesn't exist). You can use either:
 
   - the global file (for version 0.13 and up) at *~/.sbt/SBT_VERSION/plugins/plugins.sbt*
   - the project-specific file at *PROJECT_DIR/project/plugins.sbt*
 
-For the latest version:
+- Add sbteclipse to the plugin definition file:
 
-    addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "5.2.4")
+  - Version 6.x+ will only support SBT 1.0+ when it is released. Use 5.2.4 or older for previons versions of SBT
+
+```
+addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "5.2.4")
+```
 
 - In sbt use the command `eclipse` to create Eclipse project files
 
