@@ -25,6 +25,19 @@ addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "5.2.4")
 
 - In Eclipse use the *Import Wizard* to import *Existing Projects into Workspace*
 
+MacOS Installation
+------------------
+Make sure you have scala and sbt installed by running ``` scala -version ``` and ```sbt sbtVersion```
+1) $ mkdir %yourProject% . 
+2) $ cd %yourProject% . 
+3) $ touch build.sbt . 
+4) $ sbt . 
+5) $ cd project/ . 
+6) $ touch plugins.sbt . 
+7) Edit file and add ``` addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "5.2.4") ``` . 
+8) $ cd %yourProjectRoot% . 
+9) $ sbt eclipse . 
+
 Contribution policy
 -------------------
 
