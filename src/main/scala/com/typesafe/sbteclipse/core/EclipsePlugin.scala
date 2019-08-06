@@ -208,6 +208,16 @@ object EclipsePlugin {
 
   object EclipseExecutionEnvironment extends Enumeration {
 
+    val JavaSE13 = Value("JavaSE-13")
+
+    val JavaSE12 = Value("JavaSE-12")
+
+    val JavaSE11 = Value("JavaSE-11")
+
+    val JavaSE10 = Value("JavaSE-10")
+
+    val JavaSE9 = Value("JavaSE-9")
+
     val JavaSE18 = Value("JavaSE-1.8")
 
     val JavaSE17 = Value("JavaSE-1.7")
