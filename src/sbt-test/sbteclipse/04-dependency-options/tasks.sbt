@@ -23,8 +23,8 @@ TaskKey[Unit]("verify-classpath-xml-suba") := {
   def verifyClasspathEntry(libPath: String) =
     if (!(classpath.child contains <classpathentry kind="lib" path={ libPath } />))
       error("""Expected .classpath of suba project to contain <classpathentry kind="lib" path="%s" />: %s""".format(libPath, classpath))
-  verifyClasspathEntry(home + "/.ivy2/cache/biz.aQute.bnd/biz.aQute.bndlib/jars/biz.aQute.bndlib-3.4.0.jar")
-  verifyClasspathEntry(home + "/.ivy2/cache/org.specs2/specs2-core_2.12/jars/specs2-core_2.12-3.9.4.jar")
+  verifyClasspathEntry(home + "/.cache/coursier/v1/https/repo1.maven.org/maven2/biz/aQute/bnd/biz.aQute.bndlib/3.4.0/biz.aQute.bndlib-3.4.0.jar")
+  verifyClasspathEntry(home + "/.cache/coursier/v1/https/repo1.maven.org/maven2/org/specs2/specs2-core_2.12/3.9.4/specs2-core_2.12-3.9.4.jar")
 }
 
 TaskKey[Unit]("verify-classpath-xml-subb") := {
@@ -37,8 +37,8 @@ TaskKey[Unit]("verify-classpath-xml-subb") := {
   def verifySrcClasspathEntry(libPath: String, srcPath: String) =
     if (!(classpath.child contains <classpathentry kind="lib" path={ libPath } sourcepath={ srcPath } />))
       error("""Expected .classpath of subb project to contain <classpathentry kind="lib" path="%s" sourcepath="%s" />: %s""".format(libPath, srcPath, classpath))
-  verifySrcClasspathEntry(home + "/.ivy2/cache/biz.aQute.bnd/biz.aQute.bndlib/jars/biz.aQute.bndlib-3.4.0.jar", home + "/.ivy2/cache/biz.aQute.bnd/biz.aQute.bndlib/srcs/biz.aQute.bndlib-3.4.0-sources.jar")
-  verifySrcClasspathEntry(home + "/.ivy2/cache/org.specs2/specs2-core_2.12/jars/specs2-core_2.12-3.9.4.jar", home + "/.ivy2/cache/org.specs2/specs2-core_2.12/srcs/specs2-core_2.12-3.9.4-sources.jar")
+  verifySrcClasspathEntry(home + "/.cache/coursier/v1/https/repo1.maven.org/maven2/biz/aQute/bnd/biz.aQute.bndlib/3.4.0/biz.aQute.bndlib-3.4.0.jar", home + "/.cache/coursier/v1/https/repo1.maven.org/maven2/biz/aQute/bnd/biz.aQute.bndlib/3.4.0/biz.aQute.bndlib-3.4.0-sources.jar")
+  verifySrcClasspathEntry(home + "/.cache/coursier/v1/https/repo1.maven.org/maven2/org/specs2/specs2-core_2.12/3.9.4/specs2-core_2.12-3.9.4.jar", home + "/.cache/coursier/v1/https/repo1.maven.org/maven2/org/specs2/specs2-core_2.12/3.9.4/specs2-core_2.12-3.9.4-sources.jar")
 }
 
 TaskKey[Unit]("verify-classpath-xml-subc") := {
@@ -54,8 +54,8 @@ TaskKey[Unit]("verify-classpath-xml-subc") := {
     if (!((libEntry \ "attributes" \ "attribute") exists { node => (node \ "@name").text == "javadoc_location" && (node \ "@value").text == javadocValue }))
       error("""Expected .classpath of subc project to contain <classpathentry kind="lib" path="%s"><attributes><attribute name="javadoc_location" value="%s"/></attributes>: %s""".format(libPath, javadocValue, classpath))
   }
-  verifyJavadocClasspathEntry(home + "/.ivy2/cache/biz.aQute.bnd/biz.aQute.bndlib/jars/biz.aQute.bndlib-3.4.0.jar", home + "/.ivy2/cache/biz.aQute.bnd/biz.aQute.bndlib/docs/biz.aQute.bndlib-3.4.0-javadoc.jar")
-  verifyJavadocClasspathEntry(home + "/.ivy2/cache/org.specs2/specs2-core_2.12/jars/specs2-core_2.12-3.9.4.jar", home + "/.ivy2/cache/org.specs2/specs2-core_2.12/docs/specs2-core_2.12-3.9.4-javadoc.jar")
+  verifyJavadocClasspathEntry(home + "/.cache/coursier/v1/https/repo1.maven.org/maven2/biz/aQute/bnd/biz.aQute.bndlib/3.4.0/biz.aQute.bndlib-3.4.0.jar", home + "/.cache/coursier/v1/https/repo1.maven.org/maven2/biz/aQute/bnd/biz.aQute.bndlib/3.4.0/biz.aQute.bndlib-3.4.0-javadoc.jar")
+  verifyJavadocClasspathEntry(home + "/.cache/coursier/v1/https/repo1.maven.org/maven2/org/specs2/specs2-core_2.12/3.9.4/specs2-core_2.12-3.9.4.jar", home + "/.cache/coursier/v1/https/repo1.maven.org/maven2/org/specs2/specs2-core_2.12/3.9.4/specs2-core_2.12-3.9.4-javadoc.jar")
 }
 
 TaskKey[Unit]("verify-classpath-xml-subd") := {
@@ -69,6 +69,6 @@ TaskKey[Unit]("verify-classpath-xml-subd") := {
     if (!((libEntry \ "attributes" \ "attribute") exists { node => (node \ "@name").text == "javadoc_location" && (node \ "@value").text == javadocValue }))
       error("""Expected .classpath of subd project to contain <classpathentry kind="lib" path="%s" sourcepath="%s"><attributes><attribute name="javadoc_location" value="%s"/></attributes>: %s""".format(libPath, srcPath, javadocValue, classpath))
   }
-  verifySrcAndJavadocClasspathEntry(home + "/.ivy2/cache/biz.aQute.bnd/biz.aQute.bndlib/jars/biz.aQute.bndlib-3.4.0.jar", home + "/.ivy2/cache/biz.aQute.bnd/biz.aQute.bndlib/srcs/biz.aQute.bndlib-3.4.0-sources.jar", home + "/.ivy2/cache/biz.aQute.bnd/biz.aQute.bndlib/docs/biz.aQute.bndlib-3.4.0-javadoc.jar")
-  verifySrcAndJavadocClasspathEntry(home + "/.ivy2/cache/org.specs2/specs2-core_2.12/jars/specs2-core_2.12-3.9.4.jar", home + "/.ivy2/cache/org.specs2/specs2-core_2.12/srcs/specs2-core_2.12-3.9.4-sources.jar", home + "/.ivy2/cache/org.specs2/specs2-core_2.12/docs/specs2-core_2.12-3.9.4-javadoc.jar")
+  verifySrcAndJavadocClasspathEntry(home + "/.cache/coursier/v1/https/repo1.maven.org/maven2/biz/aQute/bnd/biz.aQute.bndlib/3.4.0/biz.aQute.bndlib-3.4.0.jar", home + "/.cache/coursier/v1/https/repo1.maven.org/maven2/biz/aQute/bnd/biz.aQute.bndlib/3.4.0/biz.aQute.bndlib-3.4.0-sources.jar", home + "/.cache/coursier/v1/https/repo1.maven.org/maven2/biz/aQute/bnd/biz.aQute.bndlib/3.4.0/biz.aQute.bndlib-3.4.0-javadoc.jar")
+  verifySrcAndJavadocClasspathEntry(home + "/.cache/coursier/v1/https/repo1.maven.org/maven2/org/specs2/specs2-core_2.12/3.9.4/specs2-core_2.12-3.9.4.jar", home + "/.cache/coursier/v1/https/repo1.maven.org/maven2/org/specs2/specs2-core_2.12/3.9.4/specs2-core_2.12-3.9.4-sources.jar", home + "/.cache/coursier/v1/https/repo1.maven.org/maven2/org/specs2/specs2-core_2.12/3.9.4/specs2-core_2.12-3.9.4-javadoc.jar")
 }

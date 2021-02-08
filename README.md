@@ -8,7 +8,7 @@ Installation and Basic Usage
 
 - Open your plugin definition file (or create one if doesn't exist). You can use either:
 
-  - the global file (for version 0.13 and up) at *~/.sbt/SBT_VERSION/plugins/plugins.sbt*
+  - the global file (for version 1.0 and up) at *~/.sbt/SBT_VERSION/plugins/plugins.sbt*
   - the project-specific file at *PROJECT_DIR/project/plugins.sbt*
 
 - Add sbteclipse to the plugin definition file:
@@ -16,7 +16,7 @@ Installation and Basic Usage
   - Version 6.x+ will only support SBT 1.0+ when it is released. Use 5.2.4 or older for previous versions of SBT
 
 ```
-addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "5.2.4")
+addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "6.0.0-M1")
 ```
 
 - In sbt use the command `eclipse` to create Eclipse project files

@@ -18,25 +18,14 @@
 
 package com.typesafe.sbteclipse.core
 
-import sbt.{
-  Configuration,
-  Configurations,
-  File,
-  Keys,
-  ProjectRef,
-  ResolvedProject,
-  Setting,
-  SettingKey,
-  State,
-  TaskKey,
-  Def
-}
+import sbt.Keys.commands
+import sbt.internal.inc.PlainVirtualFileConverter
 import sbt.io.Path.rebase
-import sbt.Keys.{ baseDirectory, commands }
-import scala.util.control.Exception
-import scala.xml.{ Attribute, Elem, MetaData, Node, NodeSeq, Null, Text }
-import scala.xml.transform.RewriteRule
+import sbt.{ Configuration, Configurations, Def, File, Keys, ProjectRef, Setting, SettingKey, State, TaskKey }
+
 import scala.language.implicitConversions
+import scala.xml._
+import scala.xml.transform.RewriteRule
 
 object EclipsePlugin {
 
@@ -45,7 +34,9 @@ object EclipsePlugin {
     import EclipseKeys._
     Seq(
       commandName := "eclipse",
-      commands += { Eclipse.eclipseCommand(commandName.value) },
+      commands += {
+        Eclipse.eclipseCommand(commandName.value)
+      },
       managedClassDirectories := Seq((classesManaged in sbt.Compile).value, (classesManaged in sbt.Test).value),
       preTasks := Seq(),
       skipProject := false,
@@ -109,22 +100,31 @@ object EclipsePlugin {
       if ((EclipseKeys.generateClassesManaged in scope).value) {
         val classes = (Keys.classDirectory in scope).value
         val srcManaged = (Keys.managedSourceDirectories in scope).value
-
+        val baseDir = (Keys.baseDirectory in scope).value
         // Copy managed classes - only needed in Compile scope
         // This is done to ease integration with Eclipse, but it's doubtful as to how effective it is.
         val managedClassesDirectory = (EclipseKeys.classesManaged in scope).value
-        val managedClasses = ((srcManaged ** "*.scala").get ++ (srcManaged ** "*.java").get).map { managedSourceFile =>
-          analysis.asInstanceOf[sbt.internal.inc.Analysis].relations.products(managedSourceFile)
-        }.flatten pair rebase(classes, managedClassesDirectory)
+
+        val managedSources = ((srcManaged ** "*.scala").get ++ (srcManaged ** "*.java").get)
+          .filter(f => f.getAbsolutePath.startsWith(baseDir.getAbsolutePath))
+          .map(f => PlainVirtualFileConverter.converter.toVirtualFile(sbt.io.Path.apply(f.getAbsolutePath.replace(baseDir.getAbsolutePath, "${BASE}")).asPath))
+        val managedClasses = managedSources
+          .flatMap { tp =>
+            analysis.asInstanceOf[sbt.internal.inc.Analysis].relations.srcProd.filter((s, _) => s.id().equalsIgnoreCase(tp.id()))._2s
+          }
+          .map(vf => PlainVirtualFileConverter.converter.toPath(vf)).map(p => PathFinder(Path.apply(p.toFile.getPath.replace("${BASE}", baseDir.getAbsolutePath)).asFile))
+          .flatten(p => p.pair(rebase(classes, managedClassesDirectory)))
+
         // Copy modified class files
         val managedSet = IO.copy(managedClasses)
         // Remove deleted class files
-        (managedClassesDirectory ** "*.class").get.filterNot(managedSet.contains(_)).foreach(_.delete())
+        (managedClassesDirectory ** "*.class").get.filterNot(managedSet.contains).foreach(_.delete())
       }
       analysis
     }
 
   object EclipseKeys {
+
     import EclipseOpts._
 
     val executionEnvironment: SettingKey[Option[EclipseExecutionEnvironment.Value]] = SettingKey(
