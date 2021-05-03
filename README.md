@@ -13,10 +13,10 @@ Installation and Basic Usage
 
 - Add sbteclipse to the plugin definition file:
 
-  - Version 6.x+ will only support SBT 1.0+ when it is released. Use 5.2.4 or older for previous versions of SBT
+  - Version 6.x+ only supports SBT 1.4+. Use 5.2.4 or older for previous versions of SBT
 
 ```
-addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "6.0.0-M1")
+addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "6.0.0-RC1")
 ```
 
 - In sbt use the command `eclipse` to create Eclipse project files
