@@ -2,6 +2,8 @@ EclipseKeys.skipParents in ThisBuild := false
 EclipseKeys.withSource in ThisBuild := false
 EclipseKeys.withJavadoc in ThisBuild := false
 
+ThisBuild / useCoursier := false
+
 organization := "com.typesafe.sbteclipse"
 
 name := "sbteclipse-test"
