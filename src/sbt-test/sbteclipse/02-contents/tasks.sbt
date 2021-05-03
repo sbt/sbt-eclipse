@@ -7,6 +7,7 @@ import scala.xml.XML
 import sys.error
 
 TaskKey[Unit]("verify-project-xml") := {
+  println("running xml test")
   val dir = baseDirectory.value
   val projectDescription = XML.loadFile(dir / ".project")
   verify("name", "sbteclipse-test",  (projectDescription \ "name").text)
@@ -91,8 +92,8 @@ TaskKey[Unit]("verify-classpath-xml-root") := {
   if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "target/scala-2.12/resource_managed/test") 
     error("""Not expected .classpath of root project to contain <classpathentry kind="..." path="...resource_managed/test" output="..." /> """)
   // lib entries without sources
-  if (!(classpath.child contains <classpathentry kind="lib" path="./lib_managed/biz/aQute/bnd/biz.aQute.bndlib/3.4.0/biz.aQute.bndlib-3.4.0.jar" />))
-    error("""Expected .classpath of subb project to contain <classpathentry kind="lib" path="./lib_managed/biz/aQute/bnd/biz.aQute.bndlib/3.4.0/biz.aQute.bndlib-3.4.0.jar" />: %s""" format classpath)
+  if (!(classpath.child contains <classpathentry kind="lib" path="./lib_managed/jars/biz.aQute.bnd/biz.aQute.bndlib/biz.aQute.bndlib-3.4.0.jar" />))
+    error("""Expected .classpath of subb project to contain <classpathentry kind="lib" path="./lib_managed/jars/biz.aQute.bnd/biz.aQute.bndlib/biz.aQute.bndlib-3.4.0.jar" />: %s""" format classpath)
   // other entries
   if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "scala-library.jar")
     error("""Not expected .classpath of root project to contain <classpathentry path="...scala-library.jar" ... /> """)
@@ -110,29 +111,21 @@ TaskKey[Unit]("verify-classpath-xml-root") := {
 
 TaskKey[Unit]("verify-classpath-xml-sub") := {
   val dir = baseDirectory.value
+  val home = System.getProperty("user.home")
   val classpath = XML.loadFile(dir / "sub" / ".classpath")
   if ((classpath \ "classpathentry") != (classpath \ "classpathentry").distinct)
     error("Expected .classpath of sub project not to contain duplicate entries: %s" format classpath)
   // lib entries with sources
-  if (!(classpath.child contains <classpathentry kind="lib" path="../lib_managed/biz/aQute/bnd/biz.aQute.bndlib/3.4.0/biz.aQute.bndlib-3.4.0.jar" sourcepath="../lib_managed/biz/aQute/bnd/biz.aQute.bndlib/3.4.0/biz.aQute.bndlib-3.4.0-sources.jar" />))
-    error("""Expected .classpath of subb project to contain <classpathentry kind="lib" path="../lib_managed/biz/aQute/bnd/biz.aQute.bndlib/3.4.0/biz.aQute.bndlib-3.4.0.jar" sourcepath="../lib_managed/biz/aQute/bnd/biz.aQute.bndlib/3.4.0/biz.aQute.bndlib-3.4.0-sources.jar" />: %s""" format classpath)
+  if (!(classpath.child contains <classpathentry kind="lib" path="../lib_managed/jars/biz.aQute.bnd/biz.aQute.bndlib/biz.aQute.bndlib-3.4.0.jar" sourcepath="../lib_managed/srcs/biz.aQute.bnd/biz.aQute.bndlib/biz.aQute.bndlib-3.4.0-sources.jar" />))
+    error("""Expected .classpath of subb project to contain <classpathentry kind="lib" path="../lib_managed/jars/biz.aQute.bnd/biz.aQute.bndlib/biz.aQute.bndlib-3.4.0.jar" sourcepath="../lib_managed/srcs/biz.aQute.bnd/biz.aQute.bndlib/biz.aQute.bndlib-3.4.0-sources.jar" />: %s""" format classpath)
   // other entries
   if (!(classpath.child contains <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>))
     error("""Expected .classpath of root project to contain <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>: %s""" format classpath)
 }
 
-def artifactHome = {
-  val home = System.getProperty("user.home")
-  val osName = sys.props.get("os.name")
-  home + (osName match {
-    case Some(os) if os.toLowerCase.contains("mac") => "/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2"
-    case Some(os) if os.toLowerCase.contains("win") => "\\AppData\\Local\\Coursier\\cache\\v1\\https\\repo1.maven.org\\maven2"
-    case _ => "/.cache/coursier/v1/https/repo1.maven.org/maven2"
-  })
-}
-
 TaskKey[Unit]("verify-classpath-xml-suba") := {
   val dir = baseDirectory.value
+  val home = System.getProperty("user.home")
   val classpath = XML.loadFile(dir / "sub" / "suba" / ".classpath")
   if ((classpath \ "classpathentry") != (classpath \ "classpathentry").distinct)
     error("Expected .classpath of suba project not to contain duplicate entries: %s" format classpath)
@@ -164,13 +157,12 @@ TaskKey[Unit]("verify-classpath-xml-suba") := {
   if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "src/it/resources") 
     error("""Not expected .classpath of suba project to contain <classpathentry kind="..." path="src/it/resources" output="..." />: %s """ format classpath)
   // lib entries with sources
-  val home = artifactHome
-  if (!(classpath.child contains <classpathentry kind="lib" path={ home + "/ch/qos/logback/logback-classic/1.0.1/logback-classic-1.0.1.jar" } sourcepath={ home + "/ch/qos/logback/logback-classic/1.0.1/logback-classic-1.0.1-sources.jar" } />))
-    error("""Expected .classpath of suba project to contain <classpathentry kind="lib" path={ """ + home + """/ch/qos/logback/logback-classic/1.0.1/logback-classic-1.0.1.jar" } sourcepath={""" + home + """/ch/qos/logback/logback-classic/1.0.1/logback-classic-1.0.1-sources.jar" } />: %s""" format classpath)
-  if (!(classpath.child contains <classpathentry kind="lib" path={ home + "/biz/aQute/bnd/biz/aQute/bndlib/3.4.0/biz.aQute.bndlib-3.4.0.jar" } sourcepath={ home + "/biz/aQute/bnd/biz.aQute.bndlib/3.4.0/biz.aQute.bndlib-3.4.0-sources.jar" } />))
-    error("""Expected .classpath of suba project to contain <classpathentry kind="lib" path={""" + home + """/biz/aQute/bnd/biz.aQute.bndlib/3.4.0/biz.aQute.bndlib-3.4.0.jar" } sourcepath={""" + home + """/biz/aQute/bnd/biz.aQute.bndlib/3.4.0/biz.aQute.bndlib-3.4.0-sources.jar" } />: %s""" format classpath)
-  if (!(classpath.child contains <classpathentry kind="lib" path={ home + "/org/specs2/specs2-core_2.12/3.9.4/specs2-core_2.12-3.9.4.jar" } sourcepath={ home + "/org/specs2/specs2-core_2.12/3.9.4/specs2-core_2.12-3.9.4-sources.jar" } />))
-    error("""Expected .classpath of suba project to contain <classpathentry kind="lib" path={""" + home + """/org/specs2/specs2-core_2.12/3.9.4/specs2-core_2.12-3.9.4.jar" } sourcepath={""" + home + """/org/specs2/specs2-core_2.12/3.9.4/specs2-core_2.12-3.9.4-sources.jar" } />: %s""" format classpath)
+  if (!(classpath.child contains <classpathentry kind="lib" path={ home + "/.ivy2/cache/ch.qos.logback/logback-classic/jars/logback-classic-1.0.1.jar" } sourcepath={ home + "/.ivy2/cache/ch.qos.logback/logback-classic/srcs/logback-classic-1.0.1-sources.jar" } />))
+    error("""Expected .classpath of suba project to contain <classpathentry kind="lib" path={ home + "/.ivy2/cache/ch.qos.logback/logback-classic/jars/logback-classic-1.0.1.jar" } sourcepath={ home + "/.ivy2/cache/ch.qos.logback/logback-classic/srcs/logback-classic-1.0.1-sources.jar" } />: %s""" format classpath)
+  if (!(classpath.child contains <classpathentry kind="lib" path={ home + "/.ivy2/cache/biz.aQute.bnd/biz.aQute.bndlib/jars/biz.aQute.bndlib-3.4.0.jar" } sourcepath={ home + "/.ivy2/cache/biz.aQute.bnd/biz.aQute.bndlib/srcs/biz.aQute.bndlib-3.4.0-sources.jar" } />))
+    error("""Expected .classpath of suba project to contain <classpathentry kind="lib" path={ home + "/.ivy2/cache/biz.aQute.bnd/biz.aQute.bndlib/jars/biz.aQute.bndlib-3.4.0.jar" } sourcepath={ home + "/.ivy2/cache/biz.aQute.bnd/biz.aQute.bndlib/srcs/biz.aQute.bndlib-3.4.0-sources.jar" } />: %s""" format classpath)
+  if (!(classpath.child contains <classpathentry kind="lib" path={ home + "/.ivy2/cache/org.specs2/specs2-core_2.12/jars/specs2-core_2.12-3.9.4.jar" } sourcepath={ home + "/.ivy2/cache/org.specs2/specs2-core_2.12/srcs/specs2-core_2.12-3.9.4-sources.jar" } />))
+    error("""Expected .classpath of suba project to contain <classpathentry kind="lib" path={ home + "/.ivy2/cache/org.specs2/specs2-core_2.12/jars/specs2-core_2.12-3.9.4.jar" } sourcepath={ home + "/.ivy2/cache/org.specs2/specs2-core_2.12/srcs/specs2-core_2.12-3.9.4-sources.jar" } />: %s""" format classpath)
 }
 
 TaskKey[Unit]("verify-classpath-xml-subb") := {
@@ -184,12 +176,12 @@ TaskKey[Unit]("verify-classpath-xml-subb") := {
   if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "src/test/scala") 
     error("""Not expected .classpath of root project to contain <classpathentry kind="..." path="src/test/scala" output="..." /> """)
   // lib entries without sources
-  if (!(classpath.child contains <classpathentry kind="lib" path="../../lib_managed/ch/qos/logback/logback-classic/logback-classic-1.0.1.jar" />))
-    error("""Expected .classpath of subb project to contain <classpathentry kind="lib" path="../../lib_managed/ch/qos/logback/logback-classic/logback-classic-1.0.1.jar" />: %s""" format classpath)
-  if (!(classpath.child contains <classpathentry kind="lib" path="../../lib_managed/biz/aQute/bnd/biz.aQute.bndlib/biz.aQute.bndlib-3.4.0.jar" />))
-    error("""Expected .classpath of subb project to contain <classpathentry kind="lib" path="../../lib_managed/biz/aQute/bnd/biz.aQute.bndlib/biz.aQute.bndlib-3.4.0.jar" />: %s""" format classpath)
-  if (!(classpath.child contains <classpathentry kind="lib" path="../../lib_managed/junit/junit/junit-4.7.jar" />))
-    error("""Expected .classpath of subb project to contain <classpathentry kind="lib" path="../../lib_managed/junit/junit/junit-4.7.jar" />: %s""" format classpath)
+  if (!(classpath.child contains <classpathentry kind="lib" path="../../lib_managed/jars/ch.qos.logback/logback-classic/logback-classic-1.0.1.jar" />))
+    error("""Expected .classpath of subb project to contain <classpathentry kind="lib" path="../../lib_managed/jars/ch.qos.logback/logback-classic/logback-classic-1.0.1.jar" />: %s""" format classpath)
+  if (!(classpath.child contains <classpathentry kind="lib" path="../../lib_managed/jars/biz.aQute.bnd/biz.aQute.bndlib/biz.aQute.bndlib-3.4.0.jar" />))
+    error("""Expected .classpath of subb project to contain <classpathentry kind="lib" path="../../lib_managed/jars/biz.aQute.bnd/biz.aQute.bndlib/biz.aQute.bndlib-3.4.0.jar" />: %s""" format classpath)
+  if (!(classpath.child contains <classpathentry kind="lib" path="../../lib_managed/jars/junit/junit/junit-4.7.jar" />))
+    error("""Expected .classpath of subb project to contain <classpathentry kind="lib" path="../../lib_managed/jars/junit/junit/junit-4.7.jar" />: %s""" format classpath)
   if ((classpath \ "classpathentry" \\ "@path") map (_.text) contains "specs2-core_2.12") 
     error("""Not expected .classpath of subb project to contain <classpathentry kind="..." path="...specs2-core_2.12..." output="..." /> """)
   // project dependencies
@@ -209,8 +201,8 @@ TaskKey[Unit]("verify-classpath-xml-subc") := {
   if (!(classpath.child contains <classpathentry kind="src" path="src/main/scala" output=".target" />))
     error("""Expected .classpath of subc project to contain <classpathentry kind="src" path="src/main/scala" output=".target" /> """)
   // lib entries with absolute paths
-  if (!(classpath.child contains <classpathentry kind="lib" path={ "%s/lib_managed/biz.aQute.bnd/biz.aQute.bndlib/biz.aQute.bndlib-3.4.0.jar".format(dir.getCanonicalPath) } />))
-    error("""Expected .classpath of subc project to contain <classpathentry kind="lib" path="%s/lib_managed/biz.aQute.bnd/biz.aQute.bndlib/biz.aQute.bndlib-3.4.0.jar" />: %s""".format(dir.getCanonicalPath, classpath))
+  if (!(classpath.child contains <classpathentry kind="lib" path={ "%s/lib_managed/jars/biz.aQute.bnd/biz.aQute.bndlib/biz.aQute.bndlib-3.4.0.jar".format(dir.getCanonicalPath) } />))
+    error("""Expected .classpath of subc project to contain <classpathentry kind="lib" path="%s/lib_managed/jars/biz.aQute.bnd/biz.aQute.bndlib/biz.aQute.bndlib-3.4.0.jar" />: %s""".format(dir.getCanonicalPath, classpath))
   // classpath transformer
   if (!(classpath.child contains <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/>))
     error("""Expected .classpath of subc project to contain <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/> """)
