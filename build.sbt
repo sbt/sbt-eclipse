@@ -19,7 +19,7 @@ lazy val root = (project in file("."))
       scalacOptions ++= Seq("-unchecked", "-deprecation", "-target:jvm-1.8"),
       scalaVersion := "2.12.8",
       libraryDependencies ++= Seq(
-        "org.scala-lang.modules" %% "scala-xml"     % "1.1.1",
+        "org.scala-lang.modules" %% "scala-xml"     % "1.3.0",
         "org.scalaz"             %% "scalaz-core"   % "7.2.14",
         "org.scalaz"             %% "scalaz-effect" % "7.2.14",
         "org.scalatest"          %% "scalatest"     % "3.0.1" % "test"
