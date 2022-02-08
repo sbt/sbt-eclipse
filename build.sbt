@@ -13,8 +13,8 @@ lazy val root = (project in file("."))
       name := "sbteclipse-plugin",
       sbtPlugin := true,
       git.baseVersion := baseVersion,
-      sbtVersion in GlobalScope := {
-        System.getProperty("sbt.build.version", (sbtVersion in GlobalScope).value)
+      (GlobalScope / sbtVersion) := {
+        System.getProperty("sbt.build.version", (GlobalScope / sbtVersion).value)
       },
       scalacOptions ++= Seq("-unchecked", "-deprecation", "-target:jvm-1.8"),
       scalaVersion := "2.12.8",
@@ -29,8 +29,8 @@ lazy val root = (project in file("."))
       bintrayPackage := "sbteclipse",
       bintrayRepository := "sbt-plugin-releases",
       licenses += ("Apache-2.0", url("https://www.apache.org/licenses/LICENSE-2.0.html")),
-      publishArtifact in (Compile, packageDoc) := false,
-      publishArtifact in (Compile, packageSrc) := false,
+      (Compile / packageDoc / publishArtifact) := false,
+      (Compile / packageSrc / publishArtifact) := false,
       scriptedBufferLog := false,
       scriptedLaunchOpts ++= Seq("-Xmx1024M", "-Dplugin.version=" + version.value)
     )
