@@ -1,6 +1,0 @@
-language: scala
-cache:
-  directories:
-    - $HOME/.ivy2
-script:
-  - sbt test scripted

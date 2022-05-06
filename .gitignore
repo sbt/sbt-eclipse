@@ -3,6 +3,7 @@ boot/
 lib_managed/
 target/
 .history
+.bsp
 
 # Eclipse
 .cache
