@@ -20,8 +20,8 @@ lazy val root = (project in file("."))
       scalaVersion := "2.12.15",
       libraryDependencies ++= Seq(
         "org.scala-lang.modules" %% "scala-xml"     % "1.3.0",
-        "org.scalaz"             %% "scalaz-core"   % "7.2.34",
-        "org.scalaz"             %% "scalaz-effect" % "7.2.34",
+        "org.scalaz"             %% "scalaz-core"   % "7.3.6",
+        "org.scalaz"             %% "scalaz-effect" % "7.3.6",
         "org.scalatest"          %% "scalatest"     % "3.0.9" % "test"
       ),
       publishMavenStyle := false,
