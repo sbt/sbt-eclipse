@@ -16,4 +16,4 @@ jobs:
         distribution: temurin
         java-version: 11
     - name: Scripted tests
-      run: sbt scripted
+      run: sbt test scripted
