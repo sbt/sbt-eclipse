@@ -20,9 +20,9 @@ lazy val root = (project in file("."))
       scalaVersion := "2.12.8",
       libraryDependencies ++= Seq(
         "org.scala-lang.modules" %% "scala-xml"     % "1.3.0",
-        "org.scalaz"             %% "scalaz-core"   % "7.2.14",
-        "org.scalaz"             %% "scalaz-effect" % "7.2.14",
-        "org.scalatest"          %% "scalatest"     % "3.0.1" % "test"
+        "org.scalaz"             %% "scalaz-core"   % "7.2.34",
+        "org.scalaz"             %% "scalaz-effect" % "7.2.34",
+        "org.scalatest"          %% "scalatest"     % "3.0.9" % "test"
       ),
       publishMavenStyle := false,
       bintrayOrganization := Some("sbt"),
