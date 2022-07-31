@@ -22,7 +22,7 @@ lazy val root = (project in file("."))
         "org.scala-lang.modules" %% "scala-xml"     % "1.3.0",
         "org.scalaz"             %% "scalaz-core"   % "7.2.34",
         "org.scalaz"             %% "scalaz-effect" % "7.2.34",
-        "org.scalatest"          %% "scalatest"     % "3.0.9" % "test"
+        "org.scalatest"          %% "scalatest"     % "3.2.13" % "test"
       ),
       publishMavenStyle := false,
       bintrayOrganization := Some("sbt"),
