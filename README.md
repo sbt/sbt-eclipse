@@ -41,4 +41,4 @@ Maintainers
 
 ### Releases
 
-Maintainers must run `git tag` to tag a release. The release can then be pushed to bintray with `sbt ^publish`.
+Maintainers must run `git tag` to tag a release. The release can then be pushed with `sbt ^publish`.

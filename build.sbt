@@ -1,5 +1,3 @@
-import _root_.bintray.BintrayPlugin.bintrayPublishSettings
-
 val baseVersion = "6.0.0-M1"
 
 lazy val root = (project in file("."))
@@ -7,7 +5,6 @@ lazy val root = (project in file("."))
   .settings(
     versionWithGit ++
     sbtrelease.ReleasePlugin.projectSettings ++
-    bintrayPublishSettings ++
     Seq(
       organization := "com.typesafe.sbteclipse",
       name := "sbteclipse-plugin",
@@ -25,9 +22,6 @@ lazy val root = (project in file("."))
         "org.scalatest"          %% "scalatest"     % "3.2.3" % "test"
       ),
       publishMavenStyle := false,
-      bintrayOrganization := Some("sbt"),
-      bintrayPackage := "sbteclipse",
-      bintrayRepository := "sbt-plugin-releases",
       licenses += ("Apache-2.0", url("https://www.apache.org/licenses/LICENSE-2.0.html")),
       publishArtifact in (Compile, packageDoc) := false,
       publishArtifact in (Compile, packageSrc) := false,
