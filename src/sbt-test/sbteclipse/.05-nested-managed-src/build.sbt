@@ -2,7 +2,7 @@ import scala.xml.XML
 import sbtprotobuf.ProtobufPlugin
 import sys.error
 
-organization := "com.typesafe.sbteclipse"
+organization := "com.github.sbt"
 
 name := "sbteclipse-test"
 

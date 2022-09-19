@@ -6,7 +6,7 @@ import sys.error
 
 (ThisBuild / EclipseKeys.skipParents) := false
 
-organization := "com.typesafe.sbteclipse"
+organization := "com.github.sbt"
 
 name := "sbteclipse-test"
 

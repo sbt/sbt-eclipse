@@ -2,7 +2,7 @@
 (ThisBuild / EclipseKeys.withSource) := false
 (ThisBuild / EclipseKeys.withJavadoc) := false
 
-organization := "com.typesafe.sbteclipse"
+organization := "com.github.sbt"
 
 name := "sbteclipse-test"
 
