@@ -1,10 +1,10 @@
 package com.typesafe.sbteclipse.core.util
 
-import org.scalatest.WordSpec
-import org.scalatest.Matchers
-import ScalaVersion.FullScalaVersion
+import com.typesafe.sbteclipse.core.util.ScalaVersion.FullScalaVersion
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class ScalaVersionSpec extends WordSpec with Matchers {
+class ScalaVersionSpec extends AnyWordSpec with Matchers {
   "ScalaVersion" should {
     """parse Scala version "2.12.0"""" in {
       ScalaVersion.parse("2.12.0") shouldEqual FullScalaVersion(2, 12, 0, None)

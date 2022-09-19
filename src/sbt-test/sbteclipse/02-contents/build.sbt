@@ -1,8 +1,8 @@
-EclipseKeys.skipParents in ThisBuild := false
-EclipseKeys.withSource in ThisBuild := false
-EclipseKeys.withJavadoc in ThisBuild := false
+(ThisBuild / EclipseKeys.skipParents) := false
+(ThisBuild / EclipseKeys.withSource) := false
+(ThisBuild / EclipseKeys.withJavadoc) := false
 
-organization := "com.typesafe.sbteclipse"
+organization := "com.github.sbt"
 
 name := "sbteclipse-test"
 
@@ -12,10 +12,10 @@ lazy val root =
   Project("root", new File(".")).
   settings(
     Defaults.coreDefaultSettings ++ Seq(
-      unmanagedSourceDirectories in Compile += { baseDirectory(new File(_, "src/main/scala")).value },
-      unmanagedSourceDirectories in Test += { baseDirectory(new File(_, "src/test/scala")).value },
+      (Compile / unmanagedSourceDirectories) += { baseDirectory(new File(_, "src/main/scala")).value },
+      (Test / unmanagedSourceDirectories) += { baseDirectory(new File(_, "src/test/scala")).value },
       libraryDependencies ++= Seq(
-        "org.scala-lang" % "scala-compiler" % "2.12.4",
+        "org.scala-lang" % "scala-compiler" % "2.12.17",
         "biz.aQute.bnd" % "biz.aQute.bndlib" % "3.4.0"
       ),
       retrieveManaged := true
@@ -48,7 +48,7 @@ lazy val suba =
         "biz.aQute.bnd" % "biz.aQute.bndlib" % "3.4.0",
         "org.specs2" % "specs2-core_2.12" % "3.9.4" % "test"
       ),
-      EclipseKeys.createSrc in Test := EclipseCreateSrc.ValueSet.empty,
+      (Test / EclipseKeys.createSrc) := EclipseCreateSrc.ValueSet.empty,
       EclipseKeys.withSource := true
     )
   )

@@ -4,9 +4,9 @@ import java.util.Properties
 import scala.collection.JavaConverters._
 import sys.error
 
-EclipseKeys.skipParents in ThisBuild := false
+(ThisBuild / EclipseKeys.skipParents) := false
 
-organization := "com.typesafe.sbteclipse"
+organization := "com.github.sbt"
 
 name := "sbteclipse-test"
 

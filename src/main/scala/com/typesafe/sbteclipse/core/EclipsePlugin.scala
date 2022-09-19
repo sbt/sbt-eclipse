@@ -18,25 +18,14 @@
 
 package com.typesafe.sbteclipse.core
 
-import sbt.{
-  Configuration,
-  Configurations,
-  File,
-  Keys,
-  ProjectRef,
-  ResolvedProject,
-  Setting,
-  SettingKey,
-  State,
-  TaskKey,
-  Def
-}
+import sbt.Keys.commands
+import sbt.internal.inc.PlainVirtualFileConverter
 import sbt.io.Path.rebase
-import sbt.Keys.{ baseDirectory, commands }
-import scala.util.control.Exception
-import scala.xml.{ Attribute, Elem, MetaData, Node, NodeSeq, Null, Text }
-import scala.xml.transform.RewriteRule
+import sbt.{ Configuration, Configurations, Def, File, Keys, ProjectRef, Setting, SettingKey, State, TaskKey }
+
 import scala.language.implicitConversions
+import scala.xml._
+import scala.xml.transform.RewriteRule
 
 object EclipsePlugin {
 
@@ -45,8 +34,10 @@ object EclipsePlugin {
     import EclipseKeys._
     Seq(
       commandName := "eclipse",
-      commands += { Eclipse.eclipseCommand(commandName.value) },
-      managedClassDirectories := Seq((classesManaged in sbt.Compile).value, (classesManaged in sbt.Test).value),
+      commands += {
+        Eclipse.eclipseCommand(commandName.value)
+      },
+      managedClassDirectories := Seq((sbt.Compile / classesManaged).value, (sbt.Test / classesManaged).value),
       preTasks := Seq(),
       skipProject := false,
       withBundledScalaContainers := projectFlavor.value.id == EclipseProjectFlavor.ScalaIDE.id,
@@ -88,13 +79,13 @@ object EclipsePlugin {
 
   def copyManagedSettings(scope: Configuration): Seq[Setting[_]] =
     Seq(
-      EclipseKeys.classesManaged in scope := {
+      (scope / EclipseKeys.classesManaged) := {
         import sbt._
-        val classes = (Keys.classDirectory in scope).value
+        val classes = (scope / Keys.classDirectory).value
         classes.getParentFile / (classes.getName + "_managed")
       },
-      EclipseKeys.generateClassesManaged in scope := EclipseKeys.createSrc.value contains EclipseCreateSrc.ManagedClasses,
-      Keys.compile in scope := copyManagedClasses(scope).value)
+      (scope / EclipseKeys.generateClassesManaged) := EclipseKeys.createSrc.value contains EclipseCreateSrc.ManagedClasses,
+      (scope / Keys.compile) := copyManagedClasses(scope).value)
 
   // Depends on compile and will ensure all classes being generated from source files in the
   // source_managed space are copied into a class_managed folder.
@@ -105,26 +96,35 @@ object EclipsePlugin {
   def copyManagedClasses(scope: Configuration) =
     Def.task {
       import sbt._
-      val analysis = (Keys.compile in scope).value
-      if ((EclipseKeys.generateClassesManaged in scope).value) {
-        val classes = (Keys.classDirectory in scope).value
-        val srcManaged = (Keys.managedSourceDirectories in scope).value
-
+      val analysis = (scope / Keys.compile).value
+      if ((scope / EclipseKeys.generateClassesManaged).value) {
+        val classes = (scope / Keys.classDirectory).value
+        val srcManaged = (scope / Keys.managedSourceDirectories).value
+        val baseDir = (scope / Keys.baseDirectory).value
         // Copy managed classes - only needed in Compile scope
         // This is done to ease integration with Eclipse, but it's doubtful as to how effective it is.
-        val managedClassesDirectory = (EclipseKeys.classesManaged in scope).value
-        val managedClasses = ((srcManaged ** "*.scala").get ++ (srcManaged ** "*.java").get).map { managedSourceFile =>
-          analysis.asInstanceOf[sbt.internal.inc.Analysis].relations.products(managedSourceFile)
-        }.flatten pair rebase(classes, managedClassesDirectory)
+        val managedClassesDirectory = (scope / EclipseKeys.classesManaged).value
+
+        val managedSources = ((srcManaged ** "*.scala").get ++ (srcManaged ** "*.java").get)
+          .filter(f => f.getAbsolutePath.startsWith(baseDir.getAbsolutePath))
+          .map(f => PlainVirtualFileConverter.converter.toVirtualFile(sbt.io.Path.apply(f.getAbsolutePath.replace(baseDir.getAbsolutePath, "${BASE}")).asPath))
+        val managedClasses = managedSources
+          .flatMap { tp =>
+            analysis.asInstanceOf[sbt.internal.inc.Analysis].relations.srcProd.filter((s, _) => s.id().equalsIgnoreCase(tp.id()))._2s
+          }
+          .map(vf => PlainVirtualFileConverter.converter.toPath(vf)).map(p => PathFinder(Path.apply(p.toFile.getPath.replace("${BASE}", baseDir.getAbsolutePath)).asFile))
+          .flatten(p => p.pair(rebase(classes, managedClassesDirectory)))
+
         // Copy modified class files
         val managedSet = IO.copy(managedClasses)
         // Remove deleted class files
-        (managedClassesDirectory ** "*.class").get.filterNot(managedSet.contains(_)).foreach(_.delete())
+        (managedClassesDirectory ** "*.class").get.filterNot(managedSet.contains).foreach(_.delete())
       }
       analysis
     }
 
   object EclipseKeys {
+
     import EclipseOpts._
 
     val executionEnvironment: SettingKey[Option[EclipseExecutionEnvironment.Value]] = SettingKey(
@@ -208,6 +208,18 @@ object EclipsePlugin {
 
   object EclipseExecutionEnvironment extends Enumeration {
 
+    val JavaSE19 = Value("JavaSE-19")
+
+    val JavaSE_18 = Value("JavaSE-18")
+
+    val JavaSE_17 = Value("JavaSE-17")
+
+    val JavaSE_16 = Value("JavaSE-16")
+
+    val JavaSE15 = Value("JavaSE-15")
+
+    val JavaSE14 = Value("JavaSE-14")
+
     val JavaSE13 = Value("JavaSE-13")
 
     val JavaSE12 = Value("JavaSE-12")
@@ -234,7 +246,7 @@ object EclipsePlugin {
 
     val JRE11 = Value("JRE-1.1")
 
-    val valueSeq: Seq[Value] = JavaSE13 :: JavaSE12 :: JavaSE11 :: JavaSE10 :: JavaSE9 :: JavaSE18 :: JavaSE17 :: JavaSE16 :: J2SE15 :: J2SE14 :: J2SE13 :: J2SE12 :: JRE11 :: Nil
+    val valueSeq: Seq[Value] = JavaSE19 :: JavaSE_18 :: JavaSE_17 :: JavaSE_16 :: JavaSE15 :: JavaSE14 :: JavaSE13 :: JavaSE12 :: JavaSE11 :: JavaSE10 :: JavaSE9 :: JavaSE18 :: JavaSE17 :: JavaSE16 :: J2SE15 :: J2SE14 :: J2SE13 :: J2SE12 :: JRE11 :: Nil
   }
 
   sealed trait EclipseClasspathEntry {

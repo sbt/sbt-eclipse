@@ -2,7 +2,7 @@ import scala.xml.XML
 import sbtprotobuf.ProtobufPlugin
 import sys.error
 
-organization := "com.typesafe.sbteclipse"
+organization := "com.github.sbt"
 
 name := "sbteclipse-test"
 
@@ -20,10 +20,10 @@ TaskKey[Unit]("verify-valid") := {
   val classpath = XML.loadFile(dir / ".classpath")
   val srcManaged = """^target/scala-([0-9.]+)/src_managed/main$""".r
   val managedSrcRoot = (classpath \ "classpathentry") find (node => node.attributes("path").exists(_.text.matches(srcManaged.toString)))
-  if (!managedSrcRoot.isDefined)
+  if (managedSrcRoot.isEmpty)
     error("""Expected .classpath to contain an entry for src_managed/main""")
   val excludes = managedSrcRoot.flatMap(_.attribute("excluding")).map(_.text).map(_.split("""\|"""))
-  if (!excludes.isDefined)
+  if (excludes.isEmpty)
     error("""Expected classpathentry src_managed/main to contain an excluding attribute""")
   val separator = java.io.File.separator
   val protobufFolder = "compiled_protobuf"

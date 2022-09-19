@@ -1,0 +1,30 @@
+name: Check
+
+on:
+  pull_request:
+
+  push:
+    branches:
+      - main # Check branch after merge
+
+concurrency:
+  # Only run once for latest commit per ref and cancel other (previous) runs.
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: Tests
+    uses: playframework/.github/.github/workflows/cmd.yml@v2
+    with:
+      java: 11, 8
+      scala: 2.12.17
+      cmd: |
+        sbt ++$MATRIX_SCALA test scripted
+
+  finish:
+    name: Finish
+    if: github.event_name == 'pull_request'
+    needs: # Should be last
+      - "tests"
+    uses: playframework/.github/.github/workflows/rtm.yml@v2
