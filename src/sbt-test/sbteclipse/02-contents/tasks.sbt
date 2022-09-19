@@ -246,7 +246,7 @@ TaskKey[Unit]("verify-scala-settings") := {
     "deprecation" -> "true",
     "Xelide-below" -> "1000"
   )
-  val currentSbtVersion = (sbtVersion in pluginCrossBuild).value
+  val currentSbtVersion = (pluginCrossBuild / sbtVersion).value
   val expected = CrossVersion.partialVersion(currentSbtVersion) match {
     case Some((0,13)) =>
       Map(

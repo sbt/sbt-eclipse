@@ -1,9 +1,9 @@
 import scala.xml.XML
 import sys.error
 
-EclipseKeys.skipParents in ThisBuild := false
-EclipseKeys.withSource in ThisBuild := false
-EclipseKeys.withJavadoc in ThisBuild := false
+(ThisBuild / EclipseKeys.skipParents) := false
+(ThisBuild / EclipseKeys.withSource) := false
+(ThisBuild / EclipseKeys.withJavadoc) := false
 
 organization := "com.typesafe.sbteclipse"
 

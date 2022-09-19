@@ -37,7 +37,7 @@ object EclipsePlugin {
       commands += {
         Eclipse.eclipseCommand(commandName.value)
       },
-      managedClassDirectories := Seq((classesManaged in sbt.Compile).value, (classesManaged in sbt.Test).value),
+      managedClassDirectories := Seq((sbt.Compile / classesManaged).value, (sbt.Test / classesManaged).value),
       preTasks := Seq(),
       skipProject := false,
       withBundledScalaContainers := projectFlavor.value.id == EclipseProjectFlavor.ScalaIDE.id,
@@ -79,13 +79,13 @@ object EclipsePlugin {
 
   def copyManagedSettings(scope: Configuration): Seq[Setting[_]] =
     Seq(
-      EclipseKeys.classesManaged in scope := {
+      (scope / EclipseKeys.classesManaged) := {
         import sbt._
-        val classes = (Keys.classDirectory in scope).value
+        val classes = (scope / Keys.classDirectory).value
         classes.getParentFile / (classes.getName + "_managed")
       },
-      EclipseKeys.generateClassesManaged in scope := EclipseKeys.createSrc.value contains EclipseCreateSrc.ManagedClasses,
-      Keys.compile in scope := copyManagedClasses(scope).value)
+      (scope / EclipseKeys.generateClassesManaged) := EclipseKeys.createSrc.value contains EclipseCreateSrc.ManagedClasses,
+      (scope / Keys.compile) := copyManagedClasses(scope).value)
 
   // Depends on compile and will ensure all classes being generated from source files in the
   // source_managed space are copied into a class_managed folder.
@@ -96,14 +96,14 @@ object EclipsePlugin {
   def copyManagedClasses(scope: Configuration) =
     Def.task {
       import sbt._
-      val analysis = (Keys.compile in scope).value
-      if ((EclipseKeys.generateClassesManaged in scope).value) {
-        val classes = (Keys.classDirectory in scope).value
-        val srcManaged = (Keys.managedSourceDirectories in scope).value
-        val baseDir = (Keys.baseDirectory in scope).value
+      val analysis = (scope / Keys.compile).value
+      if ((scope / EclipseKeys.generateClassesManaged).value) {
+        val classes = (scope / Keys.classDirectory).value
+        val srcManaged = (scope / Keys.managedSourceDirectories).value
+        val baseDir = (scope / Keys.baseDirectory).value
         // Copy managed classes - only needed in Compile scope
         // This is done to ease integration with Eclipse, but it's doubtful as to how effective it is.
-        val managedClassesDirectory = (EclipseKeys.classesManaged in scope).value
+        val managedClassesDirectory = (scope / EclipseKeys.classesManaged).value
 
         val managedSources = ((srcManaged ** "*.scala").get ++ (srcManaged ** "*.java").get)
           .filter(f => f.getAbsolutePath.startsWith(baseDir.getAbsolutePath))
