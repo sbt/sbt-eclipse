@@ -1,7 +1,11 @@
-sbteclipse [![Build Status](https://travis-ci.org/sbt/sbteclipse.svg?branch=master)](https://travis-ci.org/sbt/sbteclipse)
-=========================
+# sbt-eclipse
 
-Plugin for [sbt](https://github.com/sbt/sbt) to create [Eclipse](http://www.eclipse.org/) project definitions. Please see below for installation details and the [Documentation](http://github.com/sbt/sbteclipse/wiki/) for information about configuring sbteclipse. Information about contribution policy and license can be found below.
+[![Build Status](https://github.com/sbt/sbt-eclipse/actions/workflows/build-test.yml/badge.svg)](https://github.com/sbt/sbt-eclipse/actions/workflows/build-test.yml)
+[![Maven](https://img.shields.io/maven-central/v/com.github.sbt/sbt-eclipse_2.12.svg?logo=apache-maven)](https://mvnrepository.com/artifact/com.github.sbt/sbt-eclipse_2.12)
+[![Repository size](https://img.shields.io/github/repo-size/sbt/sbt-eclipse.svg?logo=git)](https://github.com/sbt/sbt-eclipse)
+[![Scala Steward badge](https://img.shields.io/badge/Scala_Steward-helping-blue.svg?style=flat&logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAQCAMAAAARSr4IAAAAVFBMVEUAAACHjojlOy5NWlrKzcYRKjGFjIbp293YycuLa3pYY2LSqql4f3pCUFTgSjNodYRmcXUsPD/NTTbjRS+2jomhgnzNc223cGvZS0HaSD0XLjbaSjElhIr+AAAAAXRSTlMAQObYZgAAAHlJREFUCNdNyosOwyAIhWHAQS1Vt7a77/3fcxxdmv0xwmckutAR1nkm4ggbyEcg/wWmlGLDAA3oL50xi6fk5ffZ3E2E3QfZDCcCN2YtbEWZt+Drc6u6rlqv7Uk0LdKqqr5rk2UCRXOk0vmQKGfc94nOJyQjouF9H/wCc9gECEYfONoAAAAASUVORK5CYII=)](https://scala-steward.org)
+
+Plugin for [sbt](https://github.com/sbt/sbt) to create [Eclipse](http://www.eclipse.org/) project definitions. Please see below for installation details and the [Documentation](http://github.com/sbt/sbt-eclipse/wiki/) for information about configuring sbt-eclipse. Information about contribution policy and license can be found below.
 
 Installation and Basic Usage
 ---------------------
@@ -11,12 +15,15 @@ Installation and Basic Usage
   - the global file (for version 1.0 and up) at *~/.sbt/SBT_VERSION/plugins/plugins.sbt*
   - the project-specific file at *PROJECT_DIR/project/plugins.sbt*
 
-- Add sbteclipse to the plugin definition file:
+- Add sbt-eclipse to the plugin definition file:
 
   - Version 6.x+ only supports SBT 1.4+. Use 5.2.4 or older for previous versions of SBT
 
 ```
-addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "6.0.0-RC1")
+addSbtPlugin("com.github.sbt" % "sbt-eclipse" % "6.0.0-RC1")
+
+// For older releases (< version 6.0.0)
+addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "5.2.4")
 ```
 
 - In sbt use the command `eclipse` to create Eclipse project files
@@ -28,7 +35,7 @@ addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "6.0.0-RC1")
 Contribution policy
 -------------------
 
-Contributions via GitHub pull requests are gladly accepted from their original author. Before we can accept pull requests, you will need to agree to the [Typesafe Contributor License Agreement](http://www.typesafe.com/contribute/cla) online, using your GitHub account - it takes 30 seconds.
+Contributions via GitHub pull requests are gladly accepted from their original author.
 
 
 License
