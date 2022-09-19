@@ -1,1 +1,6 @@
 _extends: playframework/.github:.github/release-drafts/increasing-major-version.yml
+template: |
+  ## :green_book: What’s Changed
+
+  $CHANGES
+
