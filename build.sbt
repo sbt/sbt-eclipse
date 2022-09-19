@@ -1,15 +1,14 @@
 val baseVersion = "6.0.0-M1"
 
 lazy val root = (project in file("."))
-  .enablePlugins(GitVersioning, SbtPlugin)
+  .enablePlugins(SbtPlugin)
   .settings(
-    versionWithGit ++
     sbtrelease.ReleasePlugin.projectSettings ++
     Seq(
       organization := "com.typesafe.sbteclipse",
       name := "sbteclipse-plugin",
+      version := baseVersion,
       sbtPlugin := true,
-      git.baseVersion := baseVersion,
       (GlobalScope / sbtVersion) := {
         System.getProperty("sbt.build.version", (GlobalScope / sbtVersion).value)
       },
