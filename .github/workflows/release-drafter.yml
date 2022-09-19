@@ -12,7 +12,7 @@ jobs:
       - uses: release-drafter/release-drafter@v5
         with:
           name: "sbt-eclipse $RESOLVED_VERSION"
-          config-name: playframework:.github/release-drafts/increasing-major-version.yml # located in .github/ in the default branch within this or the .github repo
+          config-name: playframework/.github:.github/release-drafts/increasing-major-version.yml # located in .github/ in the default branch within this or the .github repo
           commitish: ${{ github.ref_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
