@@ -1,6 +1,0 @@
-_extends: release-drafts/increasing-major-version.yml
-template: |
-  ## :green_book: What’s Changed
-
-  $CHANGES
-
