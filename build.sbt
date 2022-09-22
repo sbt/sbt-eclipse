@@ -6,6 +6,14 @@ lazy val root = (project in file("."))
       name := "sbt-eclipse",
       scalacOptions ++= Seq("-unchecked", "-deprecation", "-target:jvm-1.8"),
       scalaVersion := "2.12.17",
+      // Customise sbt-dynver's behaviour to make it work with tags which aren't v-prefixed
+      ThisBuild / dynverVTagPrefix := false,
+      // Sanity-check: assert that version comes from a tag (e.g. not a too-shallow clone)
+      // https://github.com/dwijnand/sbt-dynver/#sanity-checking-the-version
+      Global / onLoad := (Global / onLoad).value.andThen { s =>
+        dynverAssertTagVersion.value
+        s
+      },
       libraryDependencies ++= Seq(
         "org.scala-lang.modules" %% "scala-xml"     % "2.1.0",
         "org.scalaz"             %% "scalaz-core"   % "7.2.34",
