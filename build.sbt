@@ -23,8 +23,6 @@ lazy val root = (project in file("."))
       ),
       homepage := Some(url("https://github.com/sbt/sbt-eclipse")),
       licenses += ("Apache-2.0", url("https://www.apache.org/licenses/LICENSE-2.0.html")),
-      (Compile / packageDoc / publishArtifact) := false,
-      (Compile / packageSrc / publishArtifact) := false,
       scriptedBufferLog := false,
       scriptedLaunchOpts ++= Seq("-Xmx1024M", "-Dplugin.version=" + version.value)
     )
