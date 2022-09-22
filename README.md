@@ -48,4 +48,4 @@ Maintainers
 
 ### Releases
 
-Maintainers must run `git tag` to tag a release. The release can then be pushed with `sbt ^publish`.
+Maintainers must run `git tag` or use the GitHub UI to tag a release. As soon as a tag gets pushed to the repository (or created via the GitHub UI) a release will be pushed to the [Maven Central repository](https://repo1.maven.org/maven2/com/github/sbt/). Also on each push to the main branch [snapshots will be published](https://oss.sonatype.org/content/repositories/snapshots/com/github/sbt/).
