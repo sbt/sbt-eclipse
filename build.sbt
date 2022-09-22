@@ -3,6 +3,7 @@ lazy val root = (project in file("."))
   .settings(
     Seq(
       organization := "com.github.sbt",
+      sonatypeProfileName := "com.github.sbt.sbt-eclipse", // See https://issues.sonatype.org/browse/OSSRH-77819#comment-1203625
       name := "sbt-eclipse",
       scalacOptions ++= Seq("-unchecked", "-deprecation", "-target:jvm-1.8"),
       scalaVersion := "2.12.17",
