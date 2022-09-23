@@ -16,7 +16,6 @@ lazy val root = (project in file("."))
         s
       },
       libraryDependencies ++= Seq(
-        "org.scala-lang.modules" %% "scala-xml"     % "2.1.0",
         "org.scalaz"             %% "scalaz-core"   % "7.2.34",
         "org.scalaz"             %% "scalaz-effect" % "7.2.34",
         "org.scalatest"          %% "scalatest"     % "3.2.3" % "test"
