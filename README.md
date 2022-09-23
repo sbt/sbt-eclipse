@@ -18,7 +18,7 @@ Installation and Basic Usage
 
   - Version 6.x+ only supports SBT 1.4+. Use 5.2.4 or older for previous versions of SBT
 
-```
+```sbt
 addSbtPlugin("com.github.sbt" % "sbt-eclipse" % "6.0.0")
 
 // For older sbt versions (< 1.4.0)
