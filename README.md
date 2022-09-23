@@ -21,7 +21,7 @@ Installation and Basic Usage
 ```
 addSbtPlugin("com.github.sbt" % "sbt-eclipse" % "6.0.0")
 
-// For older releases (< version 6.0.0)
+// For older sbt versions (< 1.4.0)
 addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "5.2.4")
 ```
 
