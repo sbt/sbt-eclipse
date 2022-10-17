@@ -64,6 +64,8 @@ import scalaz.{ Equal, NonEmptyList }
 import scalaz.Scalaz._
 import scalaz.effect.IO
 import com.typesafe.sbteclipse.core.util.ScalaVersion
+import java.io.FileReader
+import java.io.Reader
 
 private object Eclipse extends EclipseSDTConfig {
   val SettingFormat = """-([^:]*):?(.*)""".r
@@ -81,6 +83,8 @@ private object Eclipse extends EclipseSDTConfig {
   val JavaBuilder = "org.eclipse.jdt.core.javabuilder"
 
   val JavaNature = "org.eclipse.jdt.core.javanature"
+
+  val JreContainerVersionSelector = """.*/.*/.*-([0-9.]+)""".r
 
   def eclipseCommand(commandName: String): Command =
     Command(commandName)(_ => parser)((state, args) => action(args.toMap, state))
@@ -217,6 +221,7 @@ private object Eclipse extends EclipseSDTConfig {
       _ <- saveXml(baseDirectory / ".classpath", new RuleTransformer(classpathTransformers: _*)(cp))
       _ <- saveProperties(baseDirectory / ".settings" / "org.eclipse.core.resources.prefs", Seq(("encoding/<project>" -> "UTF-8")))
       _ <- saveProperties(baseDirectory / ".settings" / "org.scala-ide.sdt.core.prefs", scalacOptions ++: compileOrder.map { order => Seq(("compileorder" -> order)) }.getOrElse(Nil))
+      _ <- updateProperties(baseDirectory / ".settings" / "org.eclipse.jdt.core.prefs", jreContainerToJdtCompilerSettings(jreContainer))
     } yield n
   }
 
@@ -385,6 +390,19 @@ private object Eclipse extends EclipseSDTConfig {
       case Some(ee) => "%s/%s/%s".format(JreContainer, StandardVmType, ee)
       case None => JreContainer
     }
+
+  def jreContainerToJdtCompilerSettings(jreContainer: String): Seq[(String, String)] = {
+    jreContainer match {
+      case JreContainerVersionSelector(version) =>
+        Seq(
+          "org.eclipse.jdt.core.compiler.codegen.targetPlatform" -> version,
+          "org.eclipse.jdt.core.compiler.compliance" -> version,
+          "org.eclipse.jdt.core.compiler.source" -> version
+        )
+      case _ =>
+        Nil
+    }
+  }
 
   def builderAndNatures(projectFlavor: EclipseProjectFlavor.Value) =
     if (projectFlavor.id == EclipseProjectFlavor.ScalaIDE.id)
@@ -602,6 +620,45 @@ private object Eclipse extends EclipseSDTConfig {
     } else
       io(())
 
+  def updateProperties(file: File, settings: Seq[(String, String)]): IO[Unit] =
+    if (!settings.isEmpty) {
+      fileExists(file).flatMap {
+        case false =>
+          saveProperties(file, settings)
+        case true =>
+          fileReader(file)
+            .bracket(closeReader) { reader =>
+              io {
+                val properties = new Properties
+                properties.load(reader)
+                properties
+              }
+            }
+            .flatMap { properties =>
+              // only write if updates were made
+              val write = (for {
+                (key, value) <- settings
+                update = {
+                  if (properties.getProperty(key) != value) {
+                    properties.setProperty(key, value)
+                    true
+                  } else
+                    false
+                }
+              } yield update).fold(false)(_ || _)
+
+              if (write) {
+                fileWriter(file).bracket(closeWriter) { writer =>
+                  io(properties.store(writer, "Updated by sbteclipse"))
+                }
+              } else {
+                io(())
+              }
+            }
+      }
+    } else
+      io(())
+
   def fileWriter(file: File): IO[FileWriter] =
     io(new FileWriter(file))
 
@@ -613,6 +670,15 @@ private object Eclipse extends EclipseSDTConfig {
 
   def closeWriter(writer: Writer): IO[Unit] =
     io(writer.close())
+
+  def fileExists(file: File): IO[Boolean] =
+    io(file.exists())
+
+  def fileReader(file: File): IO[FileReader] =
+    io(new FileReader(file))
+
+  def closeReader(reader: Reader): IO[Unit] =
+    io(reader.close())
 
   private def io[T](t: => T): IO[T] = scalaz.effect.IO(t)
 
