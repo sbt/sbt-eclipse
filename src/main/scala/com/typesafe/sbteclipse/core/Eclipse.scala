@@ -25,6 +25,7 @@ import EclipsePlugin.{
   EclipseCreateSrc,
   EclipseProjectFlavor,
   EclipseExecutionEnvironment,
+  EclipseJDTMode,
   EclipseKeys
 }
 import java.io.{ FileWriter, Writer }
@@ -91,7 +92,9 @@ private object Eclipse extends EclipseSDTConfig {
 
   def parser: Parser[Seq[(String, Any)]] = {
     import EclipseOpts._
-    (executionEnvironmentOpt | boolOpt(SkipParents) | boolOpt(WithSource) | boolOpt(WithJavadoc) | boolOpt(WithBundledScalaContainers)).*
+    (executionEnvironmentOpt | jdtModeOpt |
+      boolOpt(SkipParents) | boolOpt(WithSource) | boolOpt(WithJavadoc) |
+      boolOpt(WithBundledScalaContainers)).*
   }
 
   def executionEnvironmentOpt: Parser[(String, EclipseExecutionEnvironment.Value)] = {
@@ -103,11 +106,21 @@ private object Eclipse extends EclipseSDTConfig {
     (Space ~> ExecutionEnvironment ~ ("=" ~> executionEnvironments)) map { case (k, v) => k -> withName(v) }
   }
 
+  def jdtModeOpt: Parser[(String, EclipseJDTMode.Value)] = {
+    import EclipseJDTMode._
+    import EclipseOpts._
+    import sbt.complete.DefaultParsers._
+    val (head :: tail) = valueSeq map (_.toString)
+    val jdtModes = tail.foldLeft(head: Parser[String])(_ | _)
+    (Space ~> JDTMode ~ ("=" ~> jdtModes)) map { case (k, v) => k -> withName(v) }
+  }
+
   def action(args: Map[String, Any], state: State): State = {
     state.log.info("About to create Eclipse project files for your project(s).")
     import EclipseOpts._
     handleProjects(
       (args get ExecutionEnvironment).asInstanceOf[Option[EclipseExecutionEnvironment.Value]],
+      (args get JDTMode).asInstanceOf[Option[EclipseJDTMode.Value]],
       (args get SkipParents).asInstanceOf[Option[Boolean]] getOrElse skipParents(ThisBuild, state),
       (args get WithSource).asInstanceOf[Option[Boolean]],
       (args get WithJavadoc).asInstanceOf[Option[Boolean]],
@@ -116,6 +129,7 @@ private object Eclipse extends EclipseSDTConfig {
 
   def handleProjects(
     executionEnvironmentArg: Option[EclipseExecutionEnvironment.Value],
+    jdtModeArg: Option[EclipseJDTMode.Value],
     skipParents: Boolean,
     withSourceArg: Option[Boolean],
     withJavadocArg: Option[Boolean],
@@ -142,6 +156,7 @@ private object Eclipse extends EclipseSDTConfig {
       applic(
         handleProject(
           jreContainer(executionEnvironmentArg orElse executionEnvironment(ref, state)),
+          jdtModeArg getOrElse jdtMode(ref, state),
           relativizeLibs(ref, state),
           builderAndNatures(projectFlavor(ref, state)),
           state))
@@ -188,6 +203,7 @@ private object Eclipse extends EclipseSDTConfig {
 
   def handleProject(
     jreContainer: String,
+    jdtMode: EclipseJDTMode.Value,
     relativizeLibs: Boolean,
     builderAndNatures: (String, Seq[String]),
     state: State)(
@@ -221,7 +237,7 @@ private object Eclipse extends EclipseSDTConfig {
       _ <- saveXml(baseDirectory / ".classpath", new RuleTransformer(classpathTransformers: _*)(cp))
       _ <- saveProperties(baseDirectory / ".settings" / "org.eclipse.core.resources.prefs", Seq(("encoding/<project>" -> "UTF-8")))
       _ <- saveProperties(baseDirectory / ".settings" / "org.scala-ide.sdt.core.prefs", scalacOptions ++: compileOrder.map { order => Seq(("compileorder" -> order)) }.getOrElse(Nil))
-      _ <- updateProperties(baseDirectory / ".settings" / "org.eclipse.jdt.core.prefs", jreContainerToJdtCompilerSettings(jreContainer))
+      _ <- handleJDTSettings(jdtMode, baseDirectory, jreContainer)
     } yield n
   }
 
@@ -404,6 +420,32 @@ private object Eclipse extends EclipseSDTConfig {
     }
   }
 
+  def handleJDTSettings(
+      mode: EclipseJDTMode.Value,
+      baseDirectory: File,
+      jreContainer: String
+  ): IO[Unit] = {
+    val jdtPrefs = baseDirectory / ".settings" / "org.eclipse.jdt.core.prefs"
+
+    mode match {
+      case EclipseJDTMode.Ignore =>
+        io(())
+      case EclipseJDTMode.Remove =>
+        fileExists(jdtPrefs).flatMap {
+          case false =>
+            io(())
+          case true =>
+            io {
+              jdtPrefs.delete()
+            }
+        }
+      case EclipseJDTMode.Update =>
+        updateProperties(jdtPrefs, jreContainerToJdtCompilerSettings(jreContainer))
+      case EclipseJDTMode.Overwrite =>
+        saveProperties(jdtPrefs, jreContainerToJdtCompilerSettings(jreContainer))
+    }
+  }
+
   def builderAndNatures(projectFlavor: EclipseProjectFlavor.Value) =
     if (projectFlavor.id == EclipseProjectFlavor.ScalaIDE.id)
       ScalaBuilder -> Seq(ScalaNature, JavaNature)
@@ -563,6 +605,9 @@ private object Eclipse extends EclipseSDTConfig {
 
   def executionEnvironment(ref: Reference, state: State): Option[EclipseExecutionEnvironment.Value] =
     setting((ref / EclipseKeys.executionEnvironment), state)
+
+  def jdtMode(ref: Reference, state: State): EclipseJDTMode.Value =
+    setting((ref / EclipseKeys.jdtMode), state)
 
   def skipParents(ref: Reference, state: State): Boolean =
     setting((ref / EclipseKeys.skipParents), state)

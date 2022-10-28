@@ -72,6 +72,7 @@ object EclipsePlugin {
       withSource := true,
       withJavadoc := true,
       projectFlavor := EclipseProjectFlavor.ScalaIDE,
+      jdtMode := EclipseJDTMode.Ignore,
       createSrc := EclipseCreateSrc.Default,
       eclipseOutput := None,
       relativizeLibs := true)
@@ -174,6 +175,10 @@ object EclipsePlugin {
     val projectFlavor: SettingKey[EclipseProjectFlavor.Value] = SettingKey(
       prefix("project-flavor"),
       "The flavor of project (Scala or Java) to build.")
+
+    val jdtMode: SettingKey[EclipseJDTMode.Value] = SettingKey(
+      prefix("jdt-mode"),
+      "How to handle setting Java compiler target in org.eclipse.jdt.core.prefs (Ignore, Remove, Update, Overwrite).")
 
     val eclipseOutput: SettingKey[Option[String]] = SettingKey(
       prefix("eclipse-output"),
@@ -331,6 +336,37 @@ object EclipsePlugin {
 
   trait EclipseTransformerFactory[A] {
     def createTransformer(ref: ProjectRef, state: State): Validation[A]
+  }
+
+  object EclipseJDTMode extends Enumeration {
+
+    /**
+     * Do not touch the the .prefs file at all.
+     */
+    val Ignore = Value
+
+    /**
+     * If the file exists, remove it.
+     * Allows cleansing all JDT settings that got written by e.g. the LSP.
+     */
+    val Remove = Value
+
+    /**
+     * Write the Java compiler target settings, but maintain any other settings.
+     */
+    val Update = Value
+
+    /**
+     * Write a new file with only the Java compiler target settings.
+     * In a VSCode context, this makes the compiler settings work correctly but
+     * protects against e.g. outdated formatter settings (which the LSP injects)
+     * persisting.
+     * After LSP restart formatter settings will return, but are refreshed from
+     * the xml profile instead.
+     */
+    val Overwrite = Value
+
+    val valueSeq: Seq[Value] =  Ignore :: Remove :: Update :: Overwrite :: Nil
   }
 
   object EclipseClasspathEntryTransformerFactory {
