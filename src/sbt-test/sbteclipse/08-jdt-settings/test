@@ -1,0 +1,62 @@
+# timestamp marker file 
+$ touch marker
+
+$ exists f/.settings/org.eclipse.jdt.core.prefs
+
+> eclipse
+
+> check
+
+$ exists a/.settings/org.eclipse.core.resources.prefs
+-$ exists a/.settings/org.eclipse.jdt.core.prefs
+
+$ exists b/.settings/org.eclipse.jdt.core.prefs
+$ newer b/.settings/org.eclipse.jdt.core.prefs marker
+
+$ exists c/.settings/org.eclipse.jdt.core.prefs
+$ newer marker c/.settings/org.eclipse.jdt.core.prefs
+
+$ exists d/.settings/org.eclipse.jdt.core.prefs
+$ newer d/.settings/org.eclipse.jdt.core.prefs marker
+
+$ exists e/.settings/org.eclipse.jdt.core.prefs
+$ newer e/.settings/org.eclipse.jdt.core.prefs marker
+
+$ exists f/.settings/org.eclipse.core.resources.prefs
+-$ exists f/.settings/org.eclipse.jdt.core.prefs
+
+$ exists g/.settings/org.eclipse.jdt.core.prefs
+$ newer marker g/.settings/org.eclipse.jdt.core.prefs
+
+# test overwrite mode via command arg
+$ touch marker
+> eclipse jdt-mode=Overwrite
+# no runtime defined for a
+-$ exists a/.settings/org.eclipse.jdt.core.prefs
+$ newer b/.settings/org.eclipse.jdt.core.prefs marker
+$ newer c/.settings/org.eclipse.jdt.core.prefs marker
+$ newer d/.settings/org.eclipse.jdt.core.prefs marker
+$ newer e/.settings/org.eclipse.jdt.core.prefs marker
+-$ exists f/.settings/org.eclipse.jdt.core.prefs
+$ newer g/.settings/org.eclipse.jdt.core.prefs marker
+
+# test ignore mode via command arg
+$ touch marker
+> eclipse jdt-mode=Ignore
+-$ exists a/.settings/org.eclipse.jdt.core.prefs
+$ newer marker b/.settings/org.eclipse.jdt.core.prefs
+$ newer marker c/.settings/org.eclipse.jdt.core.prefs
+$ newer marker d/.settings/org.eclipse.jdt.core.prefs
+$ newer marker e/.settings/org.eclipse.jdt.core.prefs
+-$ exists f/.settings/org.eclipse.jdt.core.prefs
+$ newer marker g/.settings/org.eclipse.jdt.core.prefs
+
+# test remove mode via command arg
+> eclipse jdt-mode=Remove
+-$ exists a/.settings/org.eclipse.jdt.core.prefs
+-$ exists b/.settings/org.eclipse.jdt.core.prefs
+-$ exists c/.settings/org.eclipse.jdt.core.prefs
+-$ exists d/.settings/org.eclipse.jdt.core.prefs
+-$ exists e/.settings/org.eclipse.jdt.core.prefs
+-$ exists f/.settings/org.eclipse.jdt.core.prefs
+-$ exists g/.settings/org.eclipse.jdt.core.prefs
