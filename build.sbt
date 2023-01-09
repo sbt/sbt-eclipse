@@ -16,8 +16,8 @@ lazy val root = (project in file("."))
         s
       },
       libraryDependencies ++= Seq(
-        "org.scalaz"             %% "scalaz-core"   % "7.2.35",
-        "org.scalaz"             %% "scalaz-effect" % "7.2.35",
+        "org.scalaz"             %% "scalaz-core"   % "7.3.7",
+        "org.scalaz"             %% "scalaz-effect" % "7.3.7",
         "org.scalatest"          %% "scalatest"     % "3.2.15" % "test"
       ),
       homepage := Some(url("https://github.com/sbt/sbt-eclipse")),
