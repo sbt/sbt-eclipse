@@ -22,7 +22,7 @@ jobs:
 
       - name: Coursier Cache
         id: coursier-cache
-        uses: coursier/cache-action@v6.3
+        uses: coursier/cache-action@v6
 
       - name: Install Adoptium Temurin OpenJDK
         uses: coursier/setup-action@v1
