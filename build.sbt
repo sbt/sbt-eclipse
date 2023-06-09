@@ -6,7 +6,7 @@ lazy val root = (project in file("."))
       sonatypeProfileName := "com.github.sbt.sbt-eclipse", // See https://issues.sonatype.org/browse/OSSRH-77819#comment-1203625
       name := "sbt-eclipse",
       scalacOptions ++= Seq("-unchecked", "-deprecation", "-target:jvm-1.8"),
-      scalaVersion := "2.12.17",
+      scalaVersion := "2.12.18",
       // Customise sbt-dynver's behaviour to make it work with tags which aren't v-prefixed
       ThisBuild / dynverVTagPrefix := false,
       // Sanity-check: assert that version comes from a tag (e.g. not a too-shallow clone)
