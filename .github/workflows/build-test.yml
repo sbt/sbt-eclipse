@@ -17,7 +17,7 @@ jobs:
     name: Tests
     uses: playframework/.github/.github/workflows/cmd.yml@v3
     with:
-      java: 11, 8
+      java: 21, 17, 11, 8
       scala: 2.12.18
       cmd: |
         sbt ++$MATRIX_SCALA test scripted
