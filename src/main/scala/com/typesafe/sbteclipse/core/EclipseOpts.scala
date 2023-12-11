@@ -22,6 +22,8 @@ private object EclipseOpts {
 
   val ExecutionEnvironment = "execution-environment"
 
+  val JDTMode = "jdt-mode"
+
   val SkipParents = "skip-parents"
 
   val WithSource = "with-source"
