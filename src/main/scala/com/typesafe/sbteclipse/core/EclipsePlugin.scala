@@ -213,6 +213,10 @@ object EclipsePlugin {
 
   object EclipseExecutionEnvironment extends Enumeration {
 
+    val JavaSE21 = Value("JavaSE-21")
+
+    val JavaSE20 = Value("JavaSE-20")
+
     val JavaSE19 = Value("JavaSE-19")
 
     val JavaSE_18 = Value("JavaSE-18")
@@ -251,7 +255,7 @@ object EclipsePlugin {
 
     val JRE11 = Value("JRE-1.1")
 
-    val valueSeq: Seq[Value] = JavaSE19 :: JavaSE_18 :: JavaSE_17 :: JavaSE_16 :: JavaSE15 :: JavaSE14 :: JavaSE13 :: JavaSE12 :: JavaSE11 :: JavaSE10 :: JavaSE9 :: JavaSE18 :: JavaSE17 :: JavaSE16 :: J2SE15 :: J2SE14 :: J2SE13 :: J2SE12 :: JRE11 :: Nil
+    val valueSeq: Seq[Value] = JavaSE21 :: JavaSE20 :: JavaSE19 :: JavaSE_18 :: JavaSE_17 :: JavaSE_16 :: JavaSE15 :: JavaSE14 :: JavaSE13 :: JavaSE12 :: JavaSE11 :: JavaSE10 :: JavaSE9 :: JavaSE18 :: JavaSE17 :: JavaSE16 :: J2SE15 :: J2SE14 :: J2SE13 :: J2SE12 :: JRE11 :: Nil
   }
 
   sealed trait EclipseClasspathEntry {
