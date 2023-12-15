@@ -72,7 +72,7 @@ lazy val projectD = (project in file("d"))
 // check that a JDT file is overwritten
 lazy val projectE = (project in file("e"))
   .settings(
-    EclipseKeys.executionEnvironment := Some(EclipseExecutionEnvironment.JavaSE11),
+    EclipseKeys.executionEnvironment := Some(EclipseExecutionEnvironment.JavaSE21),
     EclipseKeys.jdtMode := EclipseJDTMode.Overwrite,
     check
   )

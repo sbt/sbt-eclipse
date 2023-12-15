@@ -1,4 +1,4 @@
-org.eclipse.jdt.core.compiler.codegen.targetPlatform=11
-org.eclipse.jdt.core.compiler.source=11
-org.eclipse.jdt.core.compiler.compliance=11
+org.eclipse.jdt.core.compiler.codegen.targetPlatform=21
+org.eclipse.jdt.core.compiler.source=21
+org.eclipse.jdt.core.compiler.compliance=21
 dummy.key=abc
