@@ -28,3 +28,5 @@ out/
 
 # Vim
 *.swp
+
+.sdkmanrc
