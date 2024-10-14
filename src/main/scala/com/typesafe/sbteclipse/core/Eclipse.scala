@@ -21,7 +21,6 @@ package com.typesafe.sbteclipse.core
 import EclipsePlugin.{
   EclipseClasspathEntry,
   EclipseTransformerFactory,
-  EclipseRewriteRuleTransformerFactory,
   EclipseCreateSrc,
   EclipseProjectFlavor,
   EclipseExecutionEnvironment,
