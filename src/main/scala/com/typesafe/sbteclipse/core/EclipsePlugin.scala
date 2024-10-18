@@ -106,7 +106,7 @@ object EclipsePlugin {
         // This is done to ease integration with Eclipse, but it's doubtful as to how effective it is.
         val managedClassesDirectory = (scope / EclipseKeys.classesManaged).value
 
-        val managedSources = ((srcManaged ** "*.scala").get ++ (srcManaged ** "*.java").get)
+        val managedSources = ((srcManaged ** "*.scala").get() ++ (srcManaged ** "*.java").get())
           .filter(f => f.getAbsolutePath.startsWith(baseDir.getAbsolutePath))
           .map(f => PlainVirtualFileConverter.converter.toVirtualFile(sbt.io.Path.apply(f.getAbsolutePath.replace(baseDir.getAbsolutePath, "${BASE}")).asPath))
         val managedClasses = managedSources
@@ -119,7 +119,7 @@ object EclipsePlugin {
         // Copy modified class files
         val managedSet = IO.copy(managedClasses)
         // Remove deleted class files
-        (managedClassesDirectory ** "*.class").get.filterNot(managedSet.contains).foreach(_.delete())
+        (managedClassesDirectory ** "*.class").get().filterNot(managedSet.contains).foreach(_.delete())
       }
       analysis
     }
