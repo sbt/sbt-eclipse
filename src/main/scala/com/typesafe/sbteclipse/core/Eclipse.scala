@@ -176,7 +176,7 @@ private object Eclipse extends EclipseSDTConfig {
 
   def onFailure(state: State)(errors: NonEmptyList[String]): State = {
     state.log.error(
-      "Could not create Eclipse project files:%s%s".format(NewLine, List(errors.list).mkString(NewLine)))
+      s"Could not create Eclipse project files:${NewLine}${List(errors.list).mkString(NewLine)}")
     state
   }
 
@@ -186,9 +186,7 @@ private object Eclipse extends EclipseSDTConfig {
       state.log.warn("There was no project to create Eclipse project files for!")
     else
       state.log.info(
-        "Successfully created Eclipse project files for project(s):%s%s".format(
-          NewLine,
-          names mkString NewLine))
+        s"Successfully created Eclipse project files for project(s):${NewLine}${names mkString NewLine}")
     state
   }
 
@@ -391,10 +389,7 @@ private object Eclipse extends EclipseSDTConfig {
         if (buildDirectory === baseDirectory) Some(".") else sbt.IO.relativize(buildDirectory, baseDirectory)
       val relativizedFile = sbt.IO.relativize(buildDirectory, file)
       val relativized = (relativizedBase |@| relativizedFile)((base, file) =>
-        "%s%s%s".format(
-          base split FileSepPattern map (part => if (part != ".") ".." else part) mkString FileSep,
-          FileSep,
-          file))
+        s"${base split FileSepPattern map (part => if (part != ".") ".." else part) mkString FileSep}${FileSep}${file}")
       if (relativizeLibs) relativized getOrElse file.getAbsolutePath else file.getAbsolutePath
     }
     EclipseClasspathEntry.Lib(path(lib.binary), lib.source map path, lib.javadoc map path)
@@ -402,7 +397,7 @@ private object Eclipse extends EclipseSDTConfig {
 
   def jreContainer(executionEnvironment: Option[EclipseExecutionEnvironment.Value]): String =
     executionEnvironment match {
-      case Some(ee) => "%s/%s/%s".format(JreContainer, StandardVmType, ee)
+      case Some(ee) => s"${JreContainer}/${StandardVmType}/${ee}"
       case None => JreContainer
     }
 
@@ -565,11 +560,7 @@ private object Eclipse extends EclipseSDTConfig {
     }
     val externalDependencies = (externalDependencyClasspath |@| moduleFiles)(libs)
     state.log.debug(
-      "External dependencies for configuration '%s' and withSource '%s' and withJavadoc '%s': %s".format(
-        configuration,
-        withSource,
-        withJavadoc,
-        externalDependencies))
+      s"External dependencies for configuration '${configuration}' and withSource '${withSource}' and withJavadoc '${withJavadoc}': ${externalDependencies}")
     externalDependencies
   }
 
@@ -583,7 +574,7 @@ private object Eclipse extends EclipseSDTConfig {
         settingValidation((dependency.project / Keys.name), state)
     }
     val projectDependenciesSeq = projectDependencies.toList.sequence
-    state.log.debug("Project dependencies for configuration '%s': %s".format(configuration, projectDependenciesSeq))
+    state.log.debug(s"Project dependencies for configuration '${configuration}': ${projectDependenciesSeq}")
     projectDependenciesSeq
   }
 
@@ -769,22 +760,22 @@ private object Eclipse extends EclipseSDTConfig {
   def settingValidation[A](key: SettingKey[A], state: State): Validation[A] =
     key.get(structure(state).data) match {
       case Some(a) => a.success
-      case None => "Undefined setting '%s'!".format(key.key).failureNel
+      case None => s"Undefined setting '${key.key}'!".failureNel
     }
 
   /**
    * @param key the fully qualified key
    */
   def setting[A](key: SettingKey[A], state: State): A = key.get(structure(state).data).getOrElse {
-    throw new IllegalStateException("Undefined setting '%s in %s'!".format(key.key, key.scope))
+    throw new IllegalStateException(s"Undefined setting '${key.key} in ${key.scope}'!")
   }
 
   def evaluateTask[A](key: TaskKey[A], ref: ProjectRef, state: State): Validation[A] = {
     val taskConfig = EvaluateTask.extractedTaskConfig(Project.extract(state), structure(state), state)
     EvaluateTask(structure(state), key, state, ref, taskConfig) match {
       case Some((_, Value(a))) => a.success
-      case Some((_, Inc(inc))) => "Error evaluating task '%s': %s".format(key.key, Incomplete.show(inc.tpe)).failureNel
-      case None => "Undefined task '%s' for '%s'!".format(key.key, ref.project).failureNel
+      case Some((_, Inc(inc))) => s"Error evaluating task '${key.key}': ${Incomplete.show(inc.tpe)}".failureNel
+      case None => s"Undefined task '${key.key}' for '${ref.project}'!".failureNel
     }
   }
 
