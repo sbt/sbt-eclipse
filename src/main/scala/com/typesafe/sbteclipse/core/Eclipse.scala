@@ -181,7 +181,7 @@ private object Eclipse extends EclipseSDTConfig {
   }
 
   def onSuccess(state: State)(effects: IO[Seq[String]]): State = {
-    val names = effects.unsafePerformIO
+    val names = effects.unsafePerformIO()
     if (names.isEmpty)
       state.log.warn("There was no project to create Eclipse project files for!")
     else
