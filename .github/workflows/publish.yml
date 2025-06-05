@@ -9,7 +9,7 @@ on:
 jobs:
   publish-artifacts:
     name: JDK 8
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     if: ${{ github.repository_owner == 'sbt' }}
     steps:
       - name: Checkout
@@ -26,6 +26,9 @@ jobs:
         uses: coursier/setup-action@v1
         with:
           jvm: adoptium:8
+
+      - name: Install sbt
+        uses: sbt/setup-sbt@v1
 
       - name: Publish artifacts
         run: sbt ci-release
