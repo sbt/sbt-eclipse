@@ -238,7 +238,7 @@ private object Eclipse extends EclipseSDTConfig {
     } yield n
   }
 
-  def executePreTasks(preTasks: Seq[(TaskKey[_], ProjectRef)], state: State): Unit =
+  def executePreTasks(preTasks: Seq[(TaskKey[?], ProjectRef)], state: State): Unit =
     for ((preTask, ref) <- preTasks) evaluateTask(preTask, ref, state)
 
   def projectXml(name: String, builderAndNatures: (String, Seq[String]), linkedSrcDirectories: Seq[(File, Option[String], File, Option[String])]): Node = {
@@ -632,7 +632,7 @@ private object Eclipse extends EclipseSDTConfig {
   def eclipseOutput(ref: ProjectRef, state: State)(config: Configuration): Option[String] =
     setting((ref / config / EclipseKeys.eclipseOutput), state)
 
-  def preTasks(ref: ProjectRef, state: State): Seq[(TaskKey[_], ProjectRef)] =
+  def preTasks(ref: ProjectRef, state: State): Seq[(TaskKey[?], ProjectRef)] =
     setting((ref / EclipseKeys.preTasks), state).zipAll(Seq.empty, null, ref)
 
   def relativizeLibs(ref: ProjectRef, state: State): Boolean =
