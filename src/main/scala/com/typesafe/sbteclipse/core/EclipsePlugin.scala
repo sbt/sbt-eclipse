@@ -30,7 +30,7 @@ import scala.xml.transform.RewriteRule
 object EclipsePlugin {
 
   /** These settings are injected into individual projects. */
-  def eclipseSettings: Seq[Setting[_]] = {
+  def eclipseSettings: Seq[Setting[?]] = {
     import EclipseKeys._
     Seq(
       commandName := "eclipse",
@@ -54,7 +54,7 @@ object EclipsePlugin {
   }
 
   /** These settings are injected into the "ThisBuild" scope of sbt, i.e. global acrosss projects. */
-  def buildEclipseSettings: Seq[Setting[_]] = {
+  def buildEclipseSettings: Seq[Setting[?]] = {
     import EclipseKeys._
     Seq(
       skipParents := true,
@@ -64,7 +64,7 @@ object EclipsePlugin {
       skipProject := true)
   }
 
-  def globalEclipseSettings: Seq[Setting[_]] = {
+  def globalEclipseSettings: Seq[Setting[?]] = {
     import EclipseKeys._
     Seq(
       executionEnvironment := None,
@@ -78,7 +78,7 @@ object EclipsePlugin {
       relativizeLibs := true)
   }
 
-  def copyManagedSettings(scope: Configuration): Seq[Setting[_]] =
+  def copyManagedSettings(scope: Configuration): Seq[Setting[?]] =
     Seq(
       (scope / EclipseKeys.classesManaged) := {
         import sbt._
@@ -184,7 +184,7 @@ object EclipsePlugin {
       prefix("eclipse-output"),
       "The optional output for Eclipse.")
 
-    val preTasks: SettingKey[Seq[TaskKey[_]]] = SettingKey(
+    val preTasks: SettingKey[Seq[TaskKey[?]]] = SettingKey(
       prefix("pre-tasks"),
       "The tasks to be evaluated prior to creating the Eclipse project definition.")
 
