@@ -163,7 +163,7 @@ private object Eclipse extends EclipseSDTConfig {
           builderAndNatures(projectFlavor(ref, state)),
           state))
     }
-    effects.toList.sequence[Validation, IO[String]].map((list: List[IO[String]]) => list.toStream.sequence.map(_.toList))
+    effects.toList.sequence[Validation, IO[String]].map((list: List[IO[String]]) => list.sequence.map(_.toList))
   }
 
   def removeExtendedConfigurations(configurations: Seq[Configuration]): Seq[Configuration] = {
@@ -333,10 +333,10 @@ private object Eclipse extends EclipseSDTConfig {
           dir
       }
       val entries = srcEntries ++ linkEntries ++
-        (projectDependencies map EclipseClasspathEntry.Project) ++
+        (projectDependencies map EclipseClasspathEntry.Project.apply) ++
         (externalDependencies map libEntry(buildDirectory, baseDirectory, relativizeLibs, state)) ++
-        (Seq(jreContainer) map EclipseClasspathEntry.Con) ++
-        (Seq(classDirectory) map EclipseClasspathEntry.Output)
+        (Seq(jreContainer) map EclipseClasspathEntry.Con.apply) ++
+        (Seq(classDirectory) map EclipseClasspathEntry.Output.apply)
       <classpath>{ entries map (_.toXml) }</classpath>
     }
   }
