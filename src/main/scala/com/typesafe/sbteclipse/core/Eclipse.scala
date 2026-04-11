@@ -99,7 +99,9 @@ private object Eclipse extends EclipseSDTConfig {
     import EclipseExecutionEnvironment._
     import EclipseOpts._
     import sbt.complete.DefaultParsers._
-    val (head :: tail) = valueSeq.map(_.toString)
+    val parsedValues = valueSeq.toList.map(_.toString)
+    val head = parsedValues.head
+    val tail = parsedValues.tail
     val executionEnvironments = tail.foldLeft(head: Parser[String])(_ | _)
     (Space ~> ExecutionEnvironment ~ ("=" ~> executionEnvironments)) map { case (k, v) => k -> withName(v) }
   }
@@ -108,7 +110,9 @@ private object Eclipse extends EclipseSDTConfig {
     import EclipseJDTMode._
     import EclipseOpts._
     import sbt.complete.DefaultParsers._
-    val (head :: tail) = valueSeq.map(_.toString)
+    val parsedValues = valueSeq.toList.map(_.toString)
+    val head = parsedValues.head
+    val tail = parsedValues.tail
     val jdtModes = tail.foldLeft(head: Parser[String])(_ | _)
     (Space ~> JDTMode ~ ("=" ~> jdtModes)) map { case (k, v) => k -> withName(v) }
   }
@@ -761,7 +765,9 @@ private object Eclipse extends EclipseSDTConfig {
 
   def boolOpt(key: String): Parser[(String, Boolean)] = {
     import sbt.complete.DefaultParsers._
-    val (head :: tail) = List("true", "false").map(s => s: Parser[String])
+    val parserValues = List("true", "false").map(s => s: Parser[String])
+    val head = parserValues.head
+    val tail = parserValues.tail
     val bools = tail.foldLeft(head)(_ | _)
     (Space ~> key ~ ("=" ~> bools)) map { case (k, v) => k -> v.toBoolean }
   }
