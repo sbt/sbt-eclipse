@@ -8,7 +8,7 @@ on:
 
 jobs:
   publish-artifacts:
-    name: JDK 8
+    name: JDK 17
     runs-on: ubuntu-24.04
     if: ${{ github.repository_owner == 'sbt' }}
     steps:
@@ -25,7 +25,7 @@ jobs:
       - name: Install Adoptium Temurin OpenJDK
         uses: coursier/setup-action@v3
         with:
-          jvm: adoptium:8
+          jvm: adoptium:17
 
       - name: Install sbt
         uses: sbt/setup-sbt@v1
