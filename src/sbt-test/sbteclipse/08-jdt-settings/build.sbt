@@ -40,13 +40,13 @@ val check = TaskKey[Unit]("check") := {
 ThisBuild / scalacOptions ++= Seq("-encoding", "utf-8")
 
 // check that no JDT file is generated (default ignore, no runtime defined)
-lazy val projectA = (project in file("a"))
+lazy val projectA = project.in(file("a"))
   .settings(
     check
   )
 
 // check that a new and correct JDT file is generated
-lazy val projectB = (project in file("b"))
+lazy val projectB = project.in(file("b"))
   .settings(
     EclipseKeys.executionEnvironment := Some(EclipseExecutionEnvironment.JavaSE18),
     EclipseKeys.jdtMode := EclipseJDTMode.Update,
@@ -54,7 +54,7 @@ lazy val projectB = (project in file("b"))
   )
 
 // check that a correct JDT file is is not updated
-lazy val projectC = (project in file("c"))
+lazy val projectC = project.in(file("c"))
   .settings(
     EclipseKeys.executionEnvironment := Some(EclipseExecutionEnvironment.JavaSE11),
     EclipseKeys.jdtMode := EclipseJDTMode.Update,
@@ -62,7 +62,7 @@ lazy val projectC = (project in file("c"))
   )
 
 // check that an outdated JDT file is selectively updated
-lazy val projectD = (project in file("d"))
+lazy val projectD = project.in(file("d"))
   .settings(
     EclipseKeys.executionEnvironment := Some(EclipseExecutionEnvironment.JavaSE_17),
     EclipseKeys.jdtMode := EclipseJDTMode.Update,
@@ -70,7 +70,7 @@ lazy val projectD = (project in file("d"))
   )
 
 // check that a JDT file is overwritten
-lazy val projectE = (project in file("e"))
+lazy val projectE = project.in(file("e"))
   .settings(
     EclipseKeys.executionEnvironment := Some(EclipseExecutionEnvironment.JavaSE21),
     EclipseKeys.jdtMode := EclipseJDTMode.Overwrite,
@@ -78,14 +78,14 @@ lazy val projectE = (project in file("e"))
   )
 
 // check that an JDT file is removed
-lazy val projectF = (project in file("f"))
+lazy val projectF = project.in(file("f"))
   .settings(
     EclipseKeys.jdtMode := EclipseJDTMode.Remove,
     check
   )
 
 // check that an JDT file is default ignored, but written on command
-lazy val projectG = (project in file("g"))
+lazy val projectG = project.in(file("g"))
   .settings(
     EclipseKeys.executionEnvironment := Some(EclipseExecutionEnvironment.JavaSE18),
     check

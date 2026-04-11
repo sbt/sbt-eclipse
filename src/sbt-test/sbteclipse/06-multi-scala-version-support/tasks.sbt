@@ -12,7 +12,13 @@ name := "sbteclipse-test"
 
 version := "1.2.3"
 
-TaskKey[Unit]("verify-scala-settings-suba") := {
+lazy val verifyScalaSettingsSuba = taskKey[Unit]("verify-scala-settings-suba")
+lazy val verifyScalaSettingsSubb = taskKey[Unit]("verify-scala-settings-subb")
+
+verifyScalaSettingsSuba / aggregate := false
+verifyScalaSettingsSubb / aggregate := false
+
+verifyScalaSettingsSuba := {
   val dir = baseDirectory.value
   val settings = {
     val p = new Properties
@@ -27,7 +33,7 @@ TaskKey[Unit]("verify-scala-settings-suba") := {
   if (settings != expected) error("Expected settings to be '%s', but was '%s'!".format(expected, settings))
 }
 
-TaskKey[Unit]("verify-scala-settings-subb") := {
+verifyScalaSettingsSubb := {
   val dir = baseDirectory.value
   try {
     val settings = {

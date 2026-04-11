@@ -11,8 +11,8 @@ version := "1.2.3"
 
 libraryDependencies ++= Seq(
   "ch.qos.logback" % "logback-classic" % "1.0.1",
-  "biz.aQute.bnd" % "biz.aQute.bndlib" % "3.4.0" withSources(),
-  "org.specs2" % "specs2-core_2.12" % "3.9.4" % "test" withSources()
+  ("biz.aQute.bnd" % "biz.aQute.bndlib" % "3.4.0").withSources(),
+  ("org.specs2" % "specs2-core_2.12" % "3.9.4" % "test").withSources()
 )
 
 def artifactHome = {

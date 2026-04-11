@@ -6,7 +6,33 @@ import scala.collection.JavaConverters._
 import scala.xml.XML
 import sys.error
 
-TaskKey[Unit]("verify-project-xml") := {
+lazy val verifyProjectXml = taskKey[Unit]("verify-project-xml")
+lazy val verifyProjectXmlJava = taskKey[Unit]("verify-project-xml-java")
+lazy val verifyProjectXmlScala = taskKey[Unit]("verify-project-xml-scala")
+lazy val verifyProjectXmlSubd = taskKey[Unit]("verify-project-xml-subd")
+lazy val verifyProjectXmlSube = taskKey[Unit]("verify-project-xml-sube")
+lazy val verifyClasspathXmlRoot = taskKey[Unit]("verify-classpath-xml-root")
+lazy val verifyClasspathXmlSub = taskKey[Unit]("verify-classpath-xml-sub")
+lazy val verifyClasspathXmlSuba = taskKey[Unit]("verify-classpath-xml-suba")
+lazy val verifyClasspathXmlSubb = taskKey[Unit]("verify-classpath-xml-subb")
+lazy val verifyClasspathXmlSubc = taskKey[Unit]("verify-classpath-xml-subc")
+lazy val verifyJavaSettings = taskKey[Unit]("verify-java-settings")
+lazy val verifyScalaSettings = taskKey[Unit]("verify-scala-settings")
+
+verifyProjectXml / aggregate := false
+verifyProjectXmlJava / aggregate := false
+verifyProjectXmlScala / aggregate := false
+verifyProjectXmlSubd / aggregate := false
+verifyProjectXmlSube / aggregate := false
+verifyClasspathXmlRoot / aggregate := false
+verifyClasspathXmlSub / aggregate := false
+verifyClasspathXmlSuba / aggregate := false
+verifyClasspathXmlSubb / aggregate := false
+verifyClasspathXmlSubc / aggregate := false
+verifyJavaSettings / aggregate := false
+verifyScalaSettings / aggregate := false
+
+verifyProjectXml := {
   println("running xml test")
   val dir = baseDirectory.value
   val projectDescription = XML.loadFile(dir / ".project")
@@ -19,7 +45,7 @@ TaskKey[Unit]("verify-project-xml") := {
   }
 }
 
-TaskKey[Unit]("verify-project-xml-java") := {
+verifyProjectXmlJava := {
   val dir = baseDirectory.value
   val projectDescription = XML.loadFile(dir / "java" / ".project")
   verify("name", "java",  (projectDescription \ "name").text)
@@ -31,7 +57,7 @@ TaskKey[Unit]("verify-project-xml-java") := {
   }
 }
 
-TaskKey[Unit]("verify-project-xml-scala") := {
+verifyProjectXmlScala := {
   val dir = baseDirectory.value
   val projectDescription = XML.loadFile(dir / "scala" / ".project")
   val classpath = XML.loadFile(dir / "scala" / ".classpath")
@@ -47,7 +73,7 @@ TaskKey[Unit]("verify-project-xml-scala") := {
   }
 }
 
-TaskKey[Unit]("verify-project-xml-subd") := {
+verifyProjectXmlSubd := {
   val dir = baseDirectory.value
   val projectDescription = XML.loadFile(dir / "sub" / "subd" / ".project")
   val name = (projectDescription \ "name").text
@@ -56,7 +82,7 @@ TaskKey[Unit]("verify-project-xml-subd") := {
   )
 }
 
-TaskKey[Unit]("verify-project-xml-sube") := {
+verifyProjectXmlSube := {
   val dir = baseDirectory.value
   val projectDescription = XML.loadFile(dir / "sub" / "sube" / ".project")
   val name = (projectDescription \ "name").text
@@ -65,7 +91,7 @@ TaskKey[Unit]("verify-project-xml-sube") := {
   )
 }
 
-TaskKey[Unit]("verify-classpath-xml-root") := {
+verifyClasspathXmlRoot := {
   val dir = baseDirectory.value
   val classpath = XML.loadFile(dir / ".classpath")
   if ((classpath \ "classpathentry") != (classpath \ "classpathentry").distinct)
@@ -110,7 +136,7 @@ TaskKey[Unit]("verify-classpath-xml-root") := {
     error("""Expected .classpath of root project to contain <classpathentry kind="output" path="bin"/> """)
 }
 
-TaskKey[Unit]("verify-classpath-xml-sub") := {
+verifyClasspathXmlSub := {
   val dir = baseDirectory.value
   val home = System.getProperty("user.home")
   val classpath = XML.loadFile(dir / "sub" / ".classpath")
@@ -125,7 +151,7 @@ TaskKey[Unit]("verify-classpath-xml-sub") := {
     error("""Expected .classpath of root project to contain <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>: %s""" format classpath)
 }
 
-TaskKey[Unit]("verify-classpath-xml-suba") := {
+verifyClasspathXmlSuba := {
   val dir = baseDirectory.value
   val home = System.getProperty("user.home")
   val classpath = XML.loadFile(dir / "sub" / "suba" / ".classpath")
@@ -167,7 +193,7 @@ TaskKey[Unit]("verify-classpath-xml-suba") := {
     error("""Expected .classpath of suba project to contain <classpathentry kind="lib" path={ home + "/.cache/coursier/v1/https/repo1.maven.org/maven2/org/specs2/specs2-core_2.12/3.9.4/specs2-core_2.12-3.9.4.jar" } sourcepath={ home + "/.cache/coursier/v1/https/repo1.maven.org/maven2/org/specs2/specs2-core_2.12/3.9.4/specs2-core_2.12-3.9.4-sources.jar" } />: %s""" format classpath)
 }
 
-TaskKey[Unit]("verify-classpath-xml-subb") := {
+verifyClasspathXmlSubb := {
   val dir = baseDirectory.value
   val classpath = XML.loadFile(dir / "sub" / "subb" / ".classpath")
   if ((classpath \ "classpathentry") != (classpath \ "classpathentry").distinct)
@@ -194,7 +220,7 @@ TaskKey[Unit]("verify-classpath-xml-subb") := {
     error("""Not expected .classpath of subb project to contain <classpathentry kind="..." path="...subc..." output="..." /> """)
 }
 
-TaskKey[Unit]("verify-classpath-xml-subc") := {
+verifyClasspathXmlSubc := {
   val dir = baseDirectory.value
   val classpath = XML.loadFile(dir / "sub" / "subc" / ".classpath")
   val project = XML.loadFile(dir / "sub" / "subc" / ".project")
@@ -218,7 +244,7 @@ TaskKey[Unit]("verify-classpath-xml-subc") := {
     error("""Expected .project of subc project to contain <foo bar="baz"/>!""")
 }
 
-TaskKey[Unit]("verify-java-settings") := {
+verifyJavaSettings := {
   val dir = baseDirectory.value
   val settings = {
     val p = new Properties 
@@ -231,7 +257,7 @@ TaskKey[Unit]("verify-java-settings") := {
   if (settings != expected) error("Expected settings to be '%s', but was '%s'!".format(expected, settings))
 }
 
-TaskKey[Unit]("verify-scala-settings") := {
+verifyScalaSettings := {
   val dir = baseDirectory.value
   val settings = {
     val p = new Properties
