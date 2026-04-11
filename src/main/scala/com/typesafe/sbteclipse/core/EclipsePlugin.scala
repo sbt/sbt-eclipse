@@ -115,7 +115,7 @@ object EclipsePlugin {
             analysis.asInstanceOf[sbt.internal.inc.Analysis].relations.srcProd.filter((s, _) => s.id().equalsIgnoreCase(tp.id()))._2s
           }
           .map(vf => PlainVirtualFileConverter.converter.toPath(vf)).map(p => PathFinder(Path.apply(p.toFile.getPath.replace("${BASE}", baseDir.getAbsolutePath)).asFile))
-          .flatten(p => p.pair(rebase(classes, managedClassesDirectory)))
+          .flatten(using p => p.pair(rebase(classes, managedClassesDirectory)))
 
         // Copy modified class files
         val managedSet = IO.copy(managedClasses)
@@ -417,15 +417,15 @@ object EclipsePlugin {
 
       private def isScalaLibrary(metaData: MetaData) =
         metaData("kind") == Text("lib") &&
-          (Option(metaData("path").text) map (_ contains "scala-library") getOrElse false)
+          Option(metaData("path").text).map(_.contains("scala-library")).getOrElse(false)
 
       private def isScalaReflect(metaData: MetaData) =
         metaData("kind") == Text("lib") &&
-          (Option(metaData("path").text) map (_ contains "scala-reflect") getOrElse false)
+          Option(metaData("path").text).map(_.contains("scala-reflect")).getOrElse(false)
 
       private def isScalaCompiler(metaData: MetaData) =
         metaData("kind") == Text("lib") &&
-          (Option(metaData("path").text) map (_ contains "scala-compiler") getOrElse false)
+          Option(metaData("path").text).map(_.contains("scala-compiler")).getOrElse(false)
     }
 
     object Identity extends EclipseTransformerFactory[RewriteRule] {
@@ -480,7 +480,7 @@ object EclipsePlugin {
       override def transform(node: XmlNode): Seq[XmlNode] = node match {
         case Elem(pf, el, attrs, scope, children @ _*) if (el == parentName) => {
           val newChildren = transformation(children)
-          Elem(pf, el, attrs, scope, children.isEmpty, newChildren: _*)
+          Elem(pf, el, attrs, scope, children.isEmpty, newChildren*)
         }
         case other => other
       }

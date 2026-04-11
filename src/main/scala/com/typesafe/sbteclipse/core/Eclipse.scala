@@ -99,7 +99,7 @@ private object Eclipse extends EclipseSDTConfig {
     import EclipseExecutionEnvironment._
     import EclipseOpts._
     import sbt.complete.DefaultParsers._
-    val (head :: tail) = valueSeq map (_.toString)
+    val (head :: tail) = valueSeq.map(_.toString)
     val executionEnvironments = tail.foldLeft(head: Parser[String])(_ | _)
     (Space ~> ExecutionEnvironment ~ ("=" ~> executionEnvironments)) map { case (k, v) => k -> withName(v) }
   }
@@ -108,7 +108,7 @@ private object Eclipse extends EclipseSDTConfig {
     import EclipseJDTMode._
     import EclipseOpts._
     import sbt.complete.DefaultParsers._
-    val (head :: tail) = valueSeq map (_.toString)
+    val (head :: tail) = valueSeq.map(_.toString)
     val jdtModes = tail.foldLeft(head: Parser[String])(_ | _)
     (Space ~> JDTMode ~ ("=" ~> jdtModes)) map { case (k, v) => k -> withName(v) }
   }
@@ -229,8 +229,8 @@ private object Eclipse extends EclipseSDTConfig {
         projectDependencies,
         jreContainer,
         state)
-      _ <- saveXml(baseDirectory / ".project", new RuleTransformer(projectTransformers: _*)(projectXml(name, builderAndNatures, linkedSrcDirectories)))
-      _ <- saveXml(baseDirectory / ".classpath", new RuleTransformer(classpathTransformers: _*)(cp))
+      _ <- saveXml(baseDirectory / ".project", new RuleTransformer(projectTransformers*)(projectXml(name, builderAndNatures, linkedSrcDirectories)))
+      _ <- saveXml(baseDirectory / ".classpath", new RuleTransformer(classpathTransformers*)(cp))
       _ <- saveProperties(baseDirectory / ".settings" / "org.eclipse.core.resources.prefs", Seq(("encoding/<project>" -> "UTF-8")))
       _ <- saveProperties(baseDirectory / ".settings" / "org.scala-ide.sdt.core.prefs", scalacOptions ++: compileOrder.map { order => Seq(("compileorder" -> order)) }.getOrElse(Nil))
       _ <- handleJDTSettings(jdtMode, baseDirectory, jreContainer)
@@ -388,7 +388,7 @@ private object Eclipse extends EclipseSDTConfig {
         if (buildDirectory === baseDirectory) Some(".") else sbt.IO.relativize(buildDirectory, baseDirectory)
       val relativizedFile = sbt.IO.relativize(buildDirectory, file)
       val relativized = (relativizedBase |@| relativizedFile)((base, file) =>
-        s"${base split FileSepPattern map (part => if (part != ".") ".." else part) mkString FileSep}${FileSep}${file}")
+        s"${base.split(FileSepPattern).map(part => if (part != ".") ".." else part).mkString(FileSep)}${FileSep}${file}")
       if (relativizeLibs) relativized getOrElse file.getAbsolutePath else file.getAbsolutePath
     }
     EclipseClasspathEntry.Lib(path(lib.binary), lib.source map path, lib.javadoc map path)
@@ -511,7 +511,7 @@ private object Eclipse extends EclipseSDTConfig {
     def moduleReports(key: TaskKey[UpdateReport]) =
       evalTask(key) map { updateReport =>
         for {
-          configurationReport <- (updateReport configuration configuration).toSeq
+          configurationReport <- updateReport.configuration(configuration).toSeq
           moduleReports <- configurationReport.modules
         } yield moduleReports
       }
@@ -741,8 +741,8 @@ private object Eclipse extends EclipseSDTConfig {
     new File(normalizeName(file.getAbsolutePath))
 
   def normalizeName(filename: String): String = {
-    if (filename contains "..") {
-      val parts = (filename split "[\\/]+").toList
+    if (filename.contains("..")) {
+      val parts = (filename.split("[\\/]+")).toList
       def fix(parts: List[String], result: String): String = parts match {
         case Nil => result
         case a :: ".." :: rest => fix(rest, result)

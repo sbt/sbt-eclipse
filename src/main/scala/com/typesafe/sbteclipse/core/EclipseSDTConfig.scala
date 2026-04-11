@@ -7,7 +7,7 @@ private trait EclipseSDTConfig {
     aggregate((Map() withDefaultValue "", options))._1.toSeq
 
   private type Aggregate = (String Map String, Seq[String])
-  private type ArgumentConsumer = Aggregate PartialFunction Aggregate
+  private type ArgumentConsumer = PartialFunction[Aggregate, Aggregate]
 
   private lazy val aggregate: ArgumentConsumer = {
     case done @ (_, Seq()) => done
@@ -75,7 +75,7 @@ private trait EclipseSDTConfig {
   // Note: Reference Scala issue: https://issues.scala-lang.org/browse/SI-5491
   private object XPluginHackery extends ColonSeparated("Xplugin", false) {
     override def maybeAppend(pre: String, post: String) =
-      if (post contains "continuations") pre
+      if (post.contains("continuations")) pre
       else super.maybeAppend(pre, post)
   }
 
