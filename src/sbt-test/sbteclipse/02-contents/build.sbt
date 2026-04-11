@@ -8,10 +8,13 @@ name := "sbteclipse-test"
 
 version := "1.2.3"
 
+lazy val IntegrationTest = config("it").extend(Test)
+
 lazy val root =
   Project("root", new File(".")).
   settings(
     Defaults.coreDefaultSettings ++ Seq(
+      name := "sbteclipse-test",
       (Compile / unmanagedSourceDirectories) += { baseDirectory(new File(_, "src/main/scala")).value },
       (Test / unmanagedSourceDirectories) += { baseDirectory(new File(_, "src/test/scala")).value },
       libraryDependencies ++= Seq(
@@ -55,9 +58,9 @@ lazy val suba =
 
 lazy val subb =
   Project("subb", new File("sub/subb")).
-  configs(Configurations.IntegrationTest).
+  configs(IntegrationTest).
   settings(
-    Defaults.coreDefaultSettings ++ Defaults.itSettings ++ Seq(
+    Defaults.coreDefaultSettings ++ inConfig(IntegrationTest)(Defaults.testSettings) ++ Seq(
       libraryDependencies ++= Seq(
         "biz.aQute.bnd" % "biz.aQute.bndlib" % "3.4.0",
         "junit" % "junit" % "4.7" % "it"
@@ -69,7 +72,7 @@ lazy val subb =
         "-Xprompt",
         "-deprecation",
         "-unchecked"),
-      EclipseKeys.configurations := Set(Configurations.Compile, Configurations.IntegrationTest)
+      EclipseKeys.configurations := Set(Configurations.Compile, IntegrationTest)
     )
   ).
   dependsOn(suba, suba % "test->compile", subc % "test->test")

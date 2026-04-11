@@ -18,6 +18,7 @@
 
 package com.typesafe.sbteclipse.core
 
+import sbt._
 import EclipsePlugin.{
   EclipseClasspathEntry,
   EclipseTransformerFactory,
@@ -39,7 +40,6 @@ import sbt.{
   Configurations,
   EvaluateTask,
   File,
-  Inc,
   Incomplete,
   Keys,
   ModuleID,
@@ -52,8 +52,7 @@ import sbt.{
   State,
   TaskKey,
   ThisBuild,
-  UpdateReport,
-  Value
+  UpdateReport
 }
 import sbt.fileToRichFile
 import sbt.internal.BuildStructure
@@ -484,7 +483,8 @@ private object Eclipse extends EclipseSDTConfig {
       dirs(ValueSet(), Keys.unmanagedSourceDirectories),
       dirs(ValueSet(), Keys.unmanagedResourceDirectories),
       dirs(ValueSet(ManagedSrc), Keys.managedSourceDirectories),
-      dirs(ValueSet(ManagedResources), Keys.managedResourceDirectories)) reduceLeft (_ +++ _)
+      dirs(ValueSet(ManagedResources), Keys.managedResourceDirectories)
+    ).sequence.map(_.flatten)
   }
 
   def scalacOptions(ref: ProjectRef, state: State): Validation[Seq[(String, String)]] = {
@@ -528,14 +528,24 @@ private object Eclipse extends EclipseSDTConfig {
     def moduleFileToArtifactFile(binaries: Map[ModuleID, File], sources: Map[ModuleID, File], javadocs: Map[ModuleID, File]) =
       for ((moduleId, binaryFile) <- binaries)
         yield binaryFile -> Lib(binaryFile)(sources get moduleId)(javadocs get moduleId)
-    def libs(files: Seq[Attributed[File]], moduleFiles: Map[File, Lib]): Seq[Lib] = {
-      var result: Seq[Lib] = files.files map { file => moduleFiles.get(file).getOrElse(Lib(file)(None)(None)) }
+    def classpathFile(a: Attributed[?], conv: xsbti.FileConverter): File =
+      a.data match {
+        case file: File                => file
+        case ref: xsbti.VirtualFileRef => conv.toPath(ref).toFile
+      }
+
+    def libs(files: Seq[Attributed[?]], conv: xsbti.FileConverter, moduleFiles: Map[File, Lib]): Seq[Lib] = {
+      var result: Seq[Lib] = files.map { a =>
+        val file = classpathFile(a, conv)
+        moduleFiles.get(file).getOrElse(Lib(file)(None)(None))
+      }
       if (createSrc(ref, state)(configuration).contains(EclipseCreateSrc.ManagedClasses)) {
         result = result ++ managedClassDirectories(ref, state)(configuration).filter(_.exists).map(Lib(_)(None)(None))
       }
       result
     }
     val externalDependencyClasspath: Validation[sbt.Keys.Classpath] = evalTask(Keys.externalDependencyClasspath)
+    val fileConverter = settingValidation((ref / Keys.fileConverter), state)
     val moduleFiles: Validation[Map[File, Lib]] = {
       lazy val classifierModuleReports = moduleReports(Keys.updateClassifiers)
 
@@ -551,14 +561,14 @@ private object Eclipse extends EclipseSDTConfig {
 
       sources |+| javadoc match {
         case Some(_) => {
-          val binaryModuleToFile = moduleToFile(moduleReports(Keys.update))
+          val binaryModuleToFile = moduleToFile(moduleReports(Keys.update), (_, _) => true)
 
           (binaryModuleToFile |@| classifierModuleToFile(sources) |@| classifierModuleToFile(javadoc))(moduleFileToArtifactFile)
         }
         case None => Map[File, Lib]().success
       }
     }
-    val externalDependencies = (externalDependencyClasspath |@| moduleFiles)(libs)
+    val externalDependencies = (externalDependencyClasspath |@| fileConverter |@| moduleFiles)(libs)
     state.log.debug(
       s"External dependencies for configuration '${configuration}' and withSource '${withSource}' and withJavadoc '${withJavadoc}': ${externalDependencies}")
     externalDependencies
@@ -751,7 +761,9 @@ private object Eclipse extends EclipseSDTConfig {
 
   def boolOpt(key: String): Parser[(String, Boolean)] = {
     import sbt.complete.DefaultParsers._
-    (Space ~> key ~ ("=" ~> ("true" | "false"))) map { case (k, v) => k -> v.toBoolean }
+    val (head :: tail) = List("true", "false").map(s => s: Parser[String])
+    val bools = tail.foldLeft(head)(_ | _)
+    (Space ~> key ~ ("=" ~> bools)) map { case (k, v) => k -> v.toBoolean }
   }
 
   /**
@@ -773,8 +785,11 @@ private object Eclipse extends EclipseSDTConfig {
   def evaluateTask[A](key: TaskKey[A], ref: ProjectRef, state: State): Validation[A] = {
     val taskConfig = EvaluateTask.extractedTaskConfig(Project.extract(state), structure(state), state)
     EvaluateTask(structure(state), key, state, ref, taskConfig) match {
-      case Some((_, Value(a))) => a.success
-      case Some((_, Inc(inc))) => s"Error evaluating task '${key.key}': ${Incomplete.show(inc.tpe)}".failureNel
+      case Some((_, result)) =>
+        result.toEither.fold(
+          inc => s"Error evaluating task '${key.key}': ${Incomplete.show(inc.tpe)}".failureNel,
+          _.success
+        )
       case None => s"Undefined task '${key.key}' for '${ref.project}'!".failureNel
     }
   }

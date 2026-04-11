@@ -17,8 +17,9 @@ jobs:
     name: Tests
     uses: playframework/.github/.github/workflows/cmd.yml@v4
     with:
-      java: 21, 17, 11, 8
-      scala: 2.12.21
+      java: 25, 17, 11, 8
+      scala: 2.12.x, 3.x
+      exclude: '[{"java": "8", "scala": "3.x"}, {"java": "11", "scala": "3.x"}]'
       cmd: |
         sbt ++$MATRIX_SCALA test scripted
 

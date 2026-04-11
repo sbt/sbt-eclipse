@@ -18,13 +18,14 @@
 
 package com.typesafe.sbteclipse.core
 
+import sbt._
 import sbt.Keys.commands
 import sbt.internal.inc.PlainVirtualFileConverter
 import sbt.io.Path.rebase
 import sbt.{ Configuration, Configurations, Def, File, Keys, ProjectRef, Setting, SettingKey, State, TaskKey }
 
 import scala.language.implicitConversions
-import scala.xml._
+import scala.xml.{Node => XmlNode, _}
 import scala.xml.transform.RewriteRule
 
 object EclipsePlugin {
@@ -86,7 +87,7 @@ object EclipsePlugin {
         classes.getParentFile / (classes.getName + "_managed")
       },
       (scope / EclipseKeys.generateClassesManaged) := EclipseKeys.createSrc.value contains EclipseCreateSrc.ManagedClasses,
-      (scope / Keys.compile) := copyManagedClasses(scope).value)
+      CompileTaskCompat.compileSetting(scope, copyManagedClasses(scope)))
 
   // Depends on compile and will ensure all classes being generated from source files in the
   // source_managed space are copied into a class_managed folder.
@@ -259,7 +260,7 @@ object EclipsePlugin {
   }
 
   sealed trait EclipseClasspathEntry {
-    def toXml: Node
+    def toXml: XmlNode
   }
 
   object EclipseClasspathEntry {
@@ -298,7 +299,7 @@ object EclipsePlugin {
       override def toXml = <classpathentry kind="output" path={ path }/>
     }
 
-    implicit def eclipseClasspathEntryToNode[T <: EclipseClasspathEntry](t: T): scala.xml.Node = t.toXml
+    implicit def eclipseClasspathEntryToNode[T <: EclipseClasspathEntry](t: T): XmlNode = t.toXml
 
   }
 
@@ -389,7 +390,7 @@ object EclipsePlugin {
   object EclipseRewriteRuleTransformerFactory {
 
     object IdentityRewriteRule extends RewriteRule {
-      override def transform(node: Node): Node = node
+      override def transform(node: XmlNode): XmlNode = node
     }
 
     object ClasspathDefaultRule extends RewriteRule {
@@ -400,7 +401,7 @@ object EclipsePlugin {
 
       private val ScalaCompilerContainer = "org.scala-ide.sdt.launching.SCALA_COMPILER_CONTAINER"
 
-      override def transform(node: Node): Seq[Node] = node match {
+      override def transform(node: XmlNode): Seq[XmlNode] = node match {
         case Elem(pf, CpEntry, attrs, scope, child @ _*) if isScalaLibrary(attrs) =>
           Elem(pf, CpEntry, container(ScalaContainer), scope, child.isEmpty)
         case Elem(pf, CpEntry, attrs, scope, child @ _*) if isScalaReflect(attrs) =>
@@ -442,32 +443,32 @@ object EclipsePlugin {
 
   // Represents the transformation type
   object DefaultTransforms {
-    case class Append(v: Node*) extends (Seq[Node] => Seq[Node]) {
-      def apply(children: Seq[Node]) = children ++ v
+    case class Append(v: XmlNode*) extends (Seq[XmlNode] => Seq[XmlNode]) {
+      def apply(children: Seq[XmlNode]) = children ++ v
     }
-    case class Prepend(v: Node*) extends (Seq[Node] => Seq[Node]) {
-      def apply(children: Seq[Node]) = v ++ children
+    case class Prepend(v: XmlNode*) extends (Seq[XmlNode] => Seq[XmlNode]) {
+      def apply(children: Seq[XmlNode]) = v ++ children
     }
-    case class Remove(v: Node*) extends (Seq[Node] => Seq[Node]) {
-      def apply(children: Seq[Node]) = children.diff(v)
+    case class Remove(v: XmlNode*) extends (Seq[XmlNode] => Seq[XmlNode]) {
+      def apply(children: Seq[XmlNode]) = children.diff(v)
     }
-    case class ReplaceWith(v: Node*) extends (Seq[Node] => Seq[Node]) {
-      def apply(children: Seq[Node]) = v
+    case class ReplaceWith(v: XmlNode*) extends (Seq[XmlNode] => Seq[XmlNode]) {
+      def apply(children: Seq[XmlNode]) = v
     }
-    case class InsertBefore(pred: Node => Boolean, v: Node*) extends (Seq[Node] => Seq[Node]) {
-      def apply(children: Seq[Node]) = {
+    case class InsertBefore(pred: XmlNode => Boolean, v: XmlNode*) extends (Seq[XmlNode] => Seq[XmlNode]) {
+      def apply(children: Seq[XmlNode]) = {
         val (before, after) = children.span(pred)
         before ++ v ++ after
       }
     }
   }
 
-  def transformNode(parentName: String, transform: Seq[Node] => Seq[Node]) =
+  def transformNode(parentName: String, transform: Seq[XmlNode] => Seq[XmlNode]) =
     new ChildTransformer(parentName, transform)
 
   case class ChildTransformer(
     parentName: String,
-    transformation: Seq[Node] => Seq[Node]) extends EclipseTransformerFactory[RewriteRule] {
+    transformation: Seq[XmlNode] => Seq[XmlNode]) extends EclipseTransformerFactory[RewriteRule] {
 
     import scalaz.Scalaz._
 
@@ -476,7 +477,7 @@ object EclipsePlugin {
      * applies a transformation to its children
      */
     object Rule extends RewriteRule {
-      override def transform(node: Node): Seq[Node] = node match {
+      override def transform(node: XmlNode): Seq[XmlNode] = node match {
         case Elem(pf, el, attrs, scope, children @ _*) if (el == parentName) => {
           val newChildren = transformation(children)
           Elem(pf, el, attrs, scope, children.isEmpty, newChildren: _*)

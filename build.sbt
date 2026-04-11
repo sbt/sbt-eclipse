@@ -1,11 +1,28 @@
-lazy val root = (project in file("."))
+lazy val scala212 = "2.12.21"
+lazy val scala3 = "3.8.3"
+
+ThisBuild / crossScalaVersions := Seq(scala212, scala3)
+
+lazy val root = project.in(file("."))
   .enablePlugins(SbtPlugin)
   .settings(
     Seq(
       organization := "com.github.sbt",
       name := "sbt-eclipse",
-      scalacOptions ++= Seq("-unchecked", "-deprecation", "-target:jvm-1.8"),
-      scalaVersion := "2.12.21",
+      crossScalaVersions := Seq(scala212, scala3),
+      scalacOptions ++= {
+        CrossVersion.partialVersion(scalaVersion.value) match {
+          case Some((2, _)) => Seq("-unchecked", "-deprecation", "-Xsource:3", "-release:8")
+          case _            => Seq("-unchecked", "-deprecation")
+        }
+      },
+      scalaVersion := scala212,
+      ThisBuild / (pluginCrossBuild / sbtVersion) := {
+        scalaBinaryVersion.value match {
+          case "2.12" => "1.12.9"
+          case _      => "2.0.0-RC11"
+        }
+      },
       // Customise sbt-dynver's behaviour to make it work with tags which aren't v-prefixed
       ThisBuild / dynverVTagPrefix := false,
       // Sanity-check: assert that version comes from a tag (e.g. not a too-shallow clone)

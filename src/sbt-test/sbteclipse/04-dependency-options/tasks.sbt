@@ -21,7 +21,17 @@ def artifactHome = {
   })
 }
 
-TaskKey[Unit]("verify-classpath-xml-suba") := {
+lazy val verifyClasspathXmlSuba = taskKey[Unit]("verify-classpath-xml-suba")
+lazy val verifyClasspathXmlSubb = taskKey[Unit]("verify-classpath-xml-subb")
+lazy val verifyClasspathXmlSubc = taskKey[Unit]("verify-classpath-xml-subc")
+lazy val verifyClasspathXmlSubd = taskKey[Unit]("verify-classpath-xml-subd")
+
+verifyClasspathXmlSuba / aggregate := false
+verifyClasspathXmlSubb / aggregate := false
+verifyClasspathXmlSubc / aggregate := false
+verifyClasspathXmlSubd / aggregate := false
+
+verifyClasspathXmlSuba := {
   val dir = baseDirectory.value
   val classpath = XML.loadFile(dir / "suba" / ".classpath")
   // lib entries no sources or javadoc
@@ -36,7 +46,7 @@ TaskKey[Unit]("verify-classpath-xml-suba") := {
   verifyClasspathEntry(artifactHome + "/org/specs2/specs2-core_2.12/3.9.4/specs2-core_2.12-3.9.4.jar")
 }
 
-TaskKey[Unit]("verify-classpath-xml-subb") := {
+verifyClasspathXmlSubb := {
   val dir = baseDirectory.value
   val classpath = XML.loadFile(dir / "subb" / ".classpath")
   // lib entries sources no javadoc
@@ -49,7 +59,7 @@ TaskKey[Unit]("verify-classpath-xml-subb") := {
   verifySrcClasspathEntry(artifactHome + "/org/specs2/specs2-core_2.12/3.9.4/specs2-core_2.12-3.9.4.jar", artifactHome + "/org/specs2/specs2-core_2.12/3.9.4/specs2-core_2.12-3.9.4-sources.jar")
 }
 
-TaskKey[Unit]("verify-classpath-xml-subc") := {
+verifyClasspathXmlSubc := {
   val dir = baseDirectory.value
   val classpath = XML.loadFile(dir / "subc" / ".classpath")
   // lib entries javadoc no sources
@@ -65,7 +75,7 @@ TaskKey[Unit]("verify-classpath-xml-subc") := {
   verifyJavadocClasspathEntry(artifactHome + "/org/specs2/specs2-core_2.12/3.9.4/specs2-core_2.12-3.9.4.jar", artifactHome + "/org/specs2/specs2-core_2.12/3.9.4/specs2-core_2.12-3.9.4-javadoc.jar")
 }
 
-TaskKey[Unit]("verify-classpath-xml-subd") := {
+verifyClasspathXmlSubd := {
   val dir = baseDirectory.value
   val classpath = XML.loadFile(dir / "subd" / ".classpath")
   // lib entries sources and javadoc
