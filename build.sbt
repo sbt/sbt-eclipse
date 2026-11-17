@@ -1,5 +1,5 @@
 lazy val scala212 = "2.12.21"
-lazy val scala3 = "3.8.4"
+lazy val scala3 = "3.9.0"
 
 ThisBuild / crossScalaVersions := Seq(scala212, scala3)
 
@@ -20,7 +20,7 @@ lazy val root = project.in(file("."))
       ThisBuild / (pluginCrossBuild / sbtVersion) := {
         scalaBinaryVersion.value match {
           case "2.12" => "1.12.9"
-          case _      => "2.0.0-RC11"
+          case _      => "2.1.0"
         }
       },
       // Customise sbt-dynver's behaviour to make it work with tags which aren't v-prefixed

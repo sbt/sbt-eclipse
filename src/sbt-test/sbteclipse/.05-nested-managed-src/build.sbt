@@ -33,3 +33,7 @@ TaskKey[Unit]("verify-valid") := {
       error("""Expected classpathentry src_managed/main to exclude %s""" format folder)
   }
 }
+
+ThisBuild / scalaVersion := {
+  if (sbtVersion.value.startsWith("1.")) "2.12.21" else "3.9.0"
+}

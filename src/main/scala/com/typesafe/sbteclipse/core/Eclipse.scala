@@ -511,6 +511,10 @@ private object Eclipse extends EclipseSDTConfig {
     withJavadoc: Boolean,
     state: State)(
     configuration: Configuration): Validation[Seq[Lib]] = {
+    type ModuleCoordinates = (String, String, String)
+    // Binary and classifier reports can differ in resolution flags, not module coordinates.
+    def moduleCoordinates(module: ModuleID): ModuleCoordinates =
+      (module.organization, module.name, module.revision)
     def evalTask[A](key: TaskKey[A]) = evaluateTask((configuration / key), ref, state)
     def moduleReports(key: TaskKey[UpdateReport]) =
       evalTask(key) map { updateReport =>
@@ -525,11 +529,11 @@ private object Eclipse extends EclipseSDTConfig {
           for {
             moduleReport <- moduleReports
             (artifact, file) <- moduleReport.artifacts if p(artifact, file)
-          } yield moduleReport.module -> file
+          } yield moduleCoordinates(moduleReport.module) -> file
         moduleToFile.toMap
       })
     }
-    def moduleFileToArtifactFile(binaries: Map[ModuleID, File], sources: Map[ModuleID, File], javadocs: Map[ModuleID, File]) =
+    def moduleFileToArtifactFile(binaries: Map[ModuleCoordinates, File], sources: Map[ModuleCoordinates, File], javadocs: Map[ModuleCoordinates, File]) =
       for ((moduleId, binaryFile) <- binaries)
         yield binaryFile -> Lib(binaryFile)(sources get moduleId)(javadocs get moduleId)
     def classpathFile(a: Attributed[?], conv: xsbti.FileConverter): File =
@@ -557,7 +561,7 @@ private object Eclipse extends EclipseSDTConfig {
         if (classifier.isDefined)
           moduleToFile(classifierModuleReports, (artifact, _) => artifact.classifier === classifier)
         else
-          Map[ModuleID, File]().success
+          Map[ModuleCoordinates, File]().success
       }
 
       val sources = if (withSource) Some("sources") else None
