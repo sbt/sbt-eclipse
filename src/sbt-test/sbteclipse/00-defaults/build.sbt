@@ -11,3 +11,7 @@ TaskKey[Unit]("verify-command-name") := {
     "Expected command-name to be eclipse, but was %s!" format name
   )
 }
+
+ThisBuild / scalaVersion := {
+  if (sbtVersion.value.startsWith("1.")) "2.12.21" else "3.9.0"
+}

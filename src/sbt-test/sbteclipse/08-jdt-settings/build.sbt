@@ -90,3 +90,7 @@ lazy val projectG = project.in(file("g"))
     EclipseKeys.executionEnvironment := Some(EclipseExecutionEnvironment.JavaSE18),
     check
   )
+
+ThisBuild / scalaVersion := {
+  if (sbtVersion.value.startsWith("1.")) "2.12.21" else "3.9.0"
+}

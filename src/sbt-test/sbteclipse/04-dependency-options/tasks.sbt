@@ -88,3 +88,7 @@ verifyClasspathXmlSubd := {
   verifySrcAndJavadocClasspathEntry(artifactHome + "/biz/aQute/bnd/biz.aQute.bndlib/3.4.0/biz.aQute.bndlib-3.4.0.jar", artifactHome + "/biz/aQute/bnd/biz.aQute.bndlib/3.4.0/biz.aQute.bndlib-3.4.0-sources.jar", artifactHome + "/biz/aQute/bnd/biz.aQute.bndlib/3.4.0/biz.aQute.bndlib-3.4.0-javadoc.jar")
   verifySrcAndJavadocClasspathEntry(artifactHome + "/org/specs2/specs2-core_2.12/3.9.4/specs2-core_2.12-3.9.4.jar", artifactHome + "/org/specs2/specs2-core_2.12/3.9.4/specs2-core_2.12-3.9.4-sources.jar", artifactHome + "/org/specs2/specs2-core_2.12/3.9.4/specs2-core_2.12-3.9.4-javadoc.jar")
 }
+
+ThisBuild / scalaVersion := {
+  if (sbtVersion.value.startsWith("1.")) "2.12.21" else "3.9.0"
+}

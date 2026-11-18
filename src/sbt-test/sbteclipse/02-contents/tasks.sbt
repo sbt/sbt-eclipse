@@ -289,3 +289,7 @@ verifyScalaSettings := {
   }
   if (settings != expected) error("Expected settings to be '%s', but was '%s'!".format(expected, settings))
 }
+
+ThisBuild / scalaVersion := {
+  if (sbtVersion.value.startsWith("1.")) "2.12.21" else "3.9.0"
+}
