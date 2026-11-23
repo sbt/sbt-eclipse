@@ -475,7 +475,7 @@ private object Eclipse extends EclipseSDTConfig {
     import EclipseCreateSrc._
     val classDirectory: Validation[Option[File]] = eclipseOutput match {
       case Some(name) => baseDirectory(ref, state) map { dir => Some(new File(dir, name)) }
-      case None => None.success
+      case None => Option.empty[File].success
     }
 
     def dirs(values: ValueSet, key: SettingKey[Seq[File]]): Validation[List[(sbt.File, Option[java.io.File])]] =
@@ -523,7 +523,7 @@ private object Eclipse extends EclipseSDTConfig {
           moduleReports <- configurationReport.modules
         } yield moduleReports
       }
-    def moduleToFile(moduleReports: Validation[Seq[ModuleReport]], p: (Artifact, File) => Boolean = (artifact, _) => artifact.classifier === None) = {
+    def moduleToFile(moduleReports: Validation[Seq[ModuleReport]], p: (Artifact, File) => Boolean = (artifact, _) => artifact.classifier === None): Validation[Map[ModuleCoordinates, File]] = {
       moduleReports map (moduleReports => {
         val moduleToFile =
           for {
@@ -557,7 +557,7 @@ private object Eclipse extends EclipseSDTConfig {
     val moduleFiles: Validation[Map[File, Lib]] = {
       lazy val classifierModuleReports = moduleReports(Keys.updateClassifiers)
 
-      def classifierModuleToFile(classifier: Option[String]) = {
+      def classifierModuleToFile(classifier: Option[String]): Validation[Map[ModuleCoordinates, File]] = {
         if (classifier.isDefined)
           moduleToFile(classifierModuleReports, (artifact, _) => artifact.classifier === classifier)
         else
@@ -591,7 +591,7 @@ private object Eclipse extends EclipseSDTConfig {
       case dependency if isInConfiguration(configuration, ref, dependency, state) =>
         settingValidation((dependency.project / Keys.name), state)
     }
-    val projectDependenciesSeq = projectDependencies.toList.sequence
+    val projectDependenciesSeq: Validation[Seq[String]] = projectDependencies.toList.sequence.map(_.toSeq)
     state.log.debug(s"Project dependencies for configuration '${configuration}': ${projectDependenciesSeq}")
     projectDependenciesSeq
   }

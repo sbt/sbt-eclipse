@@ -431,13 +431,13 @@ object EclipsePlugin {
     object Identity extends EclipseTransformerFactory[RewriteRule] {
       import scalaz.Scalaz._
       override def createTransformer(ref: ProjectRef, state: State): Validation[RewriteRule] =
-        IdentityRewriteRule.success
+        (IdentityRewriteRule: RewriteRule).success
     }
 
     object ClasspathDefault extends EclipseTransformerFactory[RewriteRule] {
       import scalaz.Scalaz._
       override def createTransformer(ref: ProjectRef, state: State): Validation[RewriteRule] =
-        ClasspathDefaultRule.success
+        (ClasspathDefaultRule: RewriteRule).success
     }
   }
 
@@ -488,6 +488,6 @@ object EclipsePlugin {
 
     // Return a new transformer object
     override def createTransformer(ref: ProjectRef, state: State): Validation[RewriteRule] =
-      Rule.success
+      (Rule: RewriteRule).success
   }
 }
